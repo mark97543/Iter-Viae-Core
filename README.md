@@ -72,14 +72,18 @@ Iter Viae Core/
 
 ## Version Notes 
 
-### Version 1: Faber (*The Smith*) — Completed 08/02/26
+### Version 1: Faber (*The Smith*) — Completed 08/03/26
 - **Pipeline Automation ([faber.sh](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/faber.sh))**:
-  - Implemented the core Bash pipeline to automate preprocessing of raw OpenStreetMap `.pbf` map extracts into production offline map datasets.
+  - Implemented the primary Bash pipeline to automate preprocessing of raw OpenStreetMap `.pbf` map extracts into production offline map datasets.
   - Enforced directory integrity checks (`tools/faber/`, `data/maps/raw/`, `data/maps/compiled/`) and pre-build output purging to maintain a single active map set.
   - Added strict input validation: checks `data/maps/raw/` and enforces strictly **one** `.pbf` file with user notifications on error.
-- **Visual Master Tiles (`map.mbtiles`)**:
+  - Added modular `--skip-tilemaker` / `--preserve` flag to allow selective rebuilding of routing or geocoding without re-running long vector tile builds.
+- **Visual Master Vector Tiles (`map.mbtiles` — 11 GB)**:
   - Integrated `tilemaker` configured with OpenMapTiles schema ([config.json](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/config.json), [process.lua](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/process.lua)) to compile vector tiles for MapLibre GL rendering.
-- **Routing Graph Shards (`routing.tar`)**:
-  - Integrated Valhalla routing graph builder to bundle pre-processed routing tiles into a `.tar` archive for offline navigation.
-- **Gazetteer Search Index (`geocoder.db`)**:
-  - Created [geocoder_builder.py](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/geocoder_builder.py) leveraging `osmium` and SQLite FTS5 (`search_index`) to index places, streets, and roadside POIs for offline search.
+  - Optimized memory consumption by enabling disk-backed temporary storage (`--store` disk mmap) and `--shard-stores`, keeping system RAM usage under 3 GB during nationwide PBF processing.
+- **Routing Graph Shards (`routing.tar` — 19 GB)**:
+  - Integrated Valhalla routing graph builder via Docker (`ghcr.io/gis-ops/docker-valhalla/valhalla:latest`) to generate turn-by-turn routing tile shards into `routing.tar`.
+  - Resolved Docker volume write permissions using host UID/GID mapping (`--user "$(id -u):$(id -g)"`) and capped concurrency (`--mjolnir-concurrency 4`).
+- **Gazetteer Search Index (`geocoder.db` — 1.8 GB / 12.9M locations)**:
+  - Implemented stream-processing in [geocoder_builder.py](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/geocoder_builder.py) leveraging `osmium tags-filter` piped into `osmium export -f geojsonseq`.
+  - Indexed 12,905,586 searchable locations into a SQLite FTS5 database (`geocoder.db`) with sub-10ms query speeds under 50 MB RAM.

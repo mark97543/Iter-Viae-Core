@@ -52,6 +52,13 @@ banner() {
     echo -e "${NC}"
 }
 
+SKIP_TILEMAKER=false
+for arg in "$@"; do
+    if [ "$arg" = "--skip-tilemaker" ] || [ "$arg" = "--preserve" ]; then
+        SKIP_TILEMAKER=true
+    fi
+done
+
 banner
 
 # ------------------------------------------------------------------------------
@@ -105,13 +112,20 @@ log_success "Found raw map extract: ${BOLD}${PBF_FILENAME}${NC} (${PBF_SIZE})"
 # ------------------------------------------------------------------------------
 log_step "Step 3: Cleaning Compiled Output Directory"
 
-EXISTING_FILES=("${COMPILED_DIR}"/*)
-if [ ${#EXISTING_FILES[@]} -gt 0 ] && [ -e "${EXISTING_FILES[0]}" ]; then
-    log_info "Purging previous compiled map artifacts in '${COMPILED_DIR}'..."
-    rm -rf "${COMPILED_DIR:?}"/*
-    log_success "Cleaned '${COMPILED_DIR}'."
+OUTPUT_MBTILES="${COMPILED_DIR}/map.mbtiles"
+
+if [ "$SKIP_TILEMAKER" = true ] && [ -f "$OUTPUT_MBTILES" ]; then
+    log_info "Preserving existing map.mbtiles as requested via --skip-tilemaker."
+    rm -f "${COMPILED_DIR}/routing.tar" "${COMPILED_DIR}/geocoder.db"
 else
-    log_info "Compiled directory is clean."
+    EXISTING_FILES=("${COMPILED_DIR}"/*)
+    if [ ${#EXISTING_FILES[@]} -gt 0 ] && [ -e "${EXISTING_FILES[0]}" ]; then
+        log_info "Purging previous compiled map artifacts in '${COMPILED_DIR}'..."
+        rm -rf "${COMPILED_DIR:?}"/*
+        log_success "Cleaned '${COMPILED_DIR}'."
+    else
+        log_info "Compiled directory is clean."
+    fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -119,15 +133,20 @@ fi
 # ------------------------------------------------------------------------------
 log_step "Step 4: Compiling Visual Master Vector Tiles (map.mbtiles)"
 
-OUTPUT_MBTILES="${COMPILED_DIR}/map.mbtiles"
-
-if command -v tilemaker &> /dev/null; then
-    log_info "Executing Tilemaker vector tile compiler..."
+if [ "$SKIP_TILEMAKER" = true ] && [ -f "$OUTPUT_MBTILES" ]; then
+    log_success "Using existing map.mbtiles ($(du -h "$OUTPUT_MBTILES" | cut -f1))."
+elif command -v tilemaker &> /dev/null; then
+    log_info "Executing Tilemaker vector tile compiler in low-RAM mode (--store disk)..."
+    TILEMAKER_STORE_DIR="${COMPILED_DIR}/tilemaker_store"
+    mkdir -p "$TILEMAKER_STORE_DIR"
     tilemaker \
         --input "$INPUT_PBF" \
         --output "$OUTPUT_MBTILES" \
         --config "${FABER_DIR}/config.json" \
-        --process "${FABER_DIR}/process.lua"
+        --process "${FABER_DIR}/process.lua" \
+        --store "$TILEMAKER_STORE_DIR" \
+        --shard-stores
+    rm -rf "$TILEMAKER_STORE_DIR"
     log_success "Created Visual Master Tiles: map.mbtiles"
 else
     log_error "Tilemaker binary not found! Please install tilemaker."
@@ -141,25 +160,47 @@ log_step "Step 5: Packaging Routing Graph Shards (routing.tar)"
 
 OUTPUT_ROUTING_TAR="${COMPILED_DIR}/routing.tar"
 VALHALLA_WORK_DIR="${COMPILED_DIR}/valhalla_tiles"
+VALHALLA_IMAGE="ghcr.io/gis-ops/docker-valhalla/valhalla:latest"
 
 mkdir -p "$VALHALLA_WORK_DIR"
+chmod 777 "$VALHALLA_WORK_DIR"
 
 if command -v docker &> /dev/null && docker info &> /dev/null; then
-    log_info "Running Valhalla tile build pipeline via Docker (gisops/valhalla)..."
+    log_info "Running Valhalla tile build pipeline via Docker (${VALHALLA_IMAGE})..."
+    
+    # 5a. Generate valhalla.json configuration if not present
+    VALHALLA_CONFIG="${VALHALLA_WORK_DIR}/valhalla.json"
+    log_info "Generating Valhalla configuration with resource limits (concurrency=4)..."
+    docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        --entrypoint /usr/local/bin/valhalla_build_config \
+        -v "${VALHALLA_WORK_DIR}:/valhalla_tiles" \
+        "$VALHALLA_IMAGE" \
+        --mjolnir-tile-dir /valhalla_tiles \
+        --mjolnir-tile-extract /valhalla_tiles/valhalla_tiles.tar \
+        --mjolnir-concurrency 4 > "$VALHALLA_CONFIG"
+
+    # 5b. Build Valhalla routing tiles
+    log_info "Building routing tiles from ${PBF_FILENAME}..."
     if docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        --entrypoint /usr/local/bin/valhalla_build_tiles \
         -v "${RAW_DIR}:/custom_files" \
         -v "${VALHALLA_WORK_DIR}:/valhalla_tiles" \
-        gisops/valhalla:latest valhalla_build_tiles -c /custom_files/valhalla.json /custom_files/"$PBF_FILENAME" 2>/dev/null; then
-        log_info "Valhalla build complete."
+        "$VALHALLA_IMAGE" \
+        -c /valhalla_tiles/valhalla.json /custom_files/"$PBF_FILENAME"; then
+        log_success "Valhalla tile compilation completed successfully."
     else
-        log_warn "Valhalla docker image run skipped or returned warning. Generating standard routing tile package..."
+        log_warn "Valhalla build returned non-zero exit code. Packaging available tile data..."
     fi
+else
+    log_warn "Docker is unavailable. Generating standard routing tile package..."
 fi
 
-# Ensure routing tiles folder has routing manifest/structure and package into tar archive
+# Ensure manifest exists and package tile hierarchy into tar archive
 echo "Iter Viae Routing Shard Archive - Map: ${PBF_FILENAME}" > "${VALHALLA_WORK_DIR}/manifest.txt"
 tar -cf "$OUTPUT_ROUTING_TAR" -C "$COMPILED_DIR" "valhalla_tiles"
-rm -rf "$VALHALLA_WORK_DIR"
+rm -rf "$VALHALLA_WORK_DIR" 2>/dev/null || docker run --rm --user 0:0 --entrypoint /bin/bash -v "${COMPILED_DIR}:/compiled" "$VALHALLA_IMAGE" -c "rm -rf /compiled/valhalla_tiles"
 
 log_success "Created Routing Graph Shards: routing.tar"
 

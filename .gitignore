@@ -1,6 +1,10 @@
 # Map data folder (raw PBF extracts and compiled map datasets)
 data/
 
+# Build & Dependency Artifacts
+node_modules/
+target/
+
 # Python cache & bytecode
 __pycache__/
 *.pyc
