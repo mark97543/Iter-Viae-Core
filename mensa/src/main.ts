@@ -395,9 +395,22 @@ function initMap() {
     },
     center: [-98.5795, 39.8283],
     zoom: 4,
+    minZoom: 0,
+    maxZoom: 15,
     pitch: 0,
     bearing: 0
   });
+
+  // Update debug zoom overlay
+  const updateZoomDisplay = () => {
+    const zoomEl = document.getElementById("zoom-val");
+    if (zoomEl) {
+      zoomEl.textContent = map.getZoom().toFixed(2);
+    }
+  };
+
+  map.on("zoom", updateZoomDisplay);
+  map.on("load", updateZoomDisplay);
 
   // Add Navigation and Scale controls
   map.addControl(new maplibregl.NavigationControl(), "top-right");

@@ -33,6 +33,36 @@ html, body {
   background-color: #0b0f19;
 }
 
+/* Tactical Debug Overlay */
+#debug-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+  font-family: monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  user-select: none;
+}
+
+.debug-label {
+  color: #94a3b8;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
 /* MapLibre GL UI styling overrides */
 .maplibregl-ctrl-group {
   background: rgba(15, 23, 42, 0.85) !important;
