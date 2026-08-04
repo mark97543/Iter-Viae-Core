@@ -145,11 +145,11 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+M")
                 .build(app)?;
 
-            // Core Mapbox Themes
+            // 3 Core Map Modes: 2D Basic, 3D Buildings, 3D Mountain Terrain
             let theme_options = [
-                ("theme-streets", "Mapbox Streets (Default)"),
-                ("theme-outdoors", "Mapbox Outdoors"),
-                ("theme-default", "Mapbox Default Dark"),
+                ("theme-2d-basic", "2D Basic Tactical (Default)"),
+                ("theme-3d-buildings", "3D Buildings"),
+                ("theme-3d-terrain", "3D Mountain Terrain"),
             ];
 
             let mut theme_menu_builder = SubmenuBuilder::new(app, "Theme");

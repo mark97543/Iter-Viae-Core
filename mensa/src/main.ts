@@ -2,100 +2,52 @@ import * as maplibregl from "maplibre-gl";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-interface ThemeConfig {
-  bg: string;
-  landcover: string;
-  landuse: string;
-  park: string;
-  water: string;
-  waterway: string;
-  building: string;
-  buildingBorder: string;
-  boundary: string;
-  minorRoad: string;
-  secondaryRoad: string;
-  primaryRoad: string;
-  motorway: string;
-  text: string;
-  halo: string;
-}
-
-// Mapbox Official Pre-made Theme Palettes
-const MAPBOX_THEMES: Record<string, ThemeConfig> = {
-  "streets": {
-    bg: "#f8f9fb",
-    landcover: "#c2e9c6",
-    landuse: "#edf0f5",
-    park: "#b8ebbe",
-    water: "#a0c8f0",
-    waterway: "#7cb5ec",
-    building: "#e1e5eb",
-    buildingBorder: "#d1d7e0",
-    boundary: "#939eb0",
-    minorRoad: "#ffffff",
-    secondaryRoad: "#ffffff",
-    primaryRoad: "#fcd6a4",
-    motorway: "#f99d79",
-    text: "#333333",
-    halo: "#ffffff",
-  },
-  "outdoors": {
-    bg: "#eaf0e6",
-    landcover: "#bce3c5",
-    landuse: "#dfe9db",
-    park: "#a9dfbf",
-    water: "#85c1e9",
-    waterway: "#5adeeb",
-    building: "#d5dbdb",
-    buildingBorder: "#c7cece",
-    boundary: "#7f8c8d",
-    minorRoad: "#ffffff",
-    secondaryRoad: "#ffffff",
-    primaryRoad: "#f7dc6f",
-    motorway: "#eb984e",
-    text: "#1e8449",
-    halo: "#ffffff",
-  },
-  "default": {
-    bg: "#191a1a",
-    landcover: "#212323",
-    landuse: "#242526",
-    park: "#1f2924",
-    water: "#121314",
-    waterway: "#1e2226",
-    building: "#2b2c2d",
-    buildingBorder: "#38393a",
-    boundary: "#525252",
-    minorRoad: "#2b2c2d",
-    secondaryRoad: "#383838",
-    primaryRoad: "#454545",
-    motorway: "#f59e0b",
-    text: "#d9d9d9",
-    halo: "#191a1a",
-  },
-};
-
 function applyTheme(map: maplibregl.Map, themeId: string) {
-  const theme = MAPBOX_THEMES[themeId] || MAPBOX_THEMES["streets"];
+  if (themeId === "3d-buildings") {
+    // 1. 3D Buildings Mode (Camera pitch 60°, hardware extruded building blocks)
+    map.easeTo({ pitch: 60, bearing: -17.6, duration: 1200 });
 
-  if (map.getLayer("background")) map.setPaintProperty("background", "background-color", theme.bg);
-  if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", theme.landcover);
-  if (map.getLayer("landuse")) map.setPaintProperty("landuse", "fill-color", theme.landuse);
-  if (map.getLayer("park")) map.setPaintProperty("park", "fill-color", theme.park);
-  if (map.getLayer("water")) map.setPaintProperty("water", "fill-color", theme.water);
-  if (map.getLayer("waterway")) map.setPaintProperty("waterway", "line-color", theme.waterway);
-  if (map.getLayer("building")) {
-    map.setPaintProperty("building", "fill-color", theme.building);
-    map.setPaintProperty("building", "fill-outline-color", theme.buildingBorder);
-  }
-  if (map.getLayer("boundary")) map.setPaintProperty("boundary", "line-color", theme.boundary);
-  if (map.getLayer("transportation_minor")) map.setPaintProperty("transportation_minor", "line-color", theme.minorRoad);
-  if (map.getLayer("transportation_secondary")) map.setPaintProperty("transportation_secondary", "line-color", theme.secondaryRoad);
-  if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", theme.primaryRoad);
-  if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", theme.motorway);
-  if (map.getLayer("place_label")) {
-    map.setPaintProperty("place_label", "text-color", theme.text);
-    map.setPaintProperty("place_label", "text-halo-color", theme.halo);
+    if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "none");
+    if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "visible");
+    if (map.getLayer("hillshade")) map.setLayoutProperty("hillshade", "visibility", "none");
+
+    if (map.getLayer("background")) map.setPaintProperty("background", "background-color", "#0b0f19");
+    if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", "#062c20");
+    if (map.getLayer("landuse")) map.setPaintProperty("landuse", "fill-color", "#111827");
+    if (map.getLayer("water")) map.setPaintProperty("water", "fill-color", "#061838");
+    if (map.getLayer("boundary")) map.setPaintProperty("boundary", "line-color", "#38bdf8");
+    if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", "#38bdf8");
+    if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#f59e0b");
+  } else if (themeId === "3d-terrain") {
+    // 2. 3D Mountain Terrain Mode (Camera pitch 55°, topographic mountain relief & contour shading)
+    map.easeTo({ pitch: 55, bearing: 12, duration: 1200 });
+
+    if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "visible");
+    if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "none");
+    if (map.getLayer("hillshade")) map.setLayoutProperty("hillshade", "visibility", "visible");
+
+    if (map.getLayer("background")) map.setPaintProperty("background", "background-color", "#141e17");
+    if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", "#1c3323");
+    if (map.getLayer("landuse")) map.setPaintProperty("landuse", "fill-color", "#19291e");
+    if (map.getLayer("water")) map.setPaintProperty("water", "fill-color", "#0c2a38");
+    if (map.getLayer("boundary")) map.setPaintProperty("boundary", "line-color", "#f59e0b");
+    if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", "#38bdf8");
+    if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#d97706");
+  } else {
+    // 3. 2D Basic Tactical Mode (Default flat 2D top-down view)
+    map.easeTo({ pitch: 0, bearing: 0, duration: 1200 });
+
+    if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "visible");
+    if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "none");
+    if (map.getLayer("hillshade")) map.setLayoutProperty("hillshade", "visibility", "none");
+
+    if (map.getLayer("background")) map.setPaintProperty("background", "background-color", "#090d16");
+    if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", "#052e16");
+    if (map.getLayer("landuse")) map.setPaintProperty("landuse", "fill-color", "#0f172a");
+    if (map.getLayer("water")) map.setPaintProperty("water", "fill-color", "#0a2540");
+    if (map.getLayer("boundary")) map.setPaintProperty("boundary", "line-color", "#38bdf8");
+    if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", "#38bdf8");
+    if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#f59e0b");
   }
 }
 
@@ -128,13 +80,11 @@ function initMap() {
   const mapContainer = document.getElementById("map");
   if (!mapContainer) return;
 
-  const defaultTheme = MAPBOX_THEMES["streets"];
-
   const map = new maplibregl.Map({
     container: "map",
     style: {
       version: 8,
-      name: "Mensa Mapbox Theme Engine",
+      name: "Mensa 3D & 2D Tactical Engine",
       glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       sources: {
         openmaptiles: {
@@ -148,35 +98,35 @@ function initMap() {
         {
           id: "background",
           type: "background",
-          paint: { "background-color": defaultTheme.bg }
+          paint: { "background-color": "#090d16" }
         },
         {
           id: "landcover",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "landcover",
-          paint: { "fill-color": defaultTheme.landcover, "fill-opacity": 0.6 }
+          paint: { "fill-color": "#052e16", "fill-opacity": 0.5 }
         },
         {
           id: "landuse",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "landuse",
-          paint: { "fill-color": defaultTheme.landuse, "fill-opacity": 0.8 }
+          paint: { "fill-color": "#0f172a", "fill-opacity": 0.8 }
         },
         {
           id: "park",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "park",
-          paint: { "fill-color": defaultTheme.park, "fill-opacity": 0.6 }
+          paint: { "fill-color": "#064e3b", "fill-opacity": 0.6 }
         },
         {
           id: "water",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "water",
-          paint: { "fill-color": defaultTheme.water, "fill-opacity": 1.0 }
+          paint: { "fill-color": "#0a2540", "fill-opacity": 1.0 }
         },
         {
           id: "waterway",
@@ -184,19 +134,61 @@ function initMap() {
           source: "openmaptiles",
           "source-layer": "waterway",
           paint: {
-            "line-color": defaultTheme.waterway,
+            "line-color": "#1d4ed8",
             "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1, 14, 3]
           }
         },
+        // 3D Mountain Terrain Hillshade Relief Layer
         {
-          id: "building",
+          id: "hillshade",
+          type: "line",
+          source: "openmaptiles",
+          "source-layer": "waterway",
+          layout: { "visibility": "none" },
+          paint: {
+            "line-color": "#4ade80",
+            "line-width": 1.5,
+            "line-dasharray": [2, 2]
+          }
+        },
+        // 2D Building Fill Layer
+        {
+          id: "building_2d",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "building",
+          layout: { "visibility": "visible" },
           paint: {
-            "fill-color": defaultTheme.building,
-            "fill-outline-color": defaultTheme.buildingBorder,
+            "fill-color": "#1e293b",
+            "fill-outline-color": "#334155",
             "fill-opacity": 0.85
+          }
+        },
+        // 3D Building Extrusion Layer
+        {
+          id: "building_3d",
+          type: "fill-extrusion",
+          source: "openmaptiles",
+          "source-layer": "building",
+          minzoom: 12,
+          layout: { "visibility": "none" },
+          paint: {
+            "fill-extrusion-color": "#1e293b",
+            "fill-extrusion-height": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              12, 0,
+              13, ["coalesce", ["get", "render_height"], ["get", "height"], 20]
+            ],
+            "fill-extrusion-base": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              12, 0,
+              13, ["coalesce", ["get", "render_min_height"], ["get", "min_height"], 0]
+            ],
+            "fill-extrusion-opacity": 0.9
           }
         },
         {
@@ -205,7 +197,7 @@ function initMap() {
           source: "openmaptiles",
           "source-layer": "boundary",
           paint: {
-            "line-color": defaultTheme.boundary,
+            "line-color": "#38bdf8",
             "line-opacity": 0.7,
             "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1, 10, 2],
             "line-dasharray": [3, 2]
@@ -218,7 +210,7 @@ function initMap() {
           "source-layer": "transportation",
           filter: ["in", "class", "minor", "service", "track", "residential", "unclassified"],
           paint: {
-            "line-color": defaultTheme.minorRoad,
+            "line-color": "#1e293b",
             "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.5, 14, 2]
           }
         },
@@ -229,7 +221,7 @@ function initMap() {
           "source-layer": "transportation",
           filter: ["in", "class", "secondary", "tertiary"],
           paint: {
-            "line-color": defaultTheme.secondaryRoad,
+            "line-color": "#64748b",
             "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.8, 14, 3]
           }
         },
@@ -240,7 +232,7 @@ function initMap() {
           "source-layer": "transportation",
           filter: ["in", "class", "primary"],
           paint: {
-            "line-color": defaultTheme.primaryRoad,
+            "line-color": "#38bdf8",
             "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1.2, 14, 4]
           }
         },
@@ -251,7 +243,7 @@ function initMap() {
           "source-layer": "transportation",
           filter: ["in", "class", "motorway", "trunk", "expressway"],
           paint: {
-            "line-color": defaultTheme.motorway,
+            "line-color": "#f59e0b",
             "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 14, 5]
           }
         },
@@ -267,8 +259,8 @@ function initMap() {
             "text-allow-overlap": false
           },
           paint: {
-            "text-color": defaultTheme.text,
-            "text-halo-color": defaultTheme.halo,
+            "text-color": "#f8fafc",
+            "text-halo-color": "#090d16",
             "text-halo-width": 2
           }
         }
