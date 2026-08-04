@@ -10,7 +10,7 @@ function applyTheme(map: maplibregl.Map, themeId: string) {
 
     if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "none");
     if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "visible");
-    if (map.getLayer("hillshade")) map.setLayoutProperty("hillshade", "visibility", "none");
+    if (map.getLayer("terrain_hillshade")) map.setLayoutProperty("terrain_hillshade", "visibility", "none");
 
     if (map.getLayer("background")) map.setPaintProperty("background", "background-color", "#0b0f19");
     if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", "#062c20");
@@ -20,21 +20,21 @@ function applyTheme(map: maplibregl.Map, themeId: string) {
     if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", "#38bdf8");
     if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#f59e0b");
   } else if (themeId === "3d-terrain") {
-    // 2. 3D Mountain Terrain Mode (Camera pitch 70°, 3.5x dramatic mountain exaggeration & rider perspective)
-    map.setTerrain({ source: "terrain_dem", exaggeration: 3.5 });
-    map.easeTo({ pitch: 70, bearing: -25, zoom: Math.max(map.getZoom(), 8.5), duration: 1400 });
+    // 2. 3D Mountain Terrain Mode (Camera pitch 58°, 1.8x stable elevation + WebGL sun illumination hillshade)
+    map.setTerrain({ source: "terrain_dem", exaggeration: 1.8 });
+    map.easeTo({ pitch: 58, bearing: -20, duration: 1400 });
 
     if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "visible");
     if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "none");
-    if (map.getLayer("hillshade")) map.setLayoutProperty("hillshade", "visibility", "visible");
+    if (map.getLayer("terrain_hillshade")) map.setLayoutProperty("terrain_hillshade", "visibility", "visible");
 
-    if (map.getLayer("background")) map.setPaintProperty("background", "background-color", "#141e17");
-    if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", "#1c3323");
-    if (map.getLayer("landuse")) map.setPaintProperty("landuse", "fill-color", "#19291e");
-    if (map.getLayer("water")) map.setPaintProperty("water", "fill-color", "#0c2a38");
-    if (map.getLayer("boundary")) map.setPaintProperty("boundary", "line-color", "#f59e0b");
+    if (map.getLayer("background")) map.setPaintProperty("background", "background-color", "#0d1b1e");
+    if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", "#153a2a");
+    if (map.getLayer("landuse")) map.setPaintProperty("landuse", "fill-color", "#1b2a26");
+    if (map.getLayer("water")) map.setPaintProperty("water", "fill-color", "#0284c7");
+    if (map.getLayer("boundary")) map.setPaintProperty("boundary", "line-color", "#fbbf24");
     if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", "#38bdf8");
-    if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#d97706");
+    if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#f59e0b");
   } else {
     // 3. 2D Basic Tactical Mode (Default flat 2D top-down view)
     map.setTerrain(null);
@@ -42,7 +42,7 @@ function applyTheme(map: maplibregl.Map, themeId: string) {
 
     if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "visible");
     if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "none");
-    if (map.getLayer("hillshade")) map.setLayoutProperty("hillshade", "visibility", "none");
+    if (map.getLayer("terrain_hillshade")) map.setLayoutProperty("terrain_hillshade", "visibility", "none");
 
     if (map.getLayer("background")) map.setPaintProperty("background", "background-color", "#090d16");
     if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", "#052e16");
@@ -173,17 +173,18 @@ function initMap() {
             "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1, 14, 3]
           }
         },
-        // 3D Mountain Terrain Hillshade Relief Layer
+        // Real WebGL Hillshade Shading Layer for 3D Mountain Terrain
         {
-          id: "hillshade",
-          type: "line",
-          source: "openmaptiles",
-          "source-layer": "waterway",
+          id: "terrain_hillshade",
+          type: "hillshade",
+          source: "terrain_dem",
           layout: { "visibility": "none" },
           paint: {
-            "line-color": "#4ade80",
-            "line-width": 1.5,
-            "line-dasharray": [2, 2]
+            "hillshade-exaggeration": 0.85,
+            "hillshade-shadow-color": "#050b14",
+            "hillshade-highlight-color": "#ffffff",
+            "hillshade-accent-color": "#0284c7",
+            "hillshade-illumination-direction": 315
           }
         },
         // 2D Building Fill Layer
