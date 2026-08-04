@@ -1,4 +1,6 @@
+use std::io::Read;
 use std::path::PathBuf;
+use flate2::read::GzDecoder;
 use rusqlite::{Connection, OpenFlags};
 use tauri::{Manager, State};
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
@@ -7,22 +9,43 @@ pub struct MbtilesState {
     app_handle: tauri::AppHandle,
 }
 
+fn find_mbtiles_in_dir(dir: &std::path::Path) -> Option<PathBuf> {
+    if !dir.exists() {
+        return None;
+    }
+    // 1. Check for standard map.mbtiles
+    let standard = dir.join("map.mbtiles");
+    if standard.exists() {
+        return Some(standard);
+    }
+    // 2. Search for any .mbtiles file in the directory
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("mbtiles") {
+                return Some(path);
+            }
+        }
+    }
+    None
+}
+
 impl MbtilesState {
     fn find_mbtiles_path(&self) -> Option<PathBuf> {
-        // 1. Check primary OS app data directory (e.g. ~/.local/share/com.viae.mensa/maps/map.mbtiles or %APPDATA%/com.viae.mensa/maps/map.mbtiles)
+        // 1. Check primary OS app data directory (e.g. ~/.local/share/com.viae.mensa/maps or %APPDATA%/com.viae.mensa/maps)
         if let Ok(app_dir) = self.app_handle.path().app_data_dir() {
-            let user_map = app_dir.join("maps").join("map.mbtiles");
-            if user_map.exists() {
-                return Some(user_map);
+            let os_maps_dir = app_dir.join("maps");
+            if let Some(path) = find_mbtiles_in_dir(&os_maps_dir) {
+                return Some(path);
             }
         }
 
-        // 2. Fallback to development workspace directory (data/maps/compiled/map.mbtiles)
+        // 2. Fallback to development workspace directory (data/maps/compiled)
         let mut curr = std::env::current_dir().unwrap_or_default();
         for _ in 0..4 {
-            let candidate = curr.join("data").join("maps").join("compiled").join("map.mbtiles");
-            if candidate.exists() {
-                return Some(candidate);
+            let candidate_dir = curr.join("data").join("maps").join("compiled");
+            if let Some(path) = find_mbtiles_in_dir(&candidate_dir) {
+                return Some(path);
             }
             if let Some(parent) = curr.parent() {
                 curr = parent.to_path_buf();
@@ -48,6 +71,18 @@ fn get_os_app_maps_dir(app_handle: &tauri::AppHandle) -> PathBuf {
     fallback
 }
 
+fn decompress_tile(data: Vec<u8>) -> Vec<u8> {
+    // Check for gzip magic bytes 0x1f, 0x8b
+    if data.len() >= 2 && data[0] == 0x1f && data[1] == 0x8b {
+        let mut decoder = GzDecoder::new(&data[..]);
+        let mut decompressed = Vec::new();
+        if decoder.read_to_end(&mut decompressed).is_ok() {
+            return decompressed;
+        }
+    }
+    data
+}
+
 #[tauri::command]
 fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Vec<u8>, String> {
     let db_path = match state.find_mbtiles_path() {
@@ -65,8 +100,8 @@ fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Ve
         "SELECT tile_data FROM tiles WHERE zoom_level = ?1 AND tile_column = ?2 AND tile_row = ?3"
     ).map_err(|e| e.to_string())?;
 
-    match stmt.query_row([z, x, tms_y], |row| row.get(0)) {
-        Ok(data) => Ok(data),
+    match stmt.query_row([z, x, tms_y], |row| row.get::<_, Vec<u8>>(0)) {
+        Ok(data) => Ok(decompress_tile(data)),
         Err(_) => Ok(Vec::new()),
     }
 }
