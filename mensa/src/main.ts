@@ -126,7 +126,7 @@ function initMap() {
           tiles: ["dem://{z}/{x}/{y}"],
           tileSize: 256,
           encoding: "terrarium",
-          maxzoom: 10
+          maxzoom: 8
         }
       },
       layers: [

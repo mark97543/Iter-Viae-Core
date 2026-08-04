@@ -9,6 +9,7 @@ into a high-performance SQLite MBTiles database for true 3D WebGL terrain render
 
 import os
 import sys
+import math
 import sqlite3
 import urllib.request
 import concurrent.futures
@@ -17,7 +18,21 @@ from pathlib import Path
 # Terrarium DEM URL template
 TERRARIUM_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
 
-def init_mbtiles_db(db_path: Path):
+# USA Bounding Box (Continental USA + AK/HI bounds)
+USA_BOUNDS = (-125.0, 24.0, -66.0, 49.0)
+
+def lon2tile(lon: float, zoom: int) -> int:
+    n = 1 << zoom
+    x = int(math.floor((lon + 180.0) / 360.0 * n))
+    return max(0, min(x, n - 1))
+
+def lat2tile(lat: float, zoom: int) -> int:
+    n = 1 << zoom
+    lat_rad = math.radians(lat)
+    y = int(math.floor((1.0 - math.log(math.tan(lat_rad) + 1.0 / math.cos(lat_rad)) / math.pi) / 2.0 * n))
+    return max(0, min(y, n - 1))
+
+def init_mbtiles_db(db_path: Path, max_zoom: int):
     if db_path.exists():
         db_path.unlink()
 
@@ -36,7 +51,7 @@ def init_mbtiles_db(db_path: Path):
         ("format", "png"),
         ("bounds", "-180.0,-85.0511,180.0,85.0511"),
         ("minzoom", "0"),
-        ("maxzoom", "10"),
+        ("maxzoom", str(max_zoom)),
     ]
     cursor.executemany("INSERT INTO metadata VALUES (?, ?);", metadata)
     conn.commit()
@@ -44,7 +59,6 @@ def init_mbtiles_db(db_path: Path):
 
 def download_tile(z: int, x: int, y: int) -> tuple[int, int, int, bytes | None]:
     url = TERRARIUM_URL.format(z=z, x=x, y=y)
-    # Convert XYZ y to TMS row for MBTiles
     tms_y = (1 << z) - 1 - y
     req = urllib.request.Request(url, headers={"User-Agent": "IterViaeFaber/1.0"})
     try:
@@ -54,18 +68,33 @@ def download_tile(z: int, x: int, y: int) -> tuple[int, int, int, bytes | None]:
     except Exception:
         return (z, x, tms_y, None)
 
-def build_dem_mbtiles(output_dir: Path, max_zoom: int = 5):
+def build_dem_mbtiles(output_dir: Path, max_zoom: int = 8):
     output_dir.mkdir(parents=True, exist_ok=True)
     db_path = output_dir / "dem.mbtiles"
-    print(f"[INFO] Initializing DEM MBTiles database: {db_path}")
-    init_mbtiles_db(db_path)
+    print(f"[INFO] Initializing DEM MBTiles database: {db_path} (max_zoom={max_zoom})")
+    init_mbtiles_db(db_path, max_zoom)
 
     tiles_to_fetch = []
-    for z in range(0, max_zoom + 1):
+    
+    # Zoom 0-5: Global macro elevation tiles
+    for z in range(0, min(5, max_zoom) + 1):
         num_tiles = 1 << z
         for x in range(num_tiles):
             for y in range(num_tiles):
                 tiles_to_fetch.append((z, x, y))
+
+    # Zoom 6+: Focused USA elevation tiles
+    if max_zoom > 5:
+        min_lon, min_lat, max_lon, max_lat = USA_BOUNDS
+        for z in range(6, max_zoom + 1):
+            min_x = lon2tile(min_lon, z)
+            max_x = lon2tile(max_lon, z)
+            min_y = lat2tile(max_lat, z) # lat2tile is inverted
+            max_y = lat2tile(min_lat, z)
+
+            for x in range(min_x, max_x + 1):
+                for y in range(min_y, max_y + 1):
+                    tiles_to_fetch.append((z, x, y))
 
     print(f"[INFO] Compiling {len(tiles_to_fetch)} DEM elevation tiles (zoom 0 to {max_zoom})...")
 
@@ -74,7 +103,7 @@ def build_dem_mbtiles(output_dir: Path, max_zoom: int = 5):
     count = 0
     saved = 0
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         futures = [executor.submit(download_tile, z, x, y) for z, x, y in tiles_to_fetch]
         for future in concurrent.futures.as_completed(futures):
             z, x, tms_y, tile_data = future.result()
@@ -82,7 +111,7 @@ def build_dem_mbtiles(output_dir: Path, max_zoom: int = 5):
             if tile_data:
                 cursor.execute("INSERT OR REPLACE INTO tiles VALUES (?, ?, ?, ?)", (z, x, tms_y, tile_data))
                 saved += 1
-            if count % 50 == 0 or count == len(tiles_to_fetch):
+            if count % 100 == 0 or count == len(tiles_to_fetch):
                 print(f"       Progress: {count}/{len(tiles_to_fetch)} tiles processed ({saved} saved)...", end="\r")
                 conn.commit()
 
@@ -96,7 +125,7 @@ def main():
     else:
         out_dir = Path("/home/mark/Documents/Iter Viae Core/data/maps/compiled")
     
-    zoom_limit = 5
+    zoom_limit = 8
     if len(sys.argv) > 2:
         try:
             zoom_limit = int(sys.argv[2])
