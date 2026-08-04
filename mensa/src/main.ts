@@ -1,9 +1,5 @@
 import * as maplibregl from "maplibre-gl";
-import maplibreglWorker from "maplibre-gl/dist/maplibre-gl-worker?worker";
 import { invoke } from "@tauri-apps/api/core";
-
-// Bind inline Web Worker for Vite/Tauri bundling to prevent 404 worker fetches
-Object.assign(maplibregl, { workerClass: maplibreglWorker });
 
 // Register custom protocol handler to fetch vector tiles from local MBTiles via Tauri IPC
 maplibregl.addProtocol("mbtiles", async (params: maplibregl.RequestParameters) => {
