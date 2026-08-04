@@ -7,6 +7,24 @@ pub struct MbtilesState {
     db_path: PathBuf,
 }
 
+fn resolve_compiled_maps_dir() -> PathBuf {
+    let mut curr = std::env::current_dir().unwrap_or_default();
+    for _ in 0..4 {
+        let candidate = curr.join("data").join("maps").join("compiled");
+        if candidate.exists() {
+            return candidate;
+        }
+        if let Some(parent) = curr.parent() {
+            curr = parent.to_path_buf();
+        } else {
+            break;
+        }
+    }
+    let fallback = std::env::current_dir().unwrap_or_default().join("data").join("maps").join("compiled");
+    let _ = std::fs::create_dir_all(&fallback);
+    fallback
+}
+
 #[tauri::command]
 fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Vec<u8>, String> {
     if !state.db_path.exists() {
@@ -30,15 +48,7 @@ fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Ve
 }
 
 fn open_maps_folder() {
-    let mut path = std::env::current_dir().unwrap_or_default();
-    path.push("data");
-    path.push("maps");
-    path.push("compiled");
-
-    if !path.exists() {
-        let _ = std::fs::create_dir_all(&path);
-    }
-
+    let path = resolve_compiled_maps_dir();
     #[cfg(target_os = "linux")]
     {
         let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
@@ -55,11 +65,7 @@ fn open_maps_folder() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut db_path = std::env::current_dir().unwrap_or_default();
-    db_path.push("data");
-    db_path.push("maps");
-    db_path.push("compiled");
-    db_path.push("map.mbtiles");
+    let db_path = resolve_compiled_maps_dir().join("map.mbtiles");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
