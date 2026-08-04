@@ -34,7 +34,8 @@ function initMap() {
     container: "map",
     style: {
       version: 8,
-      name: "Mensa Tactical Dark",
+      name: "Mensa Tactical Dark System",
+      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       sources: {
         openmaptiles: {
           type: "vector",
@@ -44,31 +45,34 @@ function initMap() {
         }
       },
       layers: [
+        // 1. Deep Void Canvas Background
         {
           id: "background",
           type: "background",
           paint: {
-            "background-color": "#0b0f19"
+            "background-color": "#090d16"
           }
         },
+        // 2. Landmass Cover (Forests & Parks)
         {
           id: "landcover",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "landcover",
           paint: {
-            "fill-color": "#062c20",
-            "fill-opacity": 0.4
+            "fill-color": "#052e16",
+            "fill-opacity": 0.5
           }
         },
+        // 3. Urban & Residential Areas
         {
           id: "landuse",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "landuse",
           paint: {
-            "fill-color": "#111827",
-            "fill-opacity": 0.6
+            "fill-color": "#0f172a",
+            "fill-opacity": 0.8
           }
         },
         {
@@ -78,16 +82,17 @@ function initMap() {
           "source-layer": "park",
           paint: {
             "fill-color": "#064e3b",
-            "fill-opacity": 0.5
+            "fill-opacity": 0.6
           }
         },
+        // 4. Water Bodies & Oceans
         {
           id: "water",
           type: "fill",
           source: "openmaptiles",
           "source-layer": "water",
           paint: {
-            "fill-color": "#061838",
+            "fill-color": "#0a2540",
             "fill-opacity": 1.0
           }
         },
@@ -97,10 +102,11 @@ function initMap() {
           source: "openmaptiles",
           "source-layer": "waterway",
           paint: {
-            "line-color": "#1e40af",
-            "line-width": 1.5
+            "line-color": "#1d4ed8",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1, 14, 3]
           }
         },
+        // 5. Buildings (2D & Extrusions)
         {
           id: "building",
           type: "fill",
@@ -109,18 +115,32 @@ function initMap() {
           paint: {
             "fill-color": "#1e293b",
             "fill-outline-color": "#334155",
-            "fill-opacity": 0.8
+            "fill-opacity": 0.85
           }
         },
+        // 6. State & Country Political Boundaries
+        {
+          id: "boundary",
+          type: "line",
+          source: "openmaptiles",
+          "source-layer": "boundary",
+          paint: {
+            "line-color": "#38bdf8",
+            "line-opacity": 0.7,
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1, 10, 2],
+            "line-dasharray": [3, 2]
+          }
+        },
+        // 7. Road Network Hierarchy (Tactical Spectrum)
         {
           id: "transportation_minor",
           type: "line",
           source: "openmaptiles",
           "source-layer": "transportation",
-          filter: ["in", "class", "minor", "service", "track"],
+          filter: ["in", "class", "minor", "service", "track", "residential", "unclassified"],
           paint: {
             "line-color": "#1e293b",
-            "line-width": 1.2
+            "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.5, 14, 2]
           }
         },
         {
@@ -130,8 +150,8 @@ function initMap() {
           "source-layer": "transportation",
           filter: ["in", "class", "secondary", "tertiary"],
           paint: {
-            "line-color": "#475569",
-            "line-width": 2
+            "line-color": "#64748b",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.8, 14, 3]
           }
         },
         {
@@ -139,26 +159,38 @@ function initMap() {
           type: "line",
           source: "openmaptiles",
           "source-layer": "transportation",
-          filter: ["in", "class", "primary", "trunk", "motorway"],
+          filter: ["in", "class", "primary"],
           paint: {
-            "line-color": "#f59e0b",
-            "line-width": 3
+            "line-color": "#38bdf8",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1.2, 14, 4]
           }
         },
+        {
+          id: "transportation_motorway",
+          type: "line",
+          source: "openmaptiles",
+          "source-layer": "transportation",
+          filter: ["in", "class", "motorway", "trunk", "expressway"],
+          paint: {
+            "line-color": "#f59e0b",
+            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 14, 5]
+          }
+        },
+        // 8. Place & City Tactical Labels
         {
           id: "place_label",
           type: "symbol",
           source: "openmaptiles",
           "source-layer": "place",
           layout: {
-            "text-field": "{name}",
-            "text-font": ["Metropolis Regular", "Noto Sans Regular"],
-            "text-size": 13,
-            "text-transform": "uppercase"
+            "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10, 10, 16],
+            "text-transform": "uppercase",
+            "text-allow-overlap": false
           },
           paint: {
             "text-color": "#f8fafc",
-            "text-halo-color": "#0f172a",
+            "text-halo-color": "#090d16",
             "text-halo-width": 2
           }
         }
