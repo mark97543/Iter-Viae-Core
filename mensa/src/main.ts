@@ -2,6 +2,20 @@ import * as maplibregl from "maplibre-gl";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+function createFuelIconImageData(): ImageData {
+  const canvas = document.createElement("canvas");
+  canvas.width = 32;
+  canvas.height = 32;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.fillStyle = "#ffffff";
+    const p = new Path2D("M6 4C4.895 4 4 4.895 4 6v20c0 1.105.895 2 2 2h10c1.105 0 2-.895 2-2V6c0-1.105-.895-2-2-2H6zm2 3h6v5H8V7zm-2 7h10v12H6V14zm14-5v3h1a1 1 0 0 1 1 1v6a2 2 0 0 0 2 2h.5a1.5 1.5 0 0 0 1.5-1.5V13.83a2 2 0 0 0-.586-1.414l-2.5-2.5A2 2 0 0 0 21.5 9.34V9.001c0-.553-.448-1-1-1H20z");
+    ctx.fill(p);
+    return ctx.getImageData(0, 0, 32, 32);
+  }
+  return new ImageData(32, 32);
+}
+
 function applyTheme(map: maplibregl.Map, themeId: string) {
   if (themeId === "3d-buildings") {
     // 1. 3D Buildings Mode (Camera pitch 60°, hardware extruded building blocks)
@@ -245,9 +259,10 @@ function initMap() {
           source: "openmaptiles",
           "source-layer": "transportation",
           filter: ["in", "class", "minor", "service", "track", "residential", "unclassified"],
+          minzoom: 11,
           paint: {
             "line-color": "#1e293b",
-            "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.5, 14, 2]
+            "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.5, 14, 2]
           }
         },
         {
@@ -256,9 +271,10 @@ function initMap() {
           source: "openmaptiles",
           "source-layer": "transportation",
           filter: ["in", "class", "secondary", "tertiary"],
+          minzoom: 8,
           paint: {
             "line-color": "#64748b",
-            "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.8, 14, 3]
+            "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.8, 14, 3]
           }
         },
         {
@@ -267,9 +283,10 @@ function initMap() {
           source: "openmaptiles",
           "source-layer": "transportation",
           filter: ["in", "class", "primary"],
+          minzoom: 6,
           paint: {
             "line-color": "#38bdf8",
-            "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1.2, 14, 4]
+            "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.0, 14, 4]
           }
         },
         {
@@ -278,9 +295,10 @@ function initMap() {
           source: "openmaptiles",
           "source-layer": "transportation",
           filter: ["in", "class", "motorway", "trunk", "expressway"],
+          minzoom: 4,
           paint: {
             "line-color": "#f59e0b",
-            "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 14, 5]
+            "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1.2, 14, 5]
           }
         },
         // State & Province Labels
@@ -473,8 +491,187 @@ function initMap() {
             "text-size": ["interpolate", ["linear"], ["zoom"], 6, 9, 14, 12],
             "text-max-angle": 30
           },
+        },
+        // --- Points of Interest (POIs) ---
+        // Gas Stations / Fuel (Matches class="fuel", subclass="fuel", or amenity="fuel")
+        {
+          id: "poi_fuel",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "poi",
+          filter: [
+            "any",
+            ["in", "class", "fuel", "gas_station"],
+            ["in", "subclass", "fuel", "gas_station"],
+            ["==", "amenity", "fuel"]
+          ],
+          minzoom: 10,
+          layout: {
+            "icon-image": "icon-fuel",
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.65, 16, 1.0],
+            "icon-anchor": "bottom",
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "brand"], ["get", "name:en"], ["get", "subclass"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 16, 12],
+            "text-transform": "uppercase",
+            "text-max-width": 9,
+            "text-offset": [0, 0.5],
+            "text-anchor": "top",
+            "text-optional": true
+          },
           paint: {
-            "text-color": "#38bdf8",
+            "icon-color": "#f59e0b",
+            "icon-halo-color": "#090d16",
+            "icon-halo-width": 2,
+            "text-color": "#f59e0b",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Campgrounds & Outdoor Sites
+        {
+          id: "poi_campsite",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "poi",
+          filter: [
+            "any",
+            ["in", "class", "campsite", "camp_site", "caravan_site"],
+            ["in", "subclass", "campsite", "camp_site", "caravan_site", "alpine_hut"]
+          ],
+          minzoom: 10,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "subclass"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 16, 13],
+            "text-transform": "uppercase",
+            "text-max-width": 9
+          },
+          paint: {
+            "text-color": "#10b981",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Medical & Hospitals
+        {
+          id: "poi_hospital",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "poi",
+          filter: [
+            "any",
+            ["in", "class", "hospital", "pharmacy", "clinic"],
+            ["in", "subclass", "hospital", "pharmacy", "clinic", "doctors"]
+          ],
+          minzoom: 11,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "subclass"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10, 16, 13],
+            "text-transform": "uppercase",
+            "text-max-width": 9
+          },
+          paint: {
+            "text-color": "#ef4444",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Hotels, Motels & Lodging
+        {
+          id: "poi_lodging",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "poi",
+          filter: [
+            "any",
+            ["in", "class", "lodging", "hotel", "motel"],
+            ["in", "subclass", "hotel", "motel", "hostel", "guest_house", "lodging", "bed_and_breakfast", "chalet"]
+          ],
+          minzoom: 12,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "subclass"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 16, 12],
+            "text-max-width": 9
+          },
+          paint: {
+            "text-color": "#a855f7",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Restaurants, Cafes & Dining
+        {
+          id: "poi_restaurant",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "poi",
+          filter: [
+            "any",
+            ["in", "class", "restaurant", "fast_food", "cafe", "food", "bar", "pub", "beer"],
+            ["in", "subclass", "restaurant", "fast_food", "cafe", "food", "bar", "pub", "beer", "biergarten", "food_court", "bakery"]
+          ],
+          minzoom: 12,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "brand"], ["get", "name:en"], ["get", "subclass"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 16, 12],
+            "text-max-width": 9
+          },
+          paint: {
+            "text-color": "#f43f5e",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Stores, Supermarkets & Convenience
+        {
+          id: "poi_store",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "poi",
+          filter: [
+            "any",
+            ["in", "class", "grocery", "shop", "supermarket", "convenience"],
+            ["in", "subclass", "supermarket", "convenience", "deli", "delicatessen", "department_store", "grocery", "mall", "kiosk", "general"]
+          ],
+          minzoom: 12,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "brand"], ["get", "name:en"], ["get", "subclass"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 12, 10, 16, 12],
+            "text-max-width": 9
+          },
+          paint: {
+            "text-color": "#06b6d4",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // General POIs (Banks, Post, Police, Parks, Attractions)
+        {
+          id: "poi_general",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "poi",
+          filter: [
+            "any",
+            ["in", "class", "bank", "police", "post", "town_hall", "library", "school", "college", "park", "attraction", "cemetery", "stadium"],
+            ["in", "subclass", "bank", "police", "post_office", "townhall", "library", "school", "university", "park", "attraction", "cemetery"]
+          ],
+          minzoom: 13,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "subclass"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10, 16, 12],
+            "text-max-width": 9
+          },
+          paint: {
+            "text-color": "#94a3b8",
             "text-halo-color": "#090d16",
             "text-halo-width": 2
           }
@@ -500,6 +697,9 @@ function initMap() {
   map.on("zoom", updateZoomDisplay);
   map.on("load", () => {
     updateZoomDisplay();
+    if (!map.hasImage("icon-fuel")) {
+      map.addImage("icon-fuel", createFuelIconImageData(), { sdf: true });
+    }
     applyTheme(map, "2d-basic");
   });
 

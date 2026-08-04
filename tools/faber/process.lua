@@ -260,27 +260,27 @@ poiTags         = { aerialway = Set { "station" },
 					waterway = Set { "dock" } }
 
 -- POI "class" values: based on https://github.com/openmaptiles/openmaptiles/blob/master/layers/poi/poi.yaml
-poiClasses      = { townhall="town_hall", public_building="town_hall", courthouse="town_hall", community_centre="town_hall",
+poiClasses      = { fuel="fuel",
+					townhall="town_hall", public_building="town_hall", courthouse="town_hall", community_centre="town_hall",
 					golf="golf", golf_course="golf", miniature_golf="golf",
-					fast_food="fast_food", food_court="fast_food",
+					restaurant="restaurant", fast_food="restaurant", food_court="restaurant", cafe="restaurant",
 					park="park", bbq="park",
 					bus_stop="bus", bus_station="bus",
 					subway_entrance="entrance", train_station_entrance="entrance",
 					camp_site="campsite", caravan_site="campsite",
 					laundry="laundry", dry_cleaning="laundry",
-					supermarket="grocery", deli="grocery", delicatessen="grocery", department_store="grocery", greengrocer="grocery", marketplace="grocery",
+					supermarket="grocery", convenience="grocery", deli="grocery", delicatessen="grocery", department_store="grocery", greengrocer="grocery", marketplace="grocery",
 					books="library", library="library",
 					university="college", college="college",
 					hotel="lodging", motel="lodging", bed_and_breakfast="lodging", guest_house="lodging", hostel="lodging", chalet="lodging", alpine_hut="lodging", dormitory="lodging",
 					chocolate="ice_cream", confectionery="ice_cream",
 					post_box="post",  post_office="post",
-					cafe="cafe",
 					school="school",  kindergarten="school",
 					alcohol="alcohol_shop",  beverages="alcohol_shop",  wine="alcohol_shop",
 					bar="bar", nightclub="bar",
 					marina="harbor", dock="harbor",
 					car="car", car_repair="car", taxi="car",
-					hospital="hospital", nursing_home="hospital",  clinic="hospital",
+					hospital="hospital", nursing_home="hospital", clinic="hospital", pharmacy="hospital", doctors="hospital",
 					grave_yard="cemetery", cemetery="cemetery",
 					attraction="attraction", viewpoint="attraction",
 					biergarten="beer", pub="beer",
@@ -292,10 +292,11 @@ poiClasses      = { townhall="town_hall", public_building="town_hall", courthous
 					castle="castle", ruins="castle" }
 -- POI classes where class is the matching value and subclass is the value of a separate key
 poiSubClasses = { information="information", place_of_worship="religion", pitch="sport" }
-poiClassRanks   = { hospital=1, railway=2, bus=3, attraction=4, harbor=5, college=6,
-					school=7, stadium=8, zoo=9, town_hall=10, campsite=11, cemetery=12,
-					park=13, library=14, police=15, post=16, golf=17, shop=18, grocery=19,
-					fast_food=20, clothing_store=21, bar=22 }
+poiClassRanks   = { fuel=1, hospital=1, lodging=2, campsite=3, restaurant=4, grocery=5,
+					railway=6, bus=7, attraction=8, harbor=9, college=10,
+					school=11, stadium=12, zoo=13, town_hall=14, cemetery=15,
+					park=16, library=17, police=18, post=19, golf=20, shop=21,
+					fast_food=22, clothing_store=23, bar=24 }
 waterClasses    = Set { "river", "riverbank", "stream", "canal", "drain", "ditch", "dock" }
 waterwayClasses = Set { "stream", "river", "canal", "drain", "ditch" }
 
@@ -473,9 +474,9 @@ function way_function()
 			under_construction = true
 		end
 		local minzoom = INVALID_ZOOM
-		if majorRoadValues[h]        then minzoom = 4
+		if h == "motorway"           then minzoom = 4
 		elseif h == "trunk"          then minzoom = 5
-		elseif highway == "primary"  then minzoom = 7
+		elseif highway == "primary" or h == "primary" then minzoom = 7
 		elseif z9RoadValues[h]       then minzoom = 9
 		elseif z10RoadValues[h]      then minzoom = 10
 		elseif z11RoadValues[h]      then minzoom = 11

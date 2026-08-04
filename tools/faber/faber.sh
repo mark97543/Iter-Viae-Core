@@ -54,12 +54,15 @@ banner() {
 
 SKIP_TILEMAKER=false
 DEM_ONLY=false
+GEOCODER_ONLY=false
 
 for arg in "$@"; do
     if [ "$arg" = "--skip-tilemaker" ] || [ "$arg" = "--preserve" ]; then
         SKIP_TILEMAKER=true
     elif [ "$arg" = "--dem-only" ]; then
         DEM_ONLY=true
+    elif [ "$arg" = "--geocoder-only" ]; then
+        GEOCODER_ONLY=true
     fi
 done
 
@@ -129,6 +132,26 @@ PBF_FILENAME="$(basename "$INPUT_PBF")"
 PBF_SIZE=$(du -h "$INPUT_PBF" | cut -f1)
 
 log_success "Found raw map extract: ${BOLD}${PBF_FILENAME}${NC} (${PBF_SIZE})"
+
+# If GEOCODER_ONLY is passed, run geocoder step exclusively
+if [ "$GEOCODER_ONLY" = true ]; then
+    log_step "Geocoder-Only Mode Activated: Compiling Gazetteer Search Index (geocoder.db)"
+    OUTPUT_GEOCODER_DB="${COMPILED_DIR}/geocoder.db"
+    if command -v python3 &> /dev/null; then
+        log_info "Executing optimized Faber geocoder_builder.py..."
+        python3 "${FABER_DIR}/geocoder_builder.py" "$INPUT_PBF" "$OUTPUT_GEOCODER_DB"
+        log_success "Created Gazetteer Search Index: geocoder.db"
+    else
+        log_error "Python3 not available for geocoder database creation."
+        exit 1
+    fi
+
+    log_step "Faber Geocoder Build Completed Successfully"
+    echo -e "${GREEN}${BOLD}Faber compiled geocoder index into data/maps/compiled:${NC}\n"
+    ls -lh "${COMPILED_DIR}/geocoder.db" 2>/dev/null || true
+    echo -e "\n${CYAN}Gazetteer search index is ready for offline use.${NC}\n"
+    exit 0
+fi
 
 # ------------------------------------------------------------------------------
 # STEP 3: Clean Compiled Workspace
