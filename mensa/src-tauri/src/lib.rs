@@ -4,33 +4,39 @@ use tauri::{Manager, State};
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
 pub struct MbtilesState {
-    db_path: PathBuf,
+    app_handle: tauri::AppHandle,
 }
 
-fn resolve_app_maps_dir(app_handle: &tauri::AppHandle) -> PathBuf {
-    // 1. Check native OS app data directory for installed applications (~/.local/share/com.viae.mensa/maps or %APPDATA%/com.viae.mensa/maps)
-    if let Ok(app_dir) = app_handle.path().app_data_dir() {
-        let os_maps_dir = app_dir.join("maps");
-        if os_maps_dir.join("map.mbtiles").exists() {
-            return os_maps_dir;
+impl MbtilesState {
+    fn find_mbtiles_path(&self) -> Option<PathBuf> {
+        // 1. Check primary OS app data directory (e.g. ~/.local/share/com.viae.mensa/maps/map.mbtiles or %APPDATA%/com.viae.mensa/maps/map.mbtiles)
+        if let Ok(app_dir) = self.app_handle.path().app_data_dir() {
+            let user_map = app_dir.join("maps").join("map.mbtiles");
+            if user_map.exists() {
+                return Some(user_map);
+            }
         }
-    }
 
-    // 2. Check local workspace development folder (data/maps/compiled)
-    let mut curr = std::env::current_dir().unwrap_or_default();
-    for _ in 0..4 {
-        let candidate = curr.join("data").join("maps").join("compiled");
-        if candidate.join("map.mbtiles").exists() || candidate.exists() {
-            return candidate;
+        // 2. Fallback to development workspace directory (data/maps/compiled/map.mbtiles)
+        let mut curr = std::env::current_dir().unwrap_or_default();
+        for _ in 0..4 {
+            let candidate = curr.join("data").join("maps").join("compiled").join("map.mbtiles");
+            if candidate.exists() {
+                return Some(candidate);
+            }
+            if let Some(parent) = curr.parent() {
+                curr = parent.to_path_buf();
+            } else {
+                break;
+            }
         }
-        if let Some(parent) = curr.parent() {
-            curr = parent.to_path_buf();
-        } else {
-            break;
-        }
-    }
 
-    // 3. Fallback: Create and return native OS application data maps folder
+        None
+    }
+}
+
+/// Resolves the installed OS application maps directory (~/.local/share/com.viae.mensa/maps on Linux, %APPDATA%/com.viae.mensa/maps on Windows)
+fn get_os_app_maps_dir(app_handle: &tauri::AppHandle) -> PathBuf {
     if let Ok(app_dir) = app_handle.path().app_data_dir() {
         let os_maps_dir = app_dir.join("maps");
         let _ = std::fs::create_dir_all(&os_maps_dir);
@@ -44,12 +50,13 @@ fn resolve_app_maps_dir(app_handle: &tauri::AppHandle) -> PathBuf {
 
 #[tauri::command]
 fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Vec<u8>, String> {
-    if !state.db_path.exists() {
-        return Ok(Vec::new());
-    }
+    let db_path = match state.find_mbtiles_path() {
+        Some(path) => path,
+        None => return Ok(Vec::new()),
+    };
 
     let conn = Connection::open_with_flags(
-        &state.db_path,
+        &db_path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
     ).map_err(|e| e.to_string())?;
 
@@ -65,7 +72,7 @@ fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Ve
 }
 
 fn open_maps_folder(app_handle: &tauri::AppHandle) {
-    let path = resolve_app_maps_dir(app_handle);
+    let path = get_os_app_maps_dir(app_handle);
     #[cfg(target_os = "linux")]
     {
         let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
@@ -85,8 +92,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let db_path = resolve_app_maps_dir(app.handle()).join("map.mbtiles");
-            app.manage(MbtilesState { db_path });
+            app.manage(MbtilesState {
+                app_handle: app.handle().clone(),
+            });
 
             // File Menu
             let quit_item = MenuItemBuilder::with_id("quit", "Quit Mensa")
