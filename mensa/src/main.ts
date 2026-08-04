@@ -20,9 +20,9 @@ function applyTheme(map: maplibregl.Map, themeId: string) {
     if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", "#38bdf8");
     if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#f59e0b");
   } else if (themeId === "3d-terrain") {
-    // 2. 3D Mountain Terrain Mode (Camera pitch 58°, 1.8x stable elevation + WebGL sun illumination hillshade)
-    map.setTerrain({ source: "terrain_dem", exaggeration: 1.8 });
-    map.easeTo({ pitch: 58, bearing: -20, duration: 1400 });
+    // 2. 3D Mountain Terrain Mode (Camera pitch 45°, true 1:1 natural real-world scale elevation)
+    map.setTerrain({ source: "terrain_dem", exaggeration: 1.0 });
+    map.easeTo({ pitch: 45, bearing: -15, duration: 1400 });
 
     if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "visible");
     if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "none");
