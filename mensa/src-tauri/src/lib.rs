@@ -145,18 +145,18 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+M")
                 .build(app)?;
 
-            // 10 Curated Map Themes Submenu
+            // 10 Official Pre-made OpenMapTiles Map Themes
             let theme_options = [
-                ("theme-tactical-dark", "Tactical Dark"),
-                ("theme-cyberpunk", "Cyberpunk Neon"),
-                ("theme-satellite-night", "Satellite Night"),
-                ("theme-midnight-command", "Midnight Command"),
-                ("theme-monochrome-stealth", "Monochrome Stealth"),
-                ("theme-matrix-terminal", "Matrix Terminal"),
-                ("theme-outdoors-topo", "Outdoors Topo"),
-                ("theme-high-contrast-light", "High Contrast Light"),
-                ("theme-warm-sepia", "Warm Sepia Tactical"),
-                ("theme-nordic-ice", "Nordic Ice"),
+                ("theme-dark-matter", "Dark Matter (Official)"),
+                ("theme-positron", "Positron (Official Light)"),
+                ("theme-osm-liberty", "OSM Liberty"),
+                ("theme-fiord-color", "Fiord Color"),
+                ("theme-klokantech-basic", "Klokantech Basic"),
+                ("theme-stamen-toner", "Stamen Toner (High-Contrast B&W)"),
+                ("theme-bright", "Bright"),
+                ("theme-kapa", "Kapa Slate"),
+                ("theme-voyager", "Voyager Navigation"),
+                ("theme-topographic", "Topographic Outdoor"),
             ];
 
             let mut theme_menu_builder = SubmenuBuilder::new(app, "Theme");
