@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 function applyTheme(map: maplibregl.Map, themeId: string) {
   if (themeId === "3d-buildings") {
     // 1. 3D Buildings Mode (Camera pitch 60°, hardware extruded building blocks)
+    map.setTerrain(null);
     map.easeTo({ pitch: 60, bearing: -17.6, duration: 1200 });
 
     if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "none");
@@ -19,8 +20,9 @@ function applyTheme(map: maplibregl.Map, themeId: string) {
     if (map.getLayer("transportation_primary")) map.setPaintProperty("transportation_primary", "line-color", "#38bdf8");
     if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#f59e0b");
   } else if (themeId === "3d-terrain") {
-    // 2. 3D Mountain Terrain Mode (Camera pitch 55°, topographic mountain relief & contour shading)
-    map.easeTo({ pitch: 55, bearing: 12, duration: 1200 });
+    // 2. 3D Mountain Terrain Mode (Camera pitch 62°, true 3D WebGL terrain mesh + elevation relief)
+    map.setTerrain({ source: "terrain_dem", exaggeration: 1.8 });
+    map.easeTo({ pitch: 62, bearing: 15, duration: 1400 });
 
     if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "visible");
     if (map.getLayer("building_3d")) map.setLayoutProperty("building_3d", "visibility", "none");
@@ -35,6 +37,7 @@ function applyTheme(map: maplibregl.Map, themeId: string) {
     if (map.getLayer("transportation_motorway")) map.setPaintProperty("transportation_motorway", "line-color", "#d97706");
   } else {
     // 3. 2D Basic Tactical Mode (Default flat 2D top-down view)
+    map.setTerrain(null);
     map.easeTo({ pitch: 0, bearing: 0, duration: 1200 });
 
     if (map.getLayer("building_2d")) map.setLayoutProperty("building_2d", "visibility", "visible");
@@ -76,6 +79,31 @@ maplibregl.addProtocol("mbtiles", async (params: maplibregl.RequestParameters) =
   return { data: new ArrayBuffer(0) };
 });
 
+// Register custom protocol handler to fetch DEM elevation tiles from dem.mbtiles via Tauri IPC
+maplibregl.addProtocol("dem", async (params: maplibregl.RequestParameters) => {
+  const cleanUrl = params.url.replace("dem://", "");
+  const parts = cleanUrl.split("/");
+  if (parts.length < 3) {
+    return { data: new ArrayBuffer(0) };
+  }
+
+  const z = parseInt(parts[0], 10);
+  const x = parseInt(parts[1], 10);
+  const y = parseInt(parts[2], 10);
+
+  try {
+    const tileData: number[] | null = await invoke("get_dem_tile", { z, x, y });
+    if (tileData && tileData.length > 0) {
+      const buffer = new Uint8Array(tileData).buffer;
+      return { data: buffer };
+    }
+  } catch (err) {
+    console.warn("DEM tile fetch notice:", err);
+  }
+
+  return { data: new ArrayBuffer(0) };
+});
+
 function initMap() {
   const mapContainer = document.getElementById("map");
   if (!mapContainer) return;
@@ -92,6 +120,13 @@ function initMap() {
           tiles: ["mbtiles://{z}/{x}/{y}"],
           minzoom: 0,
           maxzoom: 14
+        },
+        terrain_dem: {
+          type: "raster-dem",
+          tiles: ["dem://{z}/{x}/{y}"],
+          tileSize: 256,
+          encoding: "terrarium",
+          maxzoom: 10
         }
       },
       layers: [

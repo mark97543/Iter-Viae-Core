@@ -18,14 +18,27 @@ fn find_mbtiles_in_dir(dir: &std::path::Path) -> Option<PathBuf> {
     if standard.exists() {
         return Some(standard);
     }
-    // 2. Search for any .mbtiles file in the directory
+    // 2. Search for any .mbtiles file in the directory (excluding dem.mbtiles)
     if let Ok(entries) = std::fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("mbtiles") {
+            if path.is_file() 
+                && path.extension().and_then(|s| s.to_str()) == Some("mbtiles")
+                && path.file_name().and_then(|s| s.to_str()) != Some("dem.mbtiles") {
                 return Some(path);
             }
         }
+    }
+    None
+}
+
+fn find_dem_mbtiles_in_dir(dir: &std::path::Path) -> Option<PathBuf> {
+    if !dir.exists() {
+        return None;
+    }
+    let dem_path = dir.join("dem.mbtiles");
+    if dem_path.exists() {
+        return Some(dem_path);
     }
     None
 }
@@ -45,6 +58,30 @@ impl MbtilesState {
         for _ in 0..4 {
             let candidate_dir = curr.join("data").join("maps").join("compiled");
             if let Some(path) = find_mbtiles_in_dir(&candidate_dir) {
+                return Some(path);
+            }
+            if let Some(parent) = curr.parent() {
+                curr = parent.to_path_buf();
+            } else {
+                break;
+            }
+        }
+
+        None
+    }
+
+    fn find_dem_path(&self) -> Option<PathBuf> {
+        if let Ok(app_dir) = self.app_handle.path().app_data_dir() {
+            let os_maps_dir = app_dir.join("maps");
+            if let Some(path) = find_dem_mbtiles_in_dir(&os_maps_dir) {
+                return Some(path);
+            }
+        }
+
+        let mut curr = std::env::current_dir().unwrap_or_default();
+        for _ in 0..4 {
+            let candidate_dir = curr.join("data").join("maps").join("compiled");
+            if let Some(path) = find_dem_mbtiles_in_dir(&candidate_dir) {
                 return Some(path);
             }
             if let Some(parent) = curr.parent() {
@@ -102,6 +139,29 @@ fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Ve
 
     match stmt.query_row([z, x, tms_y], |row| row.get::<_, Vec<u8>>(0)) {
         Ok(data) => Ok(decompress_tile(data)),
+        Err(_) => Ok(Vec::new()),
+    }
+}
+
+#[tauri::command]
+fn get_dem_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Vec<u8>, String> {
+    let dem_path = match state.find_dem_path() {
+        Some(path) => path,
+        None => return Ok(Vec::new()),
+    };
+
+    let conn = Connection::open_with_flags(
+        &dem_path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+    ).map_err(|e| e.to_string())?;
+
+    let tms_y = (1 << z) - 1 - y;
+    let mut stmt = conn.prepare_cached(
+        "SELECT tile_data FROM tiles WHERE zoom_level = ?1 AND tile_column = ?2 AND tile_row = ?3"
+    ).map_err(|e| e.to_string())?;
+
+    match stmt.query_row([z, x, tms_y], |row| row.get::<_, Vec<u8>>(0)) {
+        Ok(data) => Ok(data),
         Err(_) => Ok(Vec::new()),
     }
 }
@@ -173,7 +233,7 @@ pub fn run() {
             app.set_menu(menu)?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_tile])
+        .invoke_handler(tauri::generate_handler![get_tile, get_dem_tile])
         .on_menu_event(|app, event| {
             let id = event.id().as_ref();
             if id == "quit" {

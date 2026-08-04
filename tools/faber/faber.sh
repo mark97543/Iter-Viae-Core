@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Iter Viae Core — Faber (The Smith)
-# Version 1 Data Preprocessing Pipeline
+# Version 1 & 2 Data Preprocessing Pipeline
 # ==============================================================================
 
 set -euo pipefail
@@ -53,9 +53,13 @@ banner() {
 }
 
 SKIP_TILEMAKER=false
+DEM_ONLY=false
+
 for arg in "$@"; do
     if [ "$arg" = "--skip-tilemaker" ] || [ "$arg" = "--preserve" ]; then
         SKIP_TILEMAKER=true
+    elif [ "$arg" = "--dem-only" ]; then
+        DEM_ONLY=true
     fi
 done
 
@@ -76,6 +80,25 @@ for dir in "${REQUIRED_DIRS[@]}"; do
         log_info "Verified directory: ${dir}"
     fi
 done
+
+# If DEM_ONLY is passed, run DEM step exclusively
+if [ "$DEM_ONLY" = true ]; then
+    log_step "DEM-Only Mode Activated: Compiling 3D DEM Elevation Dataset (dem.mbtiles)"
+    if command -v python3 &> /dev/null; then
+        log_info "Executing Faber dem_builder.py..."
+        python3 "${FABER_DIR}/dem_builder.py" "$COMPILED_DIR"
+        log_success "Created 3D DEM Elevation Dataset: dem.mbtiles"
+    else
+        log_error "Python3 not available for DEM database creation."
+        exit 1
+    fi
+
+    log_step "Faber DEM Build Completed Successfully"
+    echo -e "${GREEN}${BOLD}Faber compiled 3D DEM dataset into data/maps/compiled:${NC}\n"
+    ls -lh "${COMPILED_DIR}/dem.mbtiles" 2>/dev/null || true
+    echo -e "\n${CYAN}3D DEM dataset is ready for offline use in Mensa.${NC}\n"
+    exit 0
+fi
 
 # ------------------------------------------------------------------------------
 # STEP 2: Input Validation (data/maps/raw)
@@ -168,7 +191,6 @@ chmod 777 "$VALHALLA_WORK_DIR"
 if command -v docker &> /dev/null && docker info &> /dev/null; then
     log_info "Running Valhalla tile build pipeline via Docker (${VALHALLA_IMAGE})..."
     
-    # 5a. Generate valhalla.json configuration if not present
     VALHALLA_CONFIG="${VALHALLA_WORK_DIR}/valhalla.json"
     log_info "Generating Valhalla configuration with resource limits (concurrency=4)..."
     docker run --rm \
@@ -180,7 +202,6 @@ if command -v docker &> /dev/null && docker info &> /dev/null; then
         --mjolnir-tile-extract /valhalla_tiles/valhalla_tiles.tar \
         --mjolnir-concurrency 4 > "$VALHALLA_CONFIG"
 
-    # 5b. Build Valhalla routing tiles
     log_info "Building routing tiles from ${PBF_FILENAME}..."
     if docker run --rm \
         --user "$(id -u):$(id -g)" \
@@ -197,7 +218,6 @@ else
     log_warn "Docker is unavailable. Generating standard routing tile package..."
 fi
 
-# Ensure manifest exists and package tile hierarchy into tar archive
 echo "Iter Viae Routing Shard Archive - Map: ${PBF_FILENAME}" > "${VALHALLA_WORK_DIR}/manifest.txt"
 tar -cf "$OUTPUT_ROUTING_TAR" -C "$COMPILED_DIR" "valhalla_tiles"
 rm -rf "$VALHALLA_WORK_DIR" 2>/dev/null || docker run --rm --user 0:0 --entrypoint /bin/bash -v "${COMPILED_DIR}:/compiled" "$VALHALLA_IMAGE" -c "rm -rf /compiled/valhalla_tiles"
@@ -221,9 +241,23 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# STEP 7: Completion & Summary
+# STEP 7: Build 3D DEM Elevation Dataset (dem.mbtiles)
 # ------------------------------------------------------------------------------
-log_step "Step 7: Faber Build Pipeline Completed Successfully"
+log_step "Step 7: Compiling 3D DEM Elevation Dataset (dem.mbtiles)"
+
+if command -v python3 &> /dev/null; then
+    log_info "Executing Faber dem_builder.py..."
+    python3 "${FABER_DIR}/dem_builder.py" "$COMPILED_DIR"
+    log_success "Created 3D DEM Elevation Dataset: dem.mbtiles"
+else
+    log_error "Python3 not available for DEM database creation."
+    exit 1
+fi
+
+# ------------------------------------------------------------------------------
+# STEP 8: Completion & Summary
+# ------------------------------------------------------------------------------
+log_step "Step 8: Faber Build Pipeline Completed Successfully"
 
 echo -e "${GREEN}${BOLD}Faber compiled all offline map artifacts into data/maps/compiled:${NC}\n"
 
