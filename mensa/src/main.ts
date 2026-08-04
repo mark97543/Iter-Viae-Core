@@ -277,6 +277,7 @@ function initMap() {
     center: [-98.5795, 39.8283],
     zoom: 4,
     minZoom: 4.0,
+    maxZoom: 20,
     pitch: 0,
     bearing: 0
   });
