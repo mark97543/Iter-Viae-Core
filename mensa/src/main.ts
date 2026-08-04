@@ -283,19 +283,198 @@ function initMap() {
             "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.5, 14, 5]
           }
         },
+        // State & Province Labels
         {
-          id: "place_label",
+          id: "place_label_state",
           type: "symbol",
           source: "openmaptiles",
           "source-layer": "place",
+          filter: ["in", "class", "state", "province"],
+          minzoom: 3,
+          maxzoom: 12,
           layout: {
-            "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
-            "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10, 10, 16],
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "name_en"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 3, 11, 8, 17],
             "text-transform": "uppercase",
-            "text-allow-overlap": false
+            "text-letter-spacing": 0.15,
+            "text-max-width": 8
+          },
+          paint: {
+            "text-color": "#94a3b8",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2.5,
+            "text-opacity": 0.9
+          }
+        },
+        // City Labels
+        {
+          id: "place_label_city",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "place",
+          filter: ["==", "class", "city"],
+          minzoom: 3,
+          maxzoom: 18,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "name_en"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10, 12, 19],
+            "text-transform": "uppercase",
+            "text-max-width": 10
           },
           paint: {
             "text-color": "#f8fafc",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Town & Village Labels
+        {
+          id: "place_label_town",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "place",
+          filter: ["in", "class", "town", "village", "hamlet"],
+          minzoom: 6,
+          maxzoom: 18,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "name_en"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 6, 10, 14, 15],
+            "text-max-width": 9
+          },
+          paint: {
+            "text-color": "#cbd5e1",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 1.5
+          }
+        },
+        // Suburb & Neighborhood Labels
+        {
+          id: "place_label_suburb",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "place",
+          filter: ["in", "class", "suburb", "neighbourhood", "quarter", "locality", "island"],
+          minzoom: 10,
+          maxzoom: 18,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "name_en"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 15, 13],
+            "text-transform": "uppercase",
+            "text-letter-spacing": 0.08
+          },
+          paint: {
+            "text-color": "#94a3b8",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 1.5
+          }
+        },
+        // Country & Continent Labels
+        {
+          id: "place_label_other",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "place",
+          filter: ["in", "class", "country", "continent"],
+          minzoom: 1,
+          maxzoom: 6,
+          layout: {
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "name_en"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 1, 12, 6, 18],
+            "text-transform": "uppercase",
+            "text-letter-spacing": 0.2,
+            "text-max-width": 10
+          },
+          paint: {
+            "text-color": "#64748b",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2.5
+          }
+        },
+        // Highway / Motorway Road Names
+        {
+          id: "road_label_motorway",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "transportation_name",
+          filter: ["in", "class", "motorway", "trunk"],
+          minzoom: 6,
+          layout: {
+            "symbol-placement": "line",
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "ref"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 6, 9, 14, 14],
+            "text-max-angle": 30
+          },
+          paint: {
+            "text-color": "#fbbf24",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Primary & Secondary Road Names
+        {
+          id: "road_label_primary",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "transportation_name",
+          filter: ["in", "class", "primary", "secondary", "tertiary"],
+          minzoom: 8,
+          layout: {
+            "symbol-placement": "line",
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "ref"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 8, 9, 14, 13],
+            "text-max-angle": 30
+          },
+          paint: {
+            "text-color": "#e2e8f0",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2
+          }
+        },
+        // Minor & Residential Street Names
+        {
+          id: "road_label_minor",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "transportation_name",
+          filter: ["in", "class", "minor", "service", "track", "residential", "unclassified"],
+          minzoom: 11,
+          layout: {
+            "symbol-placement": "line",
+            "text-field": ["coalesce", ["get", "name:latin"], ["get", "name"], ["get", "name:en"], ["get", "ref"]],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 11, 9, 15, 12],
+            "text-max-angle": 30
+          },
+          paint: {
+            "text-color": "#cbd5e1",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 1.5
+          }
+        },
+        // Route Shields / Ref Numbers (I-95, US 101, etc.)
+        {
+          id: "road_label_ref",
+          type: "symbol",
+          source: "openmaptiles",
+          "source-layer": "transportation_name",
+          filter: ["has", "ref"],
+          minzoom: 6,
+          layout: {
+            "symbol-placement": "line",
+            "text-field": ["get", "ref"],
+            "text-font": ["Open Sans Regular"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 6, 9, 14, 12],
+            "text-max-angle": 30
+          },
+          paint: {
+            "text-color": "#38bdf8",
             "text-halo-color": "#090d16",
             "text-halo-width": 2
           }

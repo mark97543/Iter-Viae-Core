@@ -68,6 +68,7 @@ def extract_and_populate(pbf_path, db_path):
         "n/amenity", "w/amenity",
         "n/addr:housenumber", "w/addr:housenumber",
         "n/addr:street", "w/addr:street",
+        "w/highway",
         "n/shop", "w/shop",
         "-o", temp_filtered_pbf, "-O"
     ]

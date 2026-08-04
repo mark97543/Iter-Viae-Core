@@ -157,9 +157,9 @@ function node_function()
 			if     pop>50000000 then rank=1; mz=1
 			elseif pop>20000000 then rank=2; mz=2
 			else                     rank=3; mz=3 end
-		elseif place == "state"         then mz=4
-		elseif place == "province"         then mz=5
-		elseif place == "city"          then mz=5
+		elseif place == "state"         then mz=3
+		elseif place == "province"      then mz=4
+		elseif place == "city"          then mz=4
 		elseif place == "town" and pop>8000 then mz=7
 		elseif place == "town"          then mz=8
 		elseif place == "village" and pop>2000 then mz=9
@@ -523,15 +523,15 @@ function way_function()
 			-- Write names
 			if not is_closed and (HasNames() or Holds("ref")) then
 				if h == "motorway" then
-					minzoom = 7
+					minzoom = 6
 				elseif h == "trunk" then
-					minzoom = 8
+					minzoom = 7
 				elseif h == "primary" then
-					minzoom = 10
+					minzoom = 9
 				elseif h == "secondary" then
-					minzoom = 11
+					minzoom = 10
 				elseif h == "minor" or h == "track" or h == "tertiary" then
-					minzoom = 13
+					minzoom = 12
 				else
 					minzoom = 14
 				end
@@ -783,6 +783,7 @@ end
 -- Set name attributes on any object
 function SetNameAttributes()
 	local name = Find("name"), iname
+	if name ~= "" then Attribute("name", name) end
 	local main_written = name
 	-- if we have a preferred language, then write that (if available), and additionally write the base name tag
 	if preferred_language and Holds("name:"..preferred_language) then
