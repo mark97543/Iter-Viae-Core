@@ -155,12 +155,18 @@ fn get_dem_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Resul
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
     ).map_err(|e| e.to_string())?;
 
-    let tms_y = (1 << z) - 1 - y;
+    // Fallback to max available DEM zoom level (z=8) when map is zoomed in to zoom 9..16+
+    let target_z = if z > 8 { 8 } else { z };
+    let shift = z.saturating_sub(target_z);
+    let target_x = x >> shift;
+    let target_y = y >> shift;
+
+    let tms_y = (1 << target_z) - 1 - target_y;
     let mut stmt = conn.prepare_cached(
         "SELECT tile_data FROM tiles WHERE zoom_level = ?1 AND tile_column = ?2 AND tile_row = ?3"
     ).map_err(|e| e.to_string())?;
 
-    match stmt.query_row([z, x, tms_y], |row| row.get::<_, Vec<u8>>(0)) {
+    match stmt.query_row([target_z, target_x, tms_y], |row| row.get::<_, Vec<u8>>(0)) {
         Ok(data) => Ok(data),
         Err(_) => Ok(Vec::new()),
     }
