@@ -2,7 +2,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use flate2::read::GzDecoder;
 use rusqlite::{Connection, OpenFlags};
-use tauri::{Manager, State};
+use tauri::{Emitter, Manager, State};
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
 pub struct MbtilesState {
@@ -140,13 +140,36 @@ pub fn run() {
                 .item(&quit_item)
                 .build()?;
 
-            // Maps Menu (Single item: Local Maps)
+            // Local Maps Item
             let local_maps_item = MenuItemBuilder::with_id("open_maps_folder", "Local Maps")
                 .accelerator("CmdOrCtrl+M")
                 .build(app)?;
 
+            // 10 Curated Map Themes Submenu
+            let theme_options = [
+                ("theme-tactical-dark", "Tactical Dark"),
+                ("theme-cyberpunk", "Cyberpunk Neon"),
+                ("theme-satellite-night", "Satellite Night"),
+                ("theme-midnight-command", "Midnight Command"),
+                ("theme-monochrome-stealth", "Monochrome Stealth"),
+                ("theme-matrix-terminal", "Matrix Terminal"),
+                ("theme-outdoors-topo", "Outdoors Topo"),
+                ("theme-high-contrast-light", "High Contrast Light"),
+                ("theme-warm-sepia", "Warm Sepia Tactical"),
+                ("theme-nordic-ice", "Nordic Ice"),
+            ];
+
+            let mut theme_menu_builder = SubmenuBuilder::new(app, "Theme");
+            for (id, label) in theme_options {
+                let item = MenuItemBuilder::with_id(id, label).build(app)?;
+                theme_menu_builder = theme_menu_builder.item(&item);
+            }
+            let theme_submenu = theme_menu_builder.build()?;
+
+            // Maps Menu containing Local Maps & Theme Submenu
             let maps_menu = SubmenuBuilder::new(app, "Maps")
                 .item(&local_maps_item)
+                .item(&theme_submenu)
                 .build()?;
 
             let menu = MenuBuilder::new(app)
@@ -159,14 +182,14 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![get_tile])
         .on_menu_event(|app, event| {
-            match event.id().as_ref() {
-                "quit" => {
-                    app.exit(0);
-                }
-                "open_maps_folder" => {
-                    open_maps_folder(app);
-                }
-                _ => {}
+            let id = event.id().as_ref();
+            if id == "quit" {
+                app.exit(0);
+            } else if id == "open_maps_folder" {
+                open_maps_folder(app);
+            } else if id.starts_with("theme-") {
+                let theme_name = id.trim_start_matches("theme-");
+                let _ = app.emit("menu-change-theme", theme_name);
             }
         })
         .run(tauri::generate_context!())
