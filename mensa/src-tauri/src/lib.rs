@@ -215,7 +215,6 @@ pub fn run() {
             let theme_options = [
                 ("theme-2d-basic", "2D Basic Tactical (Default)"),
                 ("theme-3d-buildings", "3D Buildings"),
-                ("theme-3d-terrain", "3D Mountain Terrain"),
             ];
 
             let mut theme_menu_builder = SubmenuBuilder::new(app, "Theme");
