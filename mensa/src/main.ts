@@ -396,7 +396,7 @@ function initMap() {
     center: [-98.5795, 39.8283],
     zoom: 4,
     minZoom: 0,
-    maxZoom: 15,
+    maxZoom: 4.0,
     pitch: 0,
     bearing: 0
   });
