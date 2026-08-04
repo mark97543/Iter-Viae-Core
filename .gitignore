@@ -3,7 +3,10 @@ data/
 
 # Build & Dependency Artifacts
 node_modules/
+**/node_modules/
 target/
+**/target/
+**/dist/
 
 # Python cache & bytecode
 __pycache__/
