@@ -145,18 +145,11 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+M")
                 .build(app)?;
 
-            // 10 Official Pre-made OpenMapTiles Map Themes
+            // Core Mapbox Themes
             let theme_options = [
-                ("theme-fiord-color", "Fiord Color (Default)"),
-                ("theme-dark-matter", "Dark Matter (Official)"),
-                ("theme-positron", "Positron (Official Light)"),
-                ("theme-osm-liberty", "OSM Liberty"),
-                ("theme-klokantech-basic", "Klokantech Basic"),
-                ("theme-stamen-toner", "Stamen Toner (High-Contrast B&W)"),
-                ("theme-bright", "Bright"),
-                ("theme-kapa", "Kapa Slate"),
-                ("theme-voyager", "Voyager Navigation"),
-                ("theme-topographic", "Topographic Outdoor"),
+                ("theme-streets", "Mapbox Streets (Default)"),
+                ("theme-outdoors", "Mapbox Outdoors"),
+                ("theme-default", "Mapbox Default Dark"),
             ];
 
             let mut theme_menu_builder = SubmenuBuilder::new(app, "Theme");
