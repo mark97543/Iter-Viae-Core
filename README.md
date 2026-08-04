@@ -12,6 +12,12 @@ Faber is the data preprocessing engine responsible for compiling raw OpenStreetM
 ### Version 2: Mensa (*The Table / Work Surface*) — [In Progress]
 Mensa is the desktop application interface responsible for displaying the compiled offline tactical map and providing native desktop controls.
 
+### Version 3: Itinerarium (*The Roadbook / Web Portal*) — [Completed]
+Itinerarium is the web portal providing project overviews, documentation, release announcements, and offline map downloads. It is now live and operational.
+
+### Version 4: Navis (*The Ship / Navigation App*) — [Planned]
+Navis is the dedicated field and mobile navigation client for on-the-go offline routing and tactical mapping.
+
 ---
 
 ## Directory Architecture
@@ -51,39 +57,12 @@ Iter Viae Core/
 
 ---
 
-## Compiled Artifact Specifications
+## Itinerarium Web Portal Requirements (Version 3)
 
-### 1. Visual Master Tiles (`.mbtiles`)
-- **What it is**: A highly-indexed SQLite database containing compressed vector tile geometry (roads, terrain, water features, basic boundaries).
-- **Why we need it**: Rendered locally on-device by MapLibre GL to paint smooth 60fps dark-mode tactical map canvases completely offline.
-- **Tooling**: Planetiler or Tilemaker.
-
-### 2. Routing Graph Shards (`_routing.tar` or Valhalla Tiles)
-- **What it is**: A hierarchical tar archive containing pre-processed routing tiles built specifically for Valhalla's graph engine.
-- **Why we need it**: Powers offline turn-by-turn routing, dynamic recalculations, and route planning on air-gapped devices.
-- **Tooling**: Valhalla's internal build tools (`valhalla_build_tiles`) running locally or inside a container.
-
-### 3. Gazetteer Search Index (`geocoder.db`)
-- **What it is**: A lightweight SQLite full-text search database indexing cities, towns, streets, and key roadside POIs (such as fuel stations).
-- **Why we need it**: Enables instant offline address, city, and POI geocoding without network access to external services (like Google Places or Nominatim).
-- **Tooling**: Custom parser script (e.g., `osm2sqlite.py` or similar) using `osmfilter` to extract address and amenity tags from the PBF.
-
----
-
-## Version Notes 
-
-### Version 1: Faber (*The Smith*) — Completed 08/03/26
-- **Pipeline Automation ([faber.sh](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/faber.sh))**:
-  - Implemented the primary Bash pipeline to automate preprocessing of raw OpenStreetMap `.pbf` map extracts into production offline map datasets.
-  - Enforced directory integrity checks (`tools/faber/`, `data/maps/raw/`, `data/maps/compiled/`) and pre-build output purging to maintain a single active map set.
-  - Added strict input validation: checks `data/maps/raw/` and enforces strictly **one** `.pbf` file with user notifications on error.
-  - Added modular `--skip-tilemaker` / `--preserve` flag to allow selective rebuilding of routing or geocoding without re-running long vector tile builds.
-- **Visual Master Vector Tiles (`map.mbtiles` — 11 GB)**:
-  - Integrated `tilemaker` configured with OpenMapTiles schema ([config.json](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/config.json), [process.lua](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/process.lua)) to compile vector tiles for MapLibre GL rendering.
-  - Optimized memory consumption by enabling disk-backed temporary storage (`--store` disk mmap) and `--shard-stores`, keeping system RAM usage under 3 GB during nationwide PBF processing.
-- **Routing Graph Shards (`routing.tar` — 19 GB)**:
-  - Integrated Valhalla routing graph builder via Docker (`ghcr.io/gis-ops/docker-valhalla/valhalla:latest`) to generate turn-by-turn routing tile shards into `routing.tar`.
-  - Resolved Docker volume write permissions using host UID/GID mapping (`--user "$(id -u):$(id -g)"`) and capped concurrency (`--mjolnir-concurrency 4`).
-- **Gazetteer Search Index (`geocoder.db` — 1.8 GB / 12.9M locations)**:
-  - Implemented stream-processing in [geocoder_builder.py](file:///home/mark/Documents/Iter%20Viae%20Core/tools/faber/geocoder_builder.py) leveraging `osmium tags-filter` piped into `osmium export -f geojsonseq`.
-  - Indexed 12,905,586 searchable locations into a SQLite FTS5 database (`geocoder.db`) with sub-10ms query speeds under 50 MB RAM.
+- [x] **Welcome Screen**: Introduce the Iter Viae Project and explain its four core components: Faber, Mensa, Itinerarium, and Navis.
+- [X] **Templated Pages**:
+  - [X] **Wiki Page**: Documentation and user guides for operating Iter Viae tools.
+  - [X] **Blog Page**: Development roadmap and release announcements.
+  - [X] **Downloads Page**: Hub for downloading compiled map artifacts and binaries.
+- [X] **Tactical Theme**: Maintain the consistent dark mode aesthetic across the portal.
+- [X] **Brand Assets**: Utilize Iter Viae SVG branding assets located in `data/swag/`.
