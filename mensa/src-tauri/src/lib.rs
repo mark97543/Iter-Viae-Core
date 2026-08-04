@@ -147,10 +147,10 @@ pub fn run() {
 
             // 10 Official Pre-made OpenMapTiles Map Themes
             let theme_options = [
+                ("theme-fiord-color", "Fiord Color (Default)"),
                 ("theme-dark-matter", "Dark Matter (Official)"),
                 ("theme-positron", "Positron (Official Light)"),
                 ("theme-osm-liberty", "OSM Liberty"),
-                ("theme-fiord-color", "Fiord Color"),
                 ("theme-klokantech-basic", "Klokantech Basic"),
                 ("theme-stamen-toner", "Stamen Toner (High-Contrast B&W)"),
                 ("theme-bright", "Bright"),

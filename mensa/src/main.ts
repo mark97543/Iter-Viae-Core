@@ -195,7 +195,7 @@ const OFFICIAL_THEMES: Record<string, ThemeConfig> = {
 };
 
 function applyTheme(map: maplibregl.Map, themeId: string) {
-  const theme = OFFICIAL_THEMES[themeId] || OFFICIAL_THEMES["dark-matter"];
+  const theme = OFFICIAL_THEMES[themeId] || OFFICIAL_THEMES["fiord-color"];
 
   if (map.getLayer("background")) map.setPaintProperty("background", "background-color", theme.bg);
   if (map.getLayer("landcover")) map.setPaintProperty("landcover", "fill-color", theme.landcover);
@@ -247,7 +247,7 @@ function initMap() {
   const mapContainer = document.getElementById("map");
   if (!mapContainer) return;
 
-  const defaultTheme = OFFICIAL_THEMES["dark-matter"];
+  const defaultTheme = OFFICIAL_THEMES["fiord-color"];
 
   const map = new maplibregl.Map({
     container: "map",
