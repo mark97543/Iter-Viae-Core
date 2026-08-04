@@ -319,7 +319,10 @@ function initMap() {
   };
 
   map.on("zoom", updateZoomDisplay);
-  map.on("load", updateZoomDisplay);
+  map.on("load", () => {
+    updateZoomDisplay();
+    applyTheme(map, "2d-basic");
+  });
 
   // Add Navigation and Scale controls
   map.addControl(new maplibregl.NavigationControl(), "top-right");
