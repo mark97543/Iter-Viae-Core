@@ -73,9 +73,9 @@ Iter Viae Core/
 [X] Add Trip Waypoint bar to Left With Trip Title
 [X] Add a POI add WP to Trip
 [X] Add a menu to add WP woth right click on Map
-[ ] Make A reoute Between Waypoints
-[ ] Allow WP to be dragged and moved in order then update route 
+[X] Make A reoute Between Waypoints
+[X] Allow WP to be dragged and moved in order then update route 
 [ ] Add a Itinary editor to allow:
-[ ] Be able to edit WO details 
-[ ] Zoom into WP when selected from the WP list
-[ ] Distance and time between wp
+[X] Be able to edit WO details 
+[X] Zoom into WP when selected from the WP list
+[X] Distance and time between wp

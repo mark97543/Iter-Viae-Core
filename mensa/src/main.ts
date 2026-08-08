@@ -973,6 +973,7 @@ function initMap() {
           <span class="wp-coords">${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)}</span>
         </div>
         <button class="wp-remove" title="Remove">&times;</button>
+        <div class="leg-info" id="leg-info-${index}" style="display: none; width: 100%; font-size: 0.75rem; color: #94a3b8; text-align: center; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.8); margin-top: 4px; font-family: monospace;"></div>
       `;
 
       // Click to Zoom
@@ -1099,6 +1100,20 @@ function initMap() {
       
       let lineCoords: number[][] = [];
       if (legs && legs.length > 0) {
+        
+        // Populate Distance & Time in Sidebar
+        legs.forEach((leg: any, i: number) => {
+          const legInfo = document.getElementById(`leg-info-${i}`);
+          if (legInfo && leg.summary) {
+            const dist = leg.summary.length.toFixed(1);
+            const t = leg.summary.time;
+            const h = Math.floor(t / 3600);
+            const m = Math.floor((t % 3600) / 60);
+            const timeStr = h > 0 ? `${h}h ${m}m` : `${m} min`;
+            legInfo.textContent = `↓  ${dist} mi • ${timeStr}  ↓`;
+            legInfo.style.display = 'block';
+          }
+        });
         // Decode polyline6 for each leg
         for (const leg of legs) {
           const shape = leg.shape;
