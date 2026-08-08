@@ -964,15 +964,68 @@ function initMap() {
   const ctxAddWpBtn = document.getElementById("ctx-add-wp")!;
   let ctxLngLat: maplibregl.LngLat | null = null;
   
-  // Trip Start Time
-  const tripStartTimeEl = document.getElementById("trip-start-time") as HTMLInputElement;
-  flatpickr(tripStartTimeEl, {
+  // ── Global Trip State ──────────────────────────────────────────
+  let tripTitle = "My Tactical Operation";
+  let tripHasSpecificDate = true;
+  let tripStartTime = new Date();
+  let tripNotes = "";
+
+  // ── Trip Summary Modal Setup ────────────────────────────────────────
+  const tripTitleDisplay = document.getElementById("trip-title-display")!;
+  const summaryModal = document.getElementById("trip-summary-modal")!;
+  const summaryCloseBtn = document.getElementById("summary-close-btn")!;
+  const summarySaveBtn = document.getElementById("summary-save-btn")!;
+  
+  const sTitle = document.getElementById("summary-trip-title") as HTMLInputElement;
+  const sHasDate = document.getElementById("summary-has-date") as HTMLInputElement;
+  const sDateFields = document.getElementById("summary-date-fields")!;
+  const sStartTimeInput = document.getElementById("summary-start-time") as HTMLInputElement;
+  const sNotes = document.getElementById("summary-trip-notes") as HTMLTextAreaElement;
+
+  const sTotWp = document.getElementById("summary-tot-wp")!;
+  const sTotDist = document.getElementById("summary-tot-dist")!;
+  const sTotTime = document.getElementById("summary-tot-time")!;
+  const sTotBudget = document.getElementById("summary-tot-budget")!;
+  const sEstEnd = document.getElementById("summary-est-end")!;
+
+  const sStartPicker = flatpickr(sStartTimeInput, {
     enableTime: true,
     dateFormat: "Y-m-d H:i",
-    defaultDate: new Date(),
-    onChange: () => {
-      updateMapRoute(); // Recalculate timeline on start time change
+    defaultDate: tripStartTime
+  });
+
+  tripTitleDisplay.addEventListener("click", () => {
+    sTitle.value = tripTitle;
+    sHasDate.checked = tripHasSpecificDate;
+    sDateFields.style.display = tripHasSpecificDate ? "block" : "none";
+    sStartPicker.setDate(tripStartTime);
+    sNotes.value = tripNotes;
+    
+    sTotWp.textContent = tripWaypoints.length.toString();
+    summaryModal.style.display = "flex";
+  });
+
+  sHasDate.addEventListener("change", () => {
+    sDateFields.style.display = sHasDate.checked ? "block" : "none";
+  });
+
+  summaryCloseBtn.addEventListener("click", () => {
+    summaryModal.style.display = "none";
+  });
+
+  summarySaveBtn.addEventListener("click", () => {
+    tripTitle = sTitle.value || "My Tactical Operation";
+    tripTitleDisplay.textContent = tripTitle;
+    tripHasSpecificDate = sHasDate.checked;
+    tripNotes = sNotes.value;
+    
+    if (sStartTimeInput.value) {
+      tripStartTime = new Date(sStartTimeInput.value);
     }
+    
+    summaryModal.style.display = "none";
+    renderWaypointList();
+    updateMapRoute();
   });
   
   // Format dates cleanly for UI
@@ -1218,8 +1271,7 @@ function initMap() {
       if (legs && legs.length > 0) {
         
         // --- Calculate Timeline ---
-        const tripStartTimeEl = document.getElementById("trip-start-time") as HTMLInputElement;
-        let currentArrival = new Date(tripStartTimeEl.value || Date.now());
+        let currentArrival = tripHasSpecificDate ? new Date(tripStartTime.getTime()) : new Date();
         let currentDeparture = new Date(currentArrival);
 
         // Clear existing day dividers
@@ -1233,7 +1285,7 @@ function initMap() {
             const prevLegTime = legs[i - 1]?.summary?.time || 0;
             currentArrival = new Date(currentDeparture.getTime() + prevLegTime * 1000);
           } else {
-            currentArrival = new Date(tripStartTimeEl.value || Date.now());
+            currentArrival = tripHasSpecificDate ? new Date(tripStartTime.getTime()) : new Date();
           }
 
           // Depart from WP[i]
@@ -1258,7 +1310,9 @@ function initMap() {
             if (li) {
               const divider = document.createElement("div");
               divider.className = "day-divider";
-              divider.textContent = `Day ${dayCounter} - ${formatDate(currentArrival)}`;
+              divider.textContent = tripHasSpecificDate 
+                ? `Day ${dayCounter} - ${formatDate(currentArrival)}`
+                : `Day ${dayCounter}`;
               tripListEl.insertBefore(divider, li);
             }
           }
@@ -1271,19 +1325,41 @@ function initMap() {
             
             if (i > 0) {
               arrBadge.style.display = 'block';
-              arrBadge.textContent = `ARR: ${formatDate(currentArrival)} ${formatTime(currentArrival)}`;
+              arrBadge.textContent = tripHasSpecificDate 
+                ? `ARR: ${formatDate(currentArrival)} ${formatTime(currentArrival)}`
+                : `ARR: ${formatTime(currentArrival)}`;
             } else {
               arrBadge.style.display = 'none';
             }
 
             if (i < tripWaypoints.length - 1) {
               depBadge.style.display = 'block';
-              depBadge.textContent = `DEP: ${formatDate(currentDeparture)} ${formatTime(currentDeparture)}`;
+              depBadge.textContent = tripHasSpecificDate 
+                ? `DEP: ${formatDate(currentDeparture)} ${formatTime(currentDeparture)}`
+                : `DEP: ${formatTime(currentDeparture)}`;
             } else {
               depBadge.style.display = 'none';
             }
           }
         });
+        
+        // Populate Modal Totals
+        const sTotDist = document.getElementById("summary-tot-dist")!;
+        const sTotTime = document.getElementById("summary-tot-time")!;
+        const sTotBudget = document.getElementById("summary-tot-budget")!;
+        const sEstEnd = document.getElementById("summary-est-end")!;
+
+        sTotDist.textContent = `${result.distance.toFixed(2)} mi`;
+        sTotTime.textContent = timeEl.textContent || "0 hrs";
+        sTotBudget.textContent = `$${totalBudget.toFixed(2)}`;
+        
+        if (tripWaypoints.length > 0) {
+          sEstEnd.textContent = tripHasSpecificDate
+            ? `${formatDate(currentDeparture)} ${formatTime(currentDeparture)}`
+            : `Day ${dayCounter} - ${formatTime(currentDeparture)}`;
+        } else {
+          sEstEnd.textContent = "--";
+        }
 
         // Populate Distance & Time in Sidebar (Legs)
         legs.forEach((leg: any, i: number) => {

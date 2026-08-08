@@ -37,8 +37,7 @@
     <!-- Trip Itinerary Panel -->
     <aside id="trip-panel" aria-label="Trip Itinerary" aria-hidden="false" class="open">
       <div id="trip-panel-header">
-        <input type="text" id="trip-title" value="My Tactical Operation" />
-        <input type="text" id="trip-start-time" title="Trip Start Time" style="margin-top: 10px; width: 100%; padding: 6px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 4px; color: #38bdf8; font-family: monospace; font-size: 0.85rem;" placeholder="Select Start Time..." />
+        <h2 id="trip-title-display" title="Click to view Trip Summary">My Tactical Operation</h2>
       </div>
       <div id="trip-panel-body">
         <ul id="trip-waypoint-list">
@@ -103,6 +102,58 @@
         </div>
         <div class="modal-footer">
           <button id="modal-save-btn" class="btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+    <!-- Trip Summary Modal -->
+    <div id="trip-summary-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="width: 500px;">
+        <div class="modal-header">
+          <h3>Trip Summary & Settings</h3>
+          <button id="summary-close-btn" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">Operation Title</label>
+          <input type="text" id="summary-trip-title" class="modal-input" value="My Tactical Operation" />
+          
+          <label class="modal-label" style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+            <input type="checkbox" id="summary-has-date" checked />
+            Plan with Specific Calendar Dates
+          </label>
+          
+          <div id="summary-date-fields" class="modal-conditional-field">
+            <label class="modal-label">Start Date & Time</label>
+            <input type="text" id="summary-start-time" class="modal-input" placeholder="Select Start Time..." />
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; background: rgba(15, 23, 42, 0.5); padding: 12px; border-radius: 4px; border: 1px solid rgba(51, 65, 85, 0.8);">
+            <div>
+              <div class="modal-label">Total Waypoints</div>
+              <div id="summary-tot-wp" style="color: #38bdf8; font-weight: bold;">0</div>
+            </div>
+            <div>
+              <div class="modal-label">Total Distance</div>
+              <div id="summary-tot-dist" style="color: #38bdf8; font-weight: bold;">0 mi</div>
+            </div>
+            <div>
+              <div class="modal-label">Total Drive Time</div>
+              <div id="summary-tot-time" style="color: #38bdf8; font-weight: bold;">0 hrs</div>
+            </div>
+            <div>
+              <div class="modal-label">Total Budget</div>
+              <div id="summary-tot-budget" style="color: #38bdf8; font-weight: bold;">$0</div>
+            </div>
+            <div style="grid-column: span 2;">
+              <div class="modal-label">Estimated Completion</div>
+              <div id="summary-est-end" style="color: #34d399; font-weight: bold; font-family: monospace;">--</div>
+            </div>
+          </div>
+          
+          <label class="modal-label" style="margin-top: 8px;">Overall Mission Notes</label>
+          <textarea id="summary-trip-notes" class="modal-input" rows="4" placeholder="Enter high-level tactical notes or briefings..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button id="summary-save-btn" class="btn-primary">Save & Apply</button>
         </div>
       </div>
     </div>

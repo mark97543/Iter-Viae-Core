@@ -79,4 +79,6 @@ Iter Viae Core/
 [X] Be able to edit WO details 
 [X] Zoom into WP when selected from the WP list
 [X] Distance and time between wp
-[X] Need to add a itiniary builder where the start time and end time between points is calculated based on how long the user stays at the point. This should look professional
+[X] Add an itinerary builder where the start time and end time between points is calculated based on how long the user stays at the point.
+[X] Add Waypoint Editor Modal for stay duration, overnight planning, budget, and notes.
+[X] Add Trip Summary Modal with support for overall trip notes and dateless future planning.
