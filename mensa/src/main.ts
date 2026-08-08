@@ -944,11 +944,26 @@ function initMap() {
     lat: number;
     lng: number;
     name: string;
+    type: string;
     stayDurationMinutes: number;
     isOvernight: boolean;
     overnightDepartureTime: string;
     budget: number;
     notes: string;
+  }
+
+  function getWaypointColor(type: string): string {
+    switch (type) {
+      case 'Start': return '#10b981';
+      case 'End': return '#ef4444';
+      case 'Shaping': return '#94a3b8';
+      case 'Gas': return '#f59e0b';
+      case 'Food': return '#8b5cf6';
+      case 'Attraction': return '#ec4899';
+      case 'Lodging': return '#3b82f6';
+      case 'Waypoint':
+      default: return '#38bdf8';
+    }
   }
 
   let tripWaypoints: Waypoint[] = [];
@@ -1047,9 +1062,12 @@ function initMap() {
       
       li.innerHTML = `
         <div class="wp-drag-handle">≡</div>
-        <div class="wp-details" style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+        <div class="wp-details" style="flex: 1; display: flex; flex-direction: column; gap: 4px; border-left: 4px solid ${getWaypointColor(wp.type || 'Waypoint')}; padding-left: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <span class="wp-name" title="Click to edit">${wp.name}</span>
+            <div style="display: flex; flex-direction: column;">
+              <span class="wp-name" title="Click to edit">${wp.name}</span>
+              <span class="wp-type" style="font-size: 0.65rem; color: ${getWaypointColor(wp.type || 'Waypoint')}; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-top: 2px;">${wp.type || 'Waypoint'}</span>
+            </div>
             <div style="display: flex; gap: 8px;">
               <button class="wp-edit" title="Edit" style="background:transparent; border:none; color:#38bdf8; cursor:pointer; font-size:16px;">✎</button>
               <button class="wp-remove" title="Remove" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:16px;">&times;</button>
@@ -1113,6 +1131,7 @@ function initMap() {
       lat,
       lng,
       name,
+      type: "Waypoint",
       stayDurationMinutes: 0,
       isOvernight: false,
       overnightDepartureTime: "08:00",
@@ -1144,6 +1163,7 @@ function initMap() {
   
   const mId = document.getElementById("modal-wp-id") as HTMLInputElement;
   const mName = document.getElementById("modal-wp-name") as HTMLInputElement;
+  const mType = document.getElementById("modal-wp-type") as HTMLSelectElement;
   const mRadios = document.getElementsByName("modal-schedule-type") as NodeListOf<HTMLInputElement>;
   const mStopFields = document.getElementById("modal-stop-fields")!;
   const mOvernightFields = document.getElementById("modal-overnight-fields")!;
@@ -1176,6 +1196,7 @@ function initMap() {
     
     mId.value = wp.id;
     mName.value = wp.name;
+    mType.value = wp.type || "Waypoint";
     mStay.value = wp.stayDurationMinutes.toString();
     mDepartPicker.setDate(wp.overnightDepartureTime);
     mBudget.value = wp.budget.toString();
@@ -1203,6 +1224,7 @@ function initMap() {
     const wp = tripWaypoints.find(w => w.id === id);
     if (wp) {
       wp.name = mName.value;
+      wp.type = mType.value;
       wp.isOvernight = mRadios[1].checked;
       wp.stayDurationMinutes = parseInt(mStay.value) || 0;
       wp.overnightDepartureTime = mDepart.value;
@@ -1225,7 +1247,7 @@ function initMap() {
     tripWaypoints.forEach((wp) => {
       const el = document.createElement("div");
       el.className = "standard-marker"; // Default MapLibre marker is handled internally if no element provided
-      const marker = new maplibregl.Marker({ draggable: true })
+      const marker = new maplibregl.Marker({ draggable: true, color: getWaypointColor(wp.type) })
         .setLngLat([wp.lng, wp.lat])
         .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<h3>${wp.name}</h3>`))
         .addTo(map);
@@ -1253,7 +1275,11 @@ function initMap() {
 
     // Call Valhalla via Tauri IPC
     try {
-      const payload = tripWaypoints.map(w => ({ lat: w.lat, lon: w.lng }));
+      const payload = tripWaypoints.map(w => ({ 
+        lat: w.lat, 
+        lon: w.lng,
+        type: w.type === 'Shaping' ? 'through' : 'break'
+      }));
       const result = await invoke<{ geojson: any, distance: number, time: number }>("calculate_route", { waypoints: payload });
       
       distEl.textContent = `${result.distance.toFixed(2)} mi`;
@@ -1325,18 +1351,14 @@ function initMap() {
             
             if (i > 0) {
               arrBadge.style.display = 'block';
-              arrBadge.textContent = tripHasSpecificDate 
-                ? `ARR: ${formatDate(currentArrival)} ${formatTime(currentArrival)}`
-                : `ARR: ${formatTime(currentArrival)}`;
+              arrBadge.textContent = `ARR: ${formatTime(currentArrival)}`;
             } else {
               arrBadge.style.display = 'none';
             }
 
             if (i < tripWaypoints.length - 1) {
               depBadge.style.display = 'block';
-              depBadge.textContent = tripHasSpecificDate 
-                ? `DEP: ${formatDate(currentDeparture)} ${formatTime(currentDeparture)}`
-                : `DEP: ${formatTime(currentDeparture)}`;
+              depBadge.textContent = `DEP: ${formatTime(currentDeparture)}`;
             } else {
               depBadge.style.display = 'none';
             }

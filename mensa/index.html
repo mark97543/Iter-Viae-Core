@@ -78,6 +78,18 @@
           <label class="modal-label">Waypoint Name</label>
           <input type="text" id="modal-wp-name" class="modal-input" />
           
+          <label class="modal-label">Stop Type</label>
+          <select id="modal-wp-type" class="modal-input">
+            <option value="Waypoint">Waypoint</option>
+            <option value="Start">Start</option>
+            <option value="End">End</option>
+            <option value="Shaping">Shaping (Pass-Through)</option>
+            <option value="Gas">Gas</option>
+            <option value="Food">Food</option>
+            <option value="Attraction">Attraction</option>
+            <option value="Lodging">Lodging</option>
+          </select>
+          
           <label class="modal-label">Schedule</label>
           <div class="modal-radio-group">
             <label><input type="radio" name="modal-schedule-type" value="stop" checked /> Stop</label>

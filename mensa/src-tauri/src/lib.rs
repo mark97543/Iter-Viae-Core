@@ -251,6 +251,8 @@ fn get_dem_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Resul
 pub struct Waypoint {
     pub lat: f64,
     pub lon: f64,
+    #[serde(rename = "type")]
+    pub wp_type: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -268,10 +270,11 @@ async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String
 
     let mut locations = Vec::new();
     for wp in waypoints {
+        let loc_type = wp.wp_type.unwrap_or_else(|| "break".to_string());
         locations.push(serde_json::json!({
             "lat": wp.lat,
             "lon": wp.lon,
-            "type": "break"
+            "type": loc_type
         }));
     }
 
