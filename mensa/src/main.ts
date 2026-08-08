@@ -127,7 +127,6 @@ function initMap() {
     style: {
       version: 8,
       name: "Mensa 3D & 2D Tactical Engine",
-      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       sources: {
         openmaptiles: {
           type: "vector",
@@ -1087,13 +1086,43 @@ function initMap() {
       timeEl.textContent = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
 
       // Valhalla returns a polyline shape, we need to decode it.
-      // Wait, we returned raw valhalla response in Rust. Valhalla uses shape (polyline6).
-      // Since polyline6 decoding is complex in vanilla JS without libs, we can just 
-      // draw straight lines between waypoints for the visual route until polyline decoding is added.
-      // Or we can draw it if it returns geojson. Let's fallback to straight lines if polyline6 parsing isn't here.
-      // Wait! We can easily use Turf or just basic LineString for now.
+      const legs = result.geojson?.trip?.legs;
       
-      const lineCoords = tripWaypoints.map(w => [w.lng, w.lat]);
+      let lineCoords: number[][] = [];
+      if (legs && legs.length > 0) {
+        // Decode polyline6 for each leg
+        for (const leg of legs) {
+          const shape = leg.shape;
+          if (!shape) continue;
+          
+          let index = 0, lat = 0, lng = 0;
+          const factor = 1e6;
+          while (index < shape.length) {
+              let b, shift = 0, res = 0;
+              do {
+                  b = shape.charCodeAt(index++) - 63;
+                  res |= (b & 0x1f) << shift;
+                  shift += 5;
+              } while (b >= 0x20);
+              lat += ((res & 1) ? ~(res >> 1) : (res >> 1));
+
+              shift = 0;
+              res = 0;
+              do {
+                  b = shape.charCodeAt(index++) - 63;
+                  res |= (b & 0x1f) << shift;
+                  shift += 5;
+              } while (b >= 0x20);
+              lng += ((res & 1) ? ~(res >> 1) : (res >> 1));
+
+              lineCoords.push([lng / factor, lat / factor]);
+          }
+        }
+      } else {
+        // Fallback
+        lineCoords = tripWaypoints.map(w => [w.lng, w.lat]);
+      }
+      
       const geojson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
         features: [{

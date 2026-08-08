@@ -21,6 +21,12 @@ if [ ! -f "$VALHALLA_JSON" ]; then
     fi
 fi
 
+if grep -q "\"/valhalla_tiles" "$VALHALLA_JSON"; then
+    echo "Updating Valhalla JSON config paths to absolute paths..."
+    # Replace absolute docker path /valhalla_tiles with the local DATA_DIR/valhalla_tiles
+    sed -i "s|\"/valhalla_tiles|\"$DATA_DIR/valhalla_tiles|g" "$VALHALLA_JSON"
+fi
+
 echo "Starting Iter Viae Valhalla Offline Engine natively..."
 export LD_LIBRARY_PATH="$VALHALLA_LIB"
 exec "$VALHALLA_BIN" "$VALHALLA_JSON"
