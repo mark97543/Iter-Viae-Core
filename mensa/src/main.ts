@@ -1,7 +1,9 @@
 import * as maplibregl from "maplibre-gl";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-
+import flatpickr from "flatpickr";
+import "flatpickr/dist/flatpickr.min.css";
+import "flatpickr/dist/themes/dark.css";
 function createFuelIconImageData(): ImageData {
   const canvas = document.createElement("canvas");
   canvas.width = 32;
@@ -945,6 +947,8 @@ function initMap() {
     stayDurationMinutes: number;
     isOvernight: boolean;
     overnightDepartureTime: string;
+    budget: number;
+    notes: string;
   }
 
   let tripWaypoints: Waypoint[] = [];
@@ -962,8 +966,13 @@ function initMap() {
   
   // Trip Start Time
   const tripStartTimeEl = document.getElementById("trip-start-time") as HTMLInputElement;
-  tripStartTimeEl.addEventListener("change", () => {
-    updateMapRoute(); // Recalculate timeline on start time change
+  flatpickr(tripStartTimeEl, {
+    enableTime: true,
+    dateFormat: "Y-m-d H:i",
+    defaultDate: new Date(),
+    onChange: () => {
+      updateMapRoute(); // Recalculate timeline on start time change
+    }
   });
   
   // Format dates cleanly for UI
@@ -988,23 +997,14 @@ function initMap() {
         <div class="wp-details" style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <span class="wp-name" title="Click to edit">${wp.name}</span>
-            <button class="wp-remove" title="Remove">&times;</button>
+            <div style="display: flex; gap: 8px;">
+              <button class="wp-edit" title="Edit" style="background:transparent; border:none; color:#38bdf8; cursor:pointer; font-size:16px;">✎</button>
+              <button class="wp-remove" title="Remove" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:16px;">&times;</button>
+            </div>
           </div>
           <div class="wp-time-badges" id="wp-time-${index}" style="display: flex; gap: 6px; font-family: monospace; font-size: 0.7rem;">
             <span class="badge-arr" style="display: none; padding: 2px 6px; background: rgba(16, 185, 129, 0.2); color: #34d399; border-radius: 4px;">ARR: --:--</span>
             <span class="badge-dep" style="display: none; padding: 2px 6px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border-radius: 4px;">DEP: --:--</span>
-          </div>
-          <div class="wp-itinerary-controls" style="display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">
-            <label style="display: flex; align-items: center; gap: 4px;">
-              Stay:
-              <input type="number" class="wp-stay-input" value="${wp.stayDurationMinutes}" min="0" style="width: 45px; padding: 2px 4px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 3px; color: #e2e8f0; font-family: monospace;" ${wp.isOvernight ? "disabled" : ""} />
-              m
-            </label>
-            <label style="display: flex; align-items: center; gap: 4px;">
-              <input type="checkbox" class="wp-overnight-toggle" ${wp.isOvernight ? "checked" : ""} />
-              Overnight
-            </label>
-            <input type="time" class="wp-overnight-time" value="${wp.overnightDepartureTime}" style="display: ${wp.isOvernight ? "block" : "none"}; width: 90px; padding: 2px 4px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 3px; color: #e2e8f0; font-family: monospace;" />
           </div>
         </div>
         <div class="leg-info" id="leg-info-${index}" style="display: none; width: 100%; font-size: 0.75rem; color: #94a3b8; text-align: center; padding-top: 6px; border-top: 1px dashed rgba(51, 65, 85, 0.8); margin-top: 4px; font-family: monospace;"></div>
@@ -1021,42 +1021,10 @@ function initMap() {
         removeWaypoint(wp.id);
       });
 
-      // Inline Edit Name
-      li.querySelector(".wp-name")!.addEventListener("dblclick", (e) => {
+      // Edit (Open Modal)
+      li.querySelector(".wp-edit")!.addEventListener("click", (e) => {
         e.stopPropagation();
-        const newName = prompt("Enter waypoint name:", wp.name);
-        if (newName && newName.trim()) {
-          wp.name = newName.trim();
-          renderWaypointList();
-          updateMapRoute();
-        }
-      });
-      
-      // Control Listeners
-      const stayInput = li.querySelector(".wp-stay-input") as HTMLInputElement;
-      const overnightToggle = li.querySelector(".wp-overnight-toggle") as HTMLInputElement;
-      const overnightTime = li.querySelector(".wp-overnight-time") as HTMLInputElement;
-      
-      stayInput.addEventListener("change", () => {
-        wp.stayDurationMinutes = parseInt(stayInput.value) || 0;
-        updateMapRoute();
-      });
-      
-      overnightToggle.addEventListener("change", () => {
-        wp.isOvernight = overnightToggle.checked;
-        if (wp.isOvernight) {
-          stayInput.disabled = true;
-          overnightTime.style.display = 'block';
-        } else {
-          stayInput.disabled = false;
-          overnightTime.style.display = 'none';
-        }
-        updateMapRoute();
-      });
-      
-      overnightTime.addEventListener("change", () => {
-        wp.overnightDepartureTime = overnightTime.value;
-        updateMapRoute();
+        openWaypointModal(wp.id);
       });
 
       // Drag and Drop Logic
@@ -1094,7 +1062,9 @@ function initMap() {
       name,
       stayDurationMinutes: 0,
       isOvernight: false,
-      overnightDepartureTime: "08:00"
+      overnightDepartureTime: "08:00",
+      budget: 0,
+      notes: ""
     });
     renderWaypointList();
     updateMapRoute();
@@ -1112,6 +1082,85 @@ function initMap() {
     renderWaypointList();
     updateMapRoute();
   }
+
+  // ── Waypoint Modal Logic ──────────────────────────────────────────
+
+  const wpModal = document.getElementById("waypoint-modal")!;
+  const wpModalClose = document.getElementById("modal-close-btn")!;
+  const wpModalSave = document.getElementById("modal-save-btn")!;
+  
+  const mId = document.getElementById("modal-wp-id") as HTMLInputElement;
+  const mName = document.getElementById("modal-wp-name") as HTMLInputElement;
+  const mRadios = document.getElementsByName("modal-schedule-type") as NodeListOf<HTMLInputElement>;
+  const mStopFields = document.getElementById("modal-stop-fields")!;
+  const mOvernightFields = document.getElementById("modal-overnight-fields")!;
+  const mStay = document.getElementById("modal-wp-stay") as HTMLInputElement;
+  const mDepart = document.getElementById("modal-wp-depart") as HTMLInputElement;
+  const mDepartPicker = flatpickr(mDepart, {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "H:i",
+    time_24hr: false
+  });
+  const mBudget = document.getElementById("modal-wp-budget") as HTMLInputElement;
+  const mNotes = document.getElementById("modal-wp-notes") as HTMLTextAreaElement;
+
+  mRadios.forEach(r => {
+    r.addEventListener("change", () => {
+      if (r.value === "stop") {
+        mStopFields.style.display = "block";
+        mOvernightFields.style.display = "none";
+      } else {
+        mStopFields.style.display = "none";
+        mOvernightFields.style.display = "block";
+      }
+    });
+  });
+
+  function openWaypointModal(id: string) {
+    const wp = tripWaypoints.find(w => w.id === id);
+    if (!wp) return;
+    
+    mId.value = wp.id;
+    mName.value = wp.name;
+    mStay.value = wp.stayDurationMinutes.toString();
+    mDepartPicker.setDate(wp.overnightDepartureTime);
+    mBudget.value = wp.budget.toString();
+    mNotes.value = wp.notes;
+    
+    if (wp.isOvernight) {
+      mRadios[1].checked = true;
+      mStopFields.style.display = "none";
+      mOvernightFields.style.display = "block";
+    } else {
+      mRadios[0].checked = true;
+      mStopFields.style.display = "block";
+      mOvernightFields.style.display = "none";
+    }
+    
+    wpModal.style.display = "flex";
+  }
+
+  wpModalClose.addEventListener("click", () => {
+    wpModal.style.display = "none";
+  });
+
+  wpModalSave.addEventListener("click", () => {
+    const id = mId.value;
+    const wp = tripWaypoints.find(w => w.id === id);
+    if (wp) {
+      wp.name = mName.value;
+      wp.isOvernight = mRadios[1].checked;
+      wp.stayDurationMinutes = parseInt(mStay.value) || 0;
+      wp.overnightDepartureTime = mDepart.value;
+      wp.budget = parseFloat(mBudget.value) || 0;
+      wp.notes = mNotes.value;
+      
+      renderWaypointList();
+      updateMapRoute();
+    }
+    wpModal.style.display = "none";
+  });
 
   // Update MapLibre Markers & Route
   async function updateMapRoute() {
@@ -1145,6 +1194,7 @@ function initMap() {
       }
       distEl.textContent = "0 mi";
       timeEl.textContent = "0 hrs";
+      document.getElementById("trip-budget-val")!.textContent = "$0.00";
       return;
     }
 
@@ -1157,6 +1207,9 @@ function initMap() {
       const hrs = Math.floor(result.time / 3600);
       const mins = Math.floor((result.time % 3600) / 60);
       timeEl.textContent = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
+      
+      const totalBudget = tripWaypoints.reduce((acc, wp) => acc + (wp.budget || 0), 0);
+      document.getElementById("trip-budget-val")!.textContent = `$${totalBudget.toFixed(2)}`;
 
       // Valhalla returns a polyline shape, we need to decode it.
       const legs = result.geojson?.trip?.legs;
@@ -1168,6 +1221,11 @@ function initMap() {
         const tripStartTimeEl = document.getElementById("trip-start-time") as HTMLInputElement;
         let currentArrival = new Date(tripStartTimeEl.value || Date.now());
         let currentDeparture = new Date(currentArrival);
+
+        // Clear existing day dividers
+        document.querySelectorAll('.day-divider').forEach(el => el.remove());
+        let dayCounter = 1;
+        let lastDateString = "";
 
         tripWaypoints.forEach((wp, i) => {
           // Arrive at WP[i]
@@ -1189,6 +1247,20 @@ function initMap() {
             currentDeparture = dep;
           } else {
             currentDeparture = new Date(currentArrival.getTime() + (wp.stayDurationMinutes || 0) * 60000);
+          }
+
+          // Day Divider Logic
+          const currDateStr = currentArrival.toDateString();
+          if (i === 0 || currDateStr !== lastDateString) {
+            lastDateString = currDateStr;
+            if (i > 0) dayCounter++; // Increment before display on new days
+            const li = tripListEl.querySelector(`li[data-index="${i}"]`);
+            if (li) {
+              const divider = document.createElement("div");
+              divider.className = "day-divider";
+              divider.textContent = `Day ${dayCounter} - ${formatDate(currentArrival)}`;
+              tripListEl.insertBefore(divider, li);
+            }
           }
 
           // Update UI Badges
