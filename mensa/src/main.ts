@@ -1059,10 +1059,19 @@ function initMap() {
     tripWaypoints.forEach((wp) => {
       const el = document.createElement("div");
       el.className = "standard-marker"; // Default MapLibre marker is handled internally if no element provided
-      const marker = new maplibregl.Marker()
+      const marker = new maplibregl.Marker({ draggable: true })
         .setLngLat([wp.lng, wp.lat])
         .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<h3>${wp.name}</h3>`))
         .addTo(map);
+        
+      marker.on('dragend', () => {
+        const lngLat = marker.getLngLat();
+        wp.lat = lngLat.lat;
+        wp.lng = lngLat.lng;
+        renderWaypointList();
+        updateMapRoute();
+      });
+
       routeMarkers.push(marker);
     });
 
