@@ -75,7 +75,8 @@ Iter Viae Core/
 [X] Add a menu to add WP woth right click on Map
 [X] Make A reoute Between Waypoints
 [X] Allow WP to be dragged and moved in order then update route 
-[ ] Add a Itinary editor to allow:
+[X] Add a Itinary editor to allow:
 [X] Be able to edit WO details 
 [X] Zoom into WP when selected from the WP list
 [X] Distance and time between wp
+[X] Need to add a itiniary builder where the start time and end time between points is calculated based on how long the user stays at the point. This should look professional
