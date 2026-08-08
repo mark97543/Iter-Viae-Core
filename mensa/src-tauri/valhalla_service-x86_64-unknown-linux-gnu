@@ -1,0 +1,26 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+VALHALLA_BIN="$DIR/valhalla_dist/valhalla_service"
+VALHALLA_LIB="$DIR/valhalla_dist/lib"
+DATA_DIR="$1"
+if [ -z "$DATA_DIR" ]; then
+    DATA_DIR="$DIR"
+fi
+VALHALLA_JSON="$DATA_DIR/valhalla_tiles/valhalla.json"
+
+if [ ! -f "$VALHALLA_JSON" ]; then
+    ROUTING_TAR="$DATA_DIR/routing.tar"
+    if [ -f "$ROUTING_TAR" ]; then
+        echo "Found routing.tar. Extracting Valhalla tiles..."
+        tar -xf "$ROUTING_TAR" -C "$DATA_DIR"
+    else
+        echo "Valhalla offline map configuration not found at $VALHALLA_JSON"
+        echo "Please ensure the Faber build tool has successfully generated the routing graph (routing.tar)."
+        # Sleep to prevent Tauri from continuously restarting the sidecar in an infinite loop
+        while true; do sleep 60; done
+    fi
+fi
+
+echo "Starting Iter Viae Valhalla Offline Engine natively..."
+export LD_LIBRARY_PATH="$VALHALLA_LIB"
+exec "$VALHALLA_BIN" "$VALHALLA_JSON"

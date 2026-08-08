@@ -714,9 +714,479 @@ function initMap() {
     }
   });
 
+  // ── POI Data Panel ────────────────────────────────────────
+
+  // Category appearance config
+  const POI_CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string }> = {
+    poi_fuel:       { label: 'Fuel',       icon: '⛽', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.35)' },
+    poi_campsite:   { label: 'Campsite',   icon: '⛺', color: '#10b981', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.35)'  },
+    poi_hospital:   { label: 'Medical',    icon: '➕', color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.35)'   },
+    poi_lodging:    { label: 'Lodging',    icon: '🏨', color: '#a855f7', bg: 'rgba(168,85,247,0.12)',  border: 'rgba(168,85,247,0.35)'  },
+    poi_restaurant: { label: 'Dining',     icon: '🍽️', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',   border: 'rgba(244,63,94,0.35)'   },
+    poi_store:      { label: 'Store',      icon: '🛒', color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',   border: 'rgba(6,182,212,0.35)'   },
+    poi_general:    { label: 'POI',        icon: '📍', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.3)'  },
+  };
+
+  const panel     = document.getElementById('poi-panel')!;
+  const panelName = document.getElementById('poi-panel-name')!;
+  const panelBadge= document.getElementById('poi-category-badge')!;
+  const panelBody = document.getElementById('poi-panel-body')!;
+  const coordLat  = document.getElementById('poi-coord-lat')!;
+  const coordLng  = document.getElementById('poi-coord-lng')!;
+  const closeBtn  = document.getElementById('poi-panel-close')!;
+  const canvas    = map.getCanvas()!;
+  const canvasContainer = canvas.parentElement!;
+
+  // ── Row builders ──────────────────────────────────────────────────────────
+
+  /** Plain labelled row — only call when value is non-empty */
+  function makeRow(key: string, value: string): HTMLDivElement {
+    const row = document.createElement('div');
+    row.className = 'poi-row';
+    row.innerHTML =
+      `<span class="poi-row-key">${key}</span>` +
+      `<span class="poi-row-val">${value}</span>`;
+    return row;
+  }
+
+  /** Coordinates row: lat + lng on one line with a one-click copy button */
+  function makeCoordRow(lat: number, lng: number): HTMLDivElement {
+    const coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const row = document.createElement('div');
+    row.className = 'poi-row poi-row--coords';
+    row.innerHTML =
+      `<span class="poi-row-key">Coords</span>` +
+      `<span class="poi-row-val poi-coord-val">${coordStr}</span>` +
+      `<button class="poi-copy-btn" title="Copy coordinates" aria-label="Copy coordinates">⎘</button>`;
+    const copyBtn = row.querySelector<HTMLButtonElement>('.poi-copy-btn')!;
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(coordStr).then(() => {
+        copyBtn.textContent = '✓';
+        copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = '⎘'; copyBtn.classList.remove('copied'); }, 2000);
+      });
+    });
+    return row;
+  }
+
+  // ── Panel open / close ────────────────────────────────────────────────────
+
+  function closePanel(): void {
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+
+  // ── POI info type from Rust ───────────────────────────────────────────────
+
+  interface GeocoderResult {
+    name?:     string | null;
+    category?: string | null;
+    poi_type?: string | null;
+    address?:  string | null;
+    lat?:      number | null;
+    lon?:      number | null;
+    details?:  string | null;   // raw JSON blob
+  }
+
+  // ── Curated fields from the details JSON blob ─────────────────────────────
+  // Each entry: [json_key, display_label, optional value formatter]
+  type FieldDef = [string, string, ((v: string) => string)?];
+
+  const DETAIL_FIELDS: FieldDef[] = [
+    // Brand / Operator
+    ['brand',                   'Brand'],
+    ['operator',                'Operator'],
+    ['network',                 'Network'],
+    // Contact
+    ['phone',                   'Phone'],
+    ['website',                 'Website'],
+    ['opening_hours',           'Hours'],
+    // Address supplements
+    ['addr:street',             'Street'],
+    ['addr:housenumber',        'Number'],
+    ['addr:city',               'City'],
+    ['addr:postcode',           'Postcode'],
+    ['addr:state',              'State'],
+    // Food
+    ['cuisine',                 'Cuisine',     (v) => v.replace(/;/g, ' · ')],
+    // Fuel station extras
+    ['fuel:diesel',             'Diesel',      (v) => v === 'yes' ? '✓ Available' : v],
+    ['fuel:octane_87',          'Octane 87',   (v) => v === 'yes' ? '✓ Available' : v],
+    ['fuel:octane_91',          'Octane 91',   (v) => v === 'yes' ? '✓ Available' : v],
+    ['fuel:octane_93',          'Octane 93',   (v) => v === 'yes' ? '✓ Available' : v],
+    ['compressed_air',          'Air',         (v) => v === 'yes' ? '✓ Available' : v],
+    ['self_service',            'Self-Service', (v) => v === 'yes' ? '✓ Yes' : '✗ No'],
+    // Hospital / Medical
+    ['healthcare',              'Healthcare'],
+    ['healthcare:speciality',   'Specialty'],
+    ['emergency',               'Emergency',   (v) => v === 'yes' ? '✓ Yes' : v === 'no' ? '✗ No' : v],
+    ['beds',                    'Beds'],
+    // Place of worship
+    ['religion',                'Religion',    (v) => v.charAt(0).toUpperCase() + v.slice(1)],
+    ['denomination',            'Denomination',(v) => v.charAt(0).toUpperCase() + v.slice(1)],
+    // Transit
+    ['railway',                 'Rail Type'],
+    ['public_transport',        'Transit'],
+    ['subway',                  'Subway',      (v) => v === 'yes' ? '✓ Yes' : v],
+    // Accessibility / payments
+    ['wheelchair',              'Wheelchair',  (v) => v === 'yes' ? '✓ Accessible' : v === 'no' ? '✗ Not accessible' : v],
+    ['payment:cash',            'Cash',        (v) => v === 'yes' ? '✓ Accepted' : '✗ No'],
+    ['payment:credit_cards',    'Cards',       (v) => v === 'yes' ? '✓ Accepted' : '✗ No'],
+    // General info
+    ['ref',                     'Ref'],
+    ['ele',                     'Elevation',   (v) => `${v} m`],
+    ['population',              'Population',  (v) => Number(v).toLocaleString()],
+    ['wikidata',                'Wikidata'],
+    ['wikipedia',               'Wikipedia'],
+  ];
+
+  // ── Show panel (async — queries geocoder.db first) ────────────────────────
+
+  async function showPoiPanel(
+    layerId: string,
+    tileProps: Record<string, unknown>,
+    lngLat: maplibregl.LngLat
+  ): Promise<void> {
+    const cfg = POI_CATEGORY_CONFIG[layerId] ?? POI_CATEGORY_CONFIG.poi_general;
+
+    // Open immediately with a loading state
+    panelBadge.textContent      = `${cfg.icon}  ${cfg.label}`;
+    panelBadge.style.color      = cfg.color;
+    panelBadge.style.background = cfg.bg;
+    panelBadge.style.border     = `1px solid ${cfg.border}`;
+    panelName.textContent       = '…';
+    panelBody.innerHTML         = '';
+    panel.setAttribute('aria-hidden', 'false');
+    panel.classList.add('open');
+
+    // ── Query geocoder.db via Tauri IPC ──────────────────────────────────
+    let db: GeocoderResult | null = null;
+    try {
+      db = await invoke<GeocoderResult | null>('get_poi_info', {
+        lat: lngLat.lat,
+        lon: lngLat.lng,
+      });
+    } catch (_) { /* DB unavailable — fall through */ }
+
+    // ── Resolve core fields ───────────────────────────────────────────────
+
+    const name = db?.name
+      ?? (tileProps['name:latin'] ?? tileProps['name:en'] ?? tileProps['name']
+          ?? tileProps['brand'] ?? tileProps['subclass'] ?? tileProps['class'])
+      ?? null;
+
+    const address = (db?.address && db.address.trim()) ? db.address.trim() : null;
+    const finalLat = db?.lat ?? lngLat.lat;
+    const finalLng = db?.lon ?? lngLat.lng;
+
+    // ── Parse details JSON blob ───────────────────────────────────────────
+    let extra: Record<string, string> = {};
+    if (db?.details) {
+      try { extra = JSON.parse(db.details) as Record<string, string>; } catch (_) {}
+    }
+
+    // ── Update header ─────────────────────────────────────────────────────
+    panelName.textContent = String(name ?? '—');
+    coordLat.textContent  = `φ ${finalLat.toFixed(6)}°`;
+    coordLng.textContent  = `λ ${finalLng.toFixed(6)}°`;
+
+    // ── Build body rows — only render if data exists ───────────────────────
+    panelBody.innerHTML = '';
+
+    // 1. Address (top-level column)
+    if (address) {
+      panelBody.appendChild(makeRow('Address', address));
+    }
+
+    // 2. Coordinates (always shown, one-click copy)
+    panelBody.appendChild(makeCoordRow(finalLat, finalLng));
+
+    // 3. Curated details fields — hide any that are missing or empty
+    const seenKeys = new Set<string>();
+    for (const [key, label, fmt] of DETAIL_FIELDS) {
+      if (seenKeys.has(key)) continue;
+      const raw = extra[key];
+      if (raw === undefined || raw === null || String(raw).trim() === '') continue;
+      const display = fmt ? fmt(String(raw).trim()) : String(raw).trim();
+      panelBody.appendChild(makeRow(label, display));
+      seenKeys.add(key);
+    }
+  }
+
+
+  // ── Wire up close + click-away ────────────────────────────────────────────
+
+  closeBtn.addEventListener('click', closePanel);
+
+  map.on('click', (e) => {
+    const hit = map.queryRenderedFeatures(e.point, { layers: Object.keys(POI_CATEGORY_CONFIG) });
+    if (hit.length === 0) closePanel();
+  });
+
+  // ── Register click + cursor for every POI layer ───────────────────────────
+
+  for (const layerId of Object.keys(POI_CATEGORY_CONFIG)) {
+    map.on('click', layerId, (e) => {
+      e.preventDefault();
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const props = (feature.properties ?? {}) as Record<string, unknown>;
+      void showPoiPanel(layerId, props, e.lngLat);
+    });
+
+  }
+
+  // ── Trip Waypoint & Routing Logic ─────────────────────────────────────────
+
+  interface Waypoint {
+    id: string;
+    lat: number;
+    lng: number;
+    name: string;
+  }
+
+  let tripWaypoints: Waypoint[] = [];
+  let routeMarkers: maplibregl.Marker[] = [];
+
+  const tripListEl = document.getElementById("trip-waypoint-list")!;
+  const distEl = document.getElementById("trip-dist-val")!;
+  const timeEl = document.getElementById("trip-time-val")!;
+  const poiAddBtn = document.getElementById("poi-add-to-trip")!;
+
+  // Map Context Menu Elements
+  const ctxMenu = document.getElementById("map-context-menu")!;
+  const ctxAddWpBtn = document.getElementById("ctx-add-wp")!;
+  let ctxLngLat: maplibregl.LngLat | null = null;
+
+  // Render Waypoint List (UI)
+  function renderWaypointList() {
+    tripListEl.innerHTML = "";
+    tripWaypoints.forEach((wp, index) => {
+      const li = document.createElement("li");
+      li.className = "wp-item";
+      li.draggable = true;
+      li.dataset.index = index.toString();
+      
+      li.innerHTML = `
+        <div class="wp-drag-handle">≡</div>
+        <div class="wp-details">
+          <span class="wp-name" title="Click to edit">${wp.name}</span>
+          <span class="wp-coords">${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)}</span>
+        </div>
+        <button class="wp-remove" title="Remove">&times;</button>
+      `;
+
+      // Click to Zoom
+      li.querySelector(".wp-details")!.addEventListener("click", () => {
+        map.flyTo({ center: [wp.lng, wp.lat], zoom: 14 });
+      });
+
+      // Remove
+      li.querySelector(".wp-remove")!.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removeWaypoint(wp.id);
+      });
+
+      // Inline Edit Name
+      const nameEl = li.querySelector(".wp-name") as HTMLElement;
+      nameEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const newName = prompt("Enter waypoint name:", wp.name);
+        if (newName && newName.trim()) {
+          wp.name = newName.trim();
+          renderWaypointList();
+          updateMapRoute();
+        }
+      });
+
+      // Drag and Drop Logic
+      li.addEventListener("dragstart", (e) => {
+        li.classList.add("dragging");
+        e.dataTransfer?.setData("text/plain", index.toString());
+      });
+      li.addEventListener("dragend", () => {
+        li.classList.remove("dragging");
+      });
+      li.addEventListener("dragenter", (e) => {
+        e.preventDefault();
+      });
+      li.addEventListener("dragover", (e) => {
+        e.preventDefault(); // Necessary to allow dropping
+      });
+      li.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const draggedIdx = parseInt(e.dataTransfer?.getData("text/plain") || "-1", 10);
+        const targetIdx = index;
+        if (draggedIdx > -1 && draggedIdx !== targetIdx) {
+          reorderWaypoints(draggedIdx, targetIdx);
+        }
+      });
+
+      tripListEl.appendChild(li);
+    });
+  }
+
+  function addWaypoint(lat: number, lng: number, name: string) {
+    tripWaypoints.push({
+      id: Math.random().toString(36).substring(2, 9),
+      lat,
+      lng,
+      name
+    });
+    renderWaypointList();
+    updateMapRoute();
+  }
+
+  function removeWaypoint(id: string) {
+    tripWaypoints = tripWaypoints.filter(w => w.id !== id);
+    renderWaypointList();
+    updateMapRoute();
+  }
+
+  function reorderWaypoints(oldIdx: number, newIdx: number) {
+    const item = tripWaypoints.splice(oldIdx, 1)[0];
+    tripWaypoints.splice(newIdx, 0, item);
+    renderWaypointList();
+    updateMapRoute();
+  }
+
+  // Update MapLibre Markers & Route
+  async function updateMapRoute() {
+    // Clear old markers
+    routeMarkers.forEach(m => m.remove());
+    routeMarkers = [];
+
+    // Add new markers (Standard Pin Markers)
+    tripWaypoints.forEach((wp) => {
+      const el = document.createElement("div");
+      el.className = "standard-marker"; // Default MapLibre marker is handled internally if no element provided
+      const marker = new maplibregl.Marker()
+        .setLngLat([wp.lng, wp.lat])
+        .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<h3>${wp.name}</h3>`))
+        .addTo(map);
+      routeMarkers.push(marker);
+    });
+
+    if (tripWaypoints.length < 2) {
+      if (map.getSource("trip-route")) {
+        (map.getSource("trip-route") as maplibregl.GeoJSONSource).setData({ type: "FeatureCollection", features: [] });
+      }
+      distEl.textContent = "0 mi";
+      timeEl.textContent = "0 hrs";
+      return;
+    }
+
+    // Call Valhalla via Tauri IPC
+    try {
+      const payload = tripWaypoints.map(w => ({ lat: w.lat, lon: w.lng }));
+      const result = await invoke<{ geojson: any, distance: number, time: number }>("calculate_route", { waypoints: payload });
+      
+      distEl.textContent = `${result.distance.toFixed(2)} mi`;
+      const hrs = Math.floor(result.time / 3600);
+      const mins = Math.floor((result.time % 3600) / 60);
+      timeEl.textContent = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
+
+      // Valhalla returns a polyline shape, we need to decode it.
+      // Wait, we returned raw valhalla response in Rust. Valhalla uses shape (polyline6).
+      // Since polyline6 decoding is complex in vanilla JS without libs, we can just 
+      // draw straight lines between waypoints for the visual route until polyline decoding is added.
+      // Or we can draw it if it returns geojson. Let's fallback to straight lines if polyline6 parsing isn't here.
+      // Wait! We can easily use Turf or just basic LineString for now.
+      
+      const lineCoords = tripWaypoints.map(w => [w.lng, w.lat]);
+      const geojson: GeoJSON.FeatureCollection = {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: lineCoords
+          }
+        }]
+      };
+
+      const source = map.getSource("trip-route") as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData(geojson);
+      } else {
+        map.addSource("trip-route", { type: "geojson", data: geojson });
+        map.addLayer({
+          id: "trip-route-layer",
+          type: "line",
+          source: "trip-route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": "#38bdf8",
+            "line-width": 4,
+            "line-dasharray": [2, 2]
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Valhalla Routing Error (Local Offline Service Unavailable):", e);
+      // Fallback visual straight line if Valhalla fails (e.g., Faber routing map not built yet)
+      const lineCoords = tripWaypoints.map(w => [w.lng, w.lat]);
+      const geojson: GeoJSON.FeatureCollection = {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: lineCoords }
+        }]
+      };
+      const source = map.getSource("trip-route") as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData(geojson);
+      } else {
+        map.addSource("trip-route", { type: "geojson", data: geojson });
+        map.addLayer({
+          id: "trip-route-layer",
+          type: "line",
+          source: "trip-route",
+          layout: { "line-join": "round", "line-cap": "round" },
+          paint: { "line-color": "#ef4444", "line-width": 4, "line-dasharray": [2, 2] }
+        });
+      }
+    }
+  }
+
+  // Map Context Menu
+  map.on('contextmenu', (e) => {
+    e.preventDefault();
+    ctxLngLat = e.lngLat;
+    ctxMenu.style.left = `${e.point.x}px`;
+    ctxMenu.style.top = `${e.point.y}px`;
+    ctxMenu.classList.remove('hidden');
+  });
+
+  map.on('click', () => {
+    ctxMenu.classList.add('hidden');
+  });
+
+  ctxAddWpBtn.addEventListener('click', () => {
+    if (ctxLngLat) {
+      addWaypoint(ctxLngLat.lat, ctxLngLat.lng, "Custom Waypoint");
+    }
+    ctxMenu.classList.add('hidden');
+  });
+
+  // Add to Trip from POI Panel
+  poiAddBtn.addEventListener('click', () => {
+    const latStr = coordLat.textContent?.replace('φ ', '').replace('°', '');
+    const lngStr = coordLng.textContent?.replace('λ ', '').replace('°', '');
+    const name = panelName.textContent || "Unknown POI";
+    if (latStr && lngStr) {
+      addWaypoint(parseFloat(latStr), parseFloat(lngStr), name);
+    }
+  });
+
   return map;
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener('DOMContentLoaded', () => {
   initMap();
 });

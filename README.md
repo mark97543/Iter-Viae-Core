@@ -66,3 +66,16 @@ Iter Viae Core/
   - [X] **Downloads Page**: Hub for downloading compiled map artifacts and binaries.
 - [X] **Tactical Theme**: Maintain the consistent dark mode aesthetic across the portal.
 - [X] **Brand Assets**: Utilize Iter Viae SVG branding assets located in `data/swag/`.
+
+## Version 4 - Mensa Updates 08/04/26
+[X] Add POI's Data View- When user clicks on a waypoint the data for waypoint pops up in either a popup menu or panel/ 
+[X] Add residual information about location if we have it in our POI Database when a POI is clicked
+[X] Add Trip Waypoint bar to Left With Trip Title
+[X] Add a POI add WP to Trip
+[X] Add a menu to add WP woth right click on Map
+[ ] Make A reoute Between Waypoints
+[ ] Allow WP to be dragged and moved in order then update route 
+[ ] Add a Itinary editor to allow:
+[ ] Be able to edit WO details 
+[ ] Zoom into WP when selected from the WP list
+[ ] Distance and time between wp

@@ -13,5 +13,53 @@
       <span class="debug-label">ZOOM</span>
       <span id="zoom-val">4.00</span>
     </div>
+
+    <!-- POI Data Panel -->
+    <aside id="poi-panel" aria-label="Point of interest details" aria-hidden="true">
+      <div id="poi-panel-header">
+        <div id="poi-panel-header-left">
+          <span id="poi-category-badge"></span>
+          <p id="poi-panel-name"></p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="poi-add-to-trip" title="Add to Trip">+</button>
+          <button id="poi-panel-close" aria-label="Close POI panel">&times;</button>
+        </div>
+      </div>
+      <div id="poi-panel-body"></div>
+      <div id="poi-panel-coords">
+        <span id="poi-coord-lat"></span>
+        <span>&nbsp;&middot;&nbsp;</span>
+        <span id="poi-coord-lng"></span>
+      </div>
+    </aside>
+
+    <!-- Trip Itinerary Panel -->
+    <aside id="trip-panel" aria-label="Trip Itinerary" aria-hidden="false" class="open">
+      <div id="trip-panel-header">
+        <input type="text" id="trip-title" value="My Trip Itinerary" aria-label="Trip Title" />
+      </div>
+      <div id="trip-panel-body">
+        <ul id="trip-waypoint-list">
+          <!-- Waypoints injected here -->
+        </ul>
+      </div>
+      <div id="trip-panel-footer">
+        <div class="trip-metric">
+          <span class="trip-metric-label">DIST</span>
+          <span id="trip-dist-val">0 mi</span>
+        </div>
+        <div class="trip-metric">
+          <span class="trip-metric-label">TIME</span>
+          <span id="trip-time-val">0 hrs</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Map Context Menu -->
+    <div id="map-context-menu" class="hidden">
+      <button id="ctx-add-wp">Add Waypoint Here</button>
+    </div>
+
   </body>
 </html>
