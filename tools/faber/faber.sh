@@ -243,9 +243,8 @@ fi
 
 echo "Iter Viae Routing Shard Archive - Map: ${PBF_FILENAME}" > "${VALHALLA_WORK_DIR}/manifest.txt"
 tar -cf "$OUTPUT_ROUTING_TAR" -C "$COMPILED_DIR" "valhalla_tiles"
-rm -rf "$VALHALLA_WORK_DIR" 2>/dev/null || docker run --rm --user 0:0 --entrypoint /bin/bash -v "${COMPILED_DIR}:/compiled" "$VALHALLA_IMAGE" -c "rm -rf /compiled/valhalla_tiles"
 
-log_success "Created Routing Graph Shards: routing.tar"
+log_success "Created Routing Graph Shards: routing.tar (valhalla_tiles ready for immediate local use)"
 
 # ------------------------------------------------------------------------------
 # STEP 6: Build Gazetteer Search Index (geocoder.db)

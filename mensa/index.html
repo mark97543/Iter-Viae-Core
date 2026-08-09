@@ -15,6 +15,12 @@
       <span id="zoom-val">4.00</span>
     </div>
 
+    <!-- Coordinate Search -->
+    <div id="search-overlay" style="position: absolute; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 8px; background: rgba(15, 23, 42, 0.9); padding: 8px; border-radius: 6px; border: 1px solid #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);">
+      <input type="text" id="coord-search-input" placeholder="Search Lat, Lng coordinates..." style="background: #000; color: #fff; border: 1px solid #334155; padding: 4px 8px; border-radius: 4px; font-family: monospace; width: 260px; font-size: 14px;" />
+      <button id="coord-search-btn" style="background: #3b82f6; color: white; border: none; padding: 4px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">GO</button>
+    </div>
+
     <!-- POI Data Panel -->
     <aside id="poi-panel" aria-label="Point of interest details" aria-hidden="true">
       <div id="poi-panel-header">

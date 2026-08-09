@@ -736,6 +736,17 @@ function initMap() {
   const coordLat  = document.getElementById('poi-coord-lat')!;
   const coordLng  = document.getElementById('poi-coord-lng')!;
   const closeBtn  = document.getElementById('poi-panel-close')!;
+
+  let searchMarker: maplibregl.Marker | null = null;
+
+  closeBtn.addEventListener('click', () => {
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+    if (searchMarker) {
+      searchMarker.remove();
+      searchMarker = null;
+    }
+  });
   // ── Row builders ──────────────────────────────────────────────────────────
 
   /** Plain labelled row — only call when value is non-empty */
@@ -1063,6 +1074,7 @@ function initMap() {
             <div style="display: flex; flex-direction: column;">
               <span class="wp-name" title="Click to edit">${wp.name}</span>
               <span class="wp-type" style="font-size: 0.65rem; color: ${getWaypointColor(wp.type || 'Waypoint')}; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-top: 2px;">${wp.type || 'Waypoint'}</span>
+              <span class="wp-coords" style="font-size: 0.7rem; color: #94a3b8; font-family: monospace; margin-top: 2px;">φ ${wp.lat.toFixed(5)}°, λ ${wp.lng.toFixed(5)}°</span>
             </div>
             <div style="display: flex; gap: 8px;">
               <button class="wp-edit" title="Edit" style="background:transparent; border:none; color:#38bdf8; cursor:pointer; font-size:16px;">✎</button>
@@ -1516,6 +1528,64 @@ function initMap() {
     }
     ctxMenu.classList.add('hidden');
   });
+
+  // ── Coordinate Search UI ────────────────────────────────────────────────
+  const searchInput = document.getElementById("coord-search-input") as HTMLInputElement | null;
+  const searchBtn = document.getElementById("coord-search-btn") as HTMLButtonElement | null;
+
+  function executeCoordinateSearch() {
+    if (!searchInput || !searchInput.value.trim()) return;
+
+    // Parse input (supports comma or space separation of numbers, lat/lng or lng/lat)
+    const val = searchInput.value.replace(/[^\d.\-,\s]/g, '');
+    const parts = val.split(/[,\s]+/).filter(p => p.length > 0);
+    if (parts.length >= 2) {
+      const v1 = parseFloat(parts[0]);
+      const v2 = parseFloat(parts[1]);
+      if (!isNaN(v1) && !isNaN(v2)) {
+        let lat = v1;
+        let lng = v2;
+        if (Math.abs(v1) > 90 && Math.abs(v2) <= 90) {
+          lng = v1;
+          lat = v2;
+        }
+
+        // Fly to location
+        map.flyTo({ center: [lng, lat], zoom: 12 });
+
+        // Drop marker
+        if (searchMarker) searchMarker.remove();
+        searchMarker = new maplibregl.Marker({ color: "#ef4444" })
+          .setLngLat([lng, lat])
+          .addTo(map);
+
+        // Show POI Panel
+        panelBadge.textContent      = `📍  Coordinate Pin`;
+        panelBadge.style.color      = '#cbd5e1';
+        panelBadge.style.background = '#0f172a';
+        panelBadge.style.border     = `1px solid #334155`;
+        panelName.textContent       = `Search Result (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+        panelBody.innerHTML         = `
+          <div class="poi-row">
+            <span class="poi-label">LAT / LNG</span>
+            <span class="poi-value">${lat.toFixed(5)}, ${lng.toFixed(5)}</span>
+          </div>
+        `;
+        coordLat.textContent = `φ ${lat.toFixed(5)}°`;
+        coordLng.textContent = `λ ${lng.toFixed(5)}°`;
+
+        panel.setAttribute('aria-hidden', 'false');
+        panel.classList.add('open');
+      }
+    }
+  }
+
+  if (searchBtn && searchInput) {
+    searchBtn.addEventListener("click", executeCoordinateSearch);
+    searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") executeCoordinateSearch();
+    });
+  }
 
   // Add to Trip from POI Panel
   poiAddBtn.addEventListener('click', () => {
