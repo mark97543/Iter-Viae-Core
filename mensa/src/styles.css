@@ -84,6 +84,13 @@ html, body {
   filter: invert(1);
 }
 
+/* Prevent DOM markers from lagging behind map panning */
+.maplibregl-marker,
+.mapboxgl-marker {
+  transition: none !important;
+  animation: none !important;
+}
+
 /* ── POI Data Panel ──────────────────────────────────────── */
 
 #poi-panel {

@@ -84,5 +84,5 @@ Iter Viae Core/
 [X] Add Trip Summary Modal with support for overall trip notes and dateless future planning.
 [X] Use our Iter Via icon for the widow title.
 [X] Add persistence Save, Loade, Save As, Export (save to custom location)
-[ ] Add print Itinerary 3 sized with automatic page breaks and they should all be printed on letter sized peaper and black and white. 
+[X] Add print Itinerary 3 sized with automatic page breaks and they should all be printed on letter sized peaper and black and white. 
 

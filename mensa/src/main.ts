@@ -980,6 +980,8 @@ function initMap() {
 
   let tripWaypoints: Waypoint[] = [];
   let routeMarkers: maplibregl.Marker[] = [];
+  let isDraggingWp = false;
+  let draggedWpIndex: number | null = null;
 
   const tripListEl = document.getElementById("trip-waypoint-list")!;
   const distEl = document.getElementById("trip-dist-val")!;
@@ -1251,25 +1253,124 @@ function initMap() {
     routeMarkers.forEach(m => m.remove());
     routeMarkers = [];
 
-    // Add new markers (Standard Pin Markers)
-    tripWaypoints.forEach((wp) => {
-      const el = document.createElement("div");
-      el.className = "standard-marker"; // Default MapLibre marker is handled internally if no element provided
-      const marker = new maplibregl.Marker({ draggable: true, color: getWaypointColor(wp.type) })
-        .setLngLat([wp.lng, wp.lat])
-        .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`<h3>${wp.name}</h3>`))
-        .addTo(map);
-        
-      marker.on('dragend', () => {
-        const lngLat = marker.getLngLat();
-        wp.lat = lngLat.lat;
-        wp.lng = lngLat.lng;
-        renderWaypointList();
-        updateMapRoute();
+    // Update WebGL Waypoint GeoJSON source (hardware-locked to map tiles on GPU)
+    const waypointsGeoJson: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: tripWaypoints.map((wp, i) => ({
+        type: "Feature",
+        properties: {
+          id: wp.id,
+          name: wp.name,
+          color: getWaypointColor(wp.type),
+          index: i + 1
+        },
+        geometry: {
+          type: "Point",
+          coordinates: [wp.lng, wp.lat]
+        }
+      }))
+    };
+
+    const wpSource = map.getSource("trip-waypoints") as maplibregl.GeoJSONSource;
+    if (wpSource) {
+      wpSource.setData(waypointsGeoJson);
+    } else {
+      map.addSource("trip-waypoints", { type: "geojson", data: waypointsGeoJson });
+      
+      map.addLayer({
+        id: "trip-waypoints-circle",
+        type: "circle",
+        source: "trip-waypoints",
+        paint: {
+          "circle-radius": 9,
+          "circle-color": ["get", "color"],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff"
+        }
       });
 
-      routeMarkers.push(marker);
-    });
+      map.addLayer({
+        id: "trip-waypoints-text",
+        type: "symbol",
+        source: "trip-waypoints",
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Open Sans Regular"],
+          "text-size": 12,
+          "text-offset": [0, 1.2],
+          "text-anchor": "top"
+        },
+        paint: {
+          "text-color": "#f8fafc",
+          "text-halo-color": "#090d16",
+          "text-halo-width": 2
+        }
+      });
+
+      // Interactive mouse drag handlers directly on the WebGL GPU canvas
+      map.on('mouseenter', 'trip-waypoints-circle', () => {
+        if (!isDraggingWp) map.getCanvas().style.cursor = 'grab';
+      });
+
+      map.on('mouseleave', 'trip-waypoints-circle', () => {
+        if (!isDraggingWp) map.getCanvas().style.cursor = '';
+      });
+
+      map.on('mousedown', 'trip-waypoints-circle', (e) => {
+        const feature = e.features?.[0];
+        if (!feature) return;
+
+        e.preventDefault();
+        isDraggingWp = true;
+        draggedWpIndex = typeof feature.properties?.index === 'number' ? (feature.properties.index - 1) : null;
+        map.getCanvas().style.cursor = 'grabbing';
+
+        function onMove(me: maplibregl.MapMouseEvent) {
+          if (!isDraggingWp || draggedWpIndex === null) return;
+          const coords = me.lngLat;
+          
+          if (tripWaypoints[draggedWpIndex]) {
+            tripWaypoints[draggedWpIndex].lat = coords.lat;
+            tripWaypoints[draggedWpIndex].lng = coords.lng;
+
+            const currentWpSource = map.getSource("trip-waypoints") as maplibregl.GeoJSONSource;
+            if (currentWpSource) {
+              currentWpSource.setData({
+                type: "FeatureCollection",
+                features: tripWaypoints.map((wp, i) => ({
+                  type: "Feature",
+                  properties: {
+                    id: wp.id,
+                    name: wp.name,
+                    color: getWaypointColor(wp.type),
+                    index: i + 1
+                  },
+                  geometry: { type: "Point", coordinates: [wp.lng, wp.lat] }
+                }))
+              });
+            }
+          }
+        }
+
+        function onUp() {
+          if (!isDraggingWp) return;
+          isDraggingWp = false;
+          draggedWpIndex = null;
+          map.getCanvas().style.cursor = '';
+
+          map.off('mousemove', onMove);
+          map.off('mouseup', onUp);
+
+          renderWaypointList();
+          updateMapRoute();
+        }
+
+        map.on('mousemove', onMove);
+        map.on('mouseup', onUp);
+      });
+    }
+
+    // (WebGL GeoJSON layers above handle hardware-locked rendering of waypoints)
 
     if (tripWaypoints.length < 2) {
       if (map.getSource("trip-route")) {
@@ -1553,11 +1654,38 @@ function initMap() {
         // Fly to location
         map.flyTo({ center: [lng, lat], zoom: 12 });
 
-        // Drop marker
-        if (searchMarker) searchMarker.remove();
-        searchMarker = new maplibregl.Marker({ color: "#ef4444" })
-          .setLngLat([lng, lat])
-          .addTo(map);
+        // Clear old search pin marker if any
+        if (searchMarker) {
+          searchMarker.remove();
+          searchMarker = null;
+        }
+
+        // Render WebGL search pin (hardware-locked to GPU map canvas)
+        const searchGeoJson: GeoJSON.FeatureCollection = {
+          type: "FeatureCollection",
+          features: [{
+            type: "Feature",
+            properties: { name: `Search Result (${lat.toFixed(5)}, ${lng.toFixed(5)})` },
+            geometry: { type: "Point", coordinates: [lng, lat] }
+          }]
+        };
+        const searchSource = map.getSource("search-pin-source") as maplibregl.GeoJSONSource;
+        if (searchSource) {
+          searchSource.setData(searchGeoJson);
+        } else {
+          map.addSource("search-pin-source", { type: "geojson", data: searchGeoJson });
+          map.addLayer({
+            id: "search-pin-layer",
+            type: "circle",
+            source: "search-pin-source",
+            paint: {
+              "circle-radius": 10,
+              "circle-color": "#ef4444",
+              "circle-stroke-width": 3,
+              "circle-stroke-color": "#ffffff"
+            }
+          });
+        }
 
         // Show POI Panel
         panelBadge.textContent      = `📍  Coordinate Pin`;
