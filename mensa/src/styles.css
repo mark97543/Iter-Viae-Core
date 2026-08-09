@@ -691,3 +691,191 @@ textarea.modal-input {
 .day-divider:not(:empty)::after {
   margin-left: .5em;
 }
+
+/* ── Print Layout Engine & Preview ────────────────────────────────────── */
+
+#print-container {
+  display: none;
+}
+
+/* Shared Core Styles for Print Preview and Output */
+.print-core-styles {
+  background: transparent !important;
+  color: #000 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  text-align: left;
+}
+
+.print-sheet {
+  background: white !important;
+  width: 8.5in;
+  height: 11in;
+  margin: 0 auto 20px auto;
+  box-sizing: border-box;
+  page-break-after: always;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+}
+
+.print-sheet:last-child {
+  page-break-after: auto;
+}
+
+/* ── Typography & Headers ───────────────────────── */
+.print-header-brand {
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 0.85em;
+  letter-spacing: 0.1em;
+  border-bottom: 3px solid #000;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+.print-header-title {
+  font-size: 1.8em;
+  font-weight: 900;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.print-header-meta {
+  font-size: 0.85em;
+  font-weight: bold;
+  border-bottom: 1px solid #000;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.print-header-notes {
+  border: 1px solid #000;
+  padding: 0.5rem;
+  font-size: 0.85em;
+  margin-bottom: 1rem;
+}
+
+/* ── Waypoint Logbook Cards ─────────────────────── */
+.print-wp-log {
+  border: 2px solid #000;
+  margin-bottom: 0.5rem;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.print-wp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  background: #000;
+  color: #fff !important;
+  padding: 4px 8px;
+  font-weight: bold;
+  font-size: 0.9em;
+  text-transform: uppercase;
+}
+.print-wp-header * {
+  color: #fff !important;
+}
+.print-wp-title {
+  font-weight: 800;
+}
+.print-wp-type {
+  font-size: 0.8em;
+}
+.print-wp-row {
+  display: flex;
+  border-bottom: 1px solid #000;
+}
+.print-wp-row:last-child {
+  border-bottom: none;
+}
+.print-wp-cell {
+  flex: 1;
+  border-right: 1px solid #000;
+  padding: 4px 8px;
+  font-size: 0.8em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.print-wp-cell:last-child {
+  border-right: none;
+}
+.print-wp-label {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.print-wp-val {
+  font-weight: 500;
+}
+.print-wp-notes {
+  padding: 6px 8px;
+  font-size: 0.8em;
+  border-top: 1px solid #000;
+}
+.print-tag-overnight {
+  background: #fff;
+  color: #000 !important;
+  padding: 1px 4px;
+  font-size: 0.8em;
+  margin-left: 8px;
+}
+
+/* ── Size Specific Layouts ──────────────────────── */
+
+/* Letter */
+.print-sheet.size-letter {
+  padding: 0.5in;
+}
+
+/* A5 Box drawn inside Letter */
+.print-sheet.size-a5 .print-bounds {
+  width: 5.1in;
+  height: 7.5in;
+  margin: 1.75in auto 0 auto;
+  border: 1px dashed #000;
+  padding: 0.25in;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Field Notes Box drawn inside Letter */
+.print-sheet.size-field-notes {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5in;
+}
+.print-sheet.size-field-notes .print-bounds {
+  width: 2.8in;
+  height: 4.8in;
+  border: 1px dashed #000;
+  padding: 0.15in;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Physical Print Overrides */
+@media print {
+  body > *:not(#print-container) { display: none !important; }
+  html, body { 
+    background: white !important; 
+    margin: 0 !important; 
+    padding: 0 !important; 
+    height: auto !important; 
+    overflow: visible !important; 
+  }
+  #print-container { 
+    display: block !important; 
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .print-sheet {
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+}

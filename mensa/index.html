@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/fav.svg" />
     <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mensa — Tactical Map Surface</title>
@@ -167,6 +168,48 @@
         <div class="modal-footer">
           <button id="summary-save-btn" class="btn-primary">Save & Apply</button>
         </div>
+      </div>
+    </div>
+    <!-- Print Container (Only visible when printing) -->
+    <div id="print-container"></div>
+
+    <!-- Print Configuration Modal -->
+    <div id="print-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 900px; width: 90%; max-height: 90vh; display: flex; flex-wrap: wrap; gap: 2rem; overflow-y: auto;">
+        
+        <!-- Left Column: Controls -->
+        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; justify-content: space-between;">
+          <h2>Print Itinerary</h2>
+          
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="print-size">Paper / Layout Size:</label>
+            <select id="print-size" class="modal-input">
+              <option value="letter">Standard Letter (8.5" x 11")</option>
+              <option value="a5">A5 Log (Fits inside 5.1" x 7.5")</option>
+              <option value="field-notes">Field Notes Log (Fits inside 2.8" x 4.8")</option>
+            </select>
+            <small style="color: #94a3b8; display: block; margin-top: 8px; line-height: 1.4;">
+              For A5 and Field Notes, the printout is scaled specifically for you to trim it from standard US Letter paper.
+            </small>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 2rem;">
+            <button id="print-cancel-btn" class="btn secondary">Cancel</button>
+            <button id="print-confirm-btn" class="btn primary">Print</button>
+          </div>
+        </div>
+
+        <!-- Right Column: Live Preview -->
+        <div style="flex: 2; display: flex; flex-direction: column; min-width: 300px; background: #0f172a; border-radius: 8px; border: 1px solid #1e293b; padding: 1rem; min-height: 400px;">
+          <h3 style="margin-bottom: 0.5rem; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">Live Print Preview</h3>
+          <div style="flex: 1; overflow-y: auto; background: #000; display: flex; align-items: flex-start; justify-content: center; padding: 1rem; border-radius: 4px;">
+            <!-- The preview scale wrapper -->
+            <div id="print-preview-wrapper" style="transform: scale(0.45); transform-origin: top center; width: 8.5in; transition: transform 0.2s;">
+              <div id="print-preview-container"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </body>

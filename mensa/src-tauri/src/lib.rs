@@ -1,11 +1,11 @@
-use std::io::Read;
-use std::path::PathBuf;
 use flate2::read::GzDecoder;
 use rusqlite::{Connection, OpenFlags};
-use tauri::{Emitter, Manager, State};
+use std::io::Read;
+use std::path::PathBuf;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
-use tauri_plugin_shell::ShellExt;
+use tauri::{Emitter, Manager, State};
 use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::ShellExt;
 
 pub struct MbtilesState {
     app_handle: tauri::AppHandle,
@@ -24,9 +24,10 @@ fn find_mbtiles_in_dir(dir: &std::path::Path) -> Option<PathBuf> {
     if let Ok(entries) = std::fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() 
+            if path.is_file()
                 && path.extension().and_then(|s| s.to_str()) == Some("mbtiles")
-                && path.file_name().and_then(|s| s.to_str()) != Some("dem.mbtiles") {
+                && path.file_name().and_then(|s| s.to_str()) != Some("dem.mbtiles")
+            {
                 return Some(path);
             }
         }
@@ -105,9 +106,40 @@ fn get_os_app_maps_dir(app_handle: &tauri::AppHandle) -> PathBuf {
         return os_maps_dir;
     }
 
-    let fallback = std::env::current_dir().unwrap_or_default().join("data").join("maps").join("compiled");
+    let fallback = std::env::current_dir()
+        .unwrap_or_default()
+        .join("data")
+        .join("maps")
+        .join("compiled");
     let _ = std::fs::create_dir_all(&fallback);
     fallback
+}
+
+#[tauri::command]
+fn get_trips_dir(app_handle: tauri::AppHandle) -> String {
+    if let Ok(app_dir) = app_handle.path().app_data_dir() {
+        let trips_dir = app_dir.join("trips");
+        let _ = std::fs::create_dir_all(&trips_dir);
+        return trips_dir.to_string_lossy().to_string();
+    }
+    
+    // Fallback if app_data_dir fails
+    let fallback = std::env::current_dir()
+        .unwrap_or_default()
+        .join("data")
+        .join("trips");
+    let _ = std::fs::create_dir_all(&fallback);
+    fallback.to_string_lossy().to_string()
+}
+
+#[tauri::command]
+fn save_trip_file(path: String, data: String) -> Result<(), String> {
+    std::fs::write(&path, data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_trip_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }
 
 fn decompress_tile(data: Vec<u8>) -> Vec<u8> {
@@ -126,64 +158,85 @@ fn decompress_tile(data: Vec<u8>) -> Vec<u8> {
 
 #[derive(serde::Serialize)]
 pub struct PoiInfo {
-    pub name:     Option<String>,
+    pub name: Option<String>,
     pub category: Option<String>,
     pub poi_type: Option<String>,
-    pub address:  Option<String>,
-    pub lat:      Option<f64>,
-    pub lon:      Option<f64>,
-    pub details:  Option<String>,   // raw JSON blob from the details column
+    pub address: Option<String>,
+    pub lat: Option<f64>,
+    pub lon: Option<f64>,
+    pub details: Option<String>, // raw JSON blob from the details column
 }
 
 fn find_geocoder_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> {
     // 1. OS app-data dir  (~/.local/share/com.viae.mensa/maps/geocoder.db)
     if let Ok(app_dir) = app_handle.path().app_data_dir() {
         let p = app_dir.join("maps").join("geocoder.db");
-        if p.exists() { return Some(p); }
+        if p.exists() {
+            return Some(p);
+        }
     }
     // 2. Dev workspace fallback
     let mut curr = std::env::current_dir().unwrap_or_default();
     for _ in 0..4 {
-        let p = curr.join("data").join("maps").join("compiled").join("geocoder.db");
-        if p.exists() { return Some(p); }
-        if let Some(parent) = curr.parent() { curr = parent.to_path_buf(); } else { break; }
+        let p = curr
+            .join("data")
+            .join("maps")
+            .join("compiled")
+            .join("geocoder.db");
+        if p.exists() {
+            return Some(p);
+        }
+        if let Some(parent) = curr.parent() {
+            curr = parent.to_path_buf();
+        } else {
+            break;
+        }
     }
     None
 }
 
 #[tauri::command]
-fn get_poi_info(lat: f64, lon: f64, state: State<'_, MbtilesState>) -> Result<Option<PoiInfo>, String> {
+fn get_poi_info(
+    lat: f64,
+    lon: f64,
+    state: State<'_, MbtilesState>,
+) -> Result<Option<PoiInfo>, String> {
     let db_path = match find_geocoder_path(&state.app_handle) {
         Some(p) => p,
-        None    => return Ok(None),
+        None => return Ok(None),
     };
 
     let conn = Connection::open_with_flags(
         &db_path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    ).map_err(|e| e.to_string())?;
+    )
+    .map_err(|e| e.to_string())?;
 
     // Search within ~0.003 deg (~300 m) bounding box, pick the closest row
     let tol = 0.003_f64;
-    let mut stmt = conn.prepare(
-        "SELECT name, category, type, address, lat, lon, details
+    let mut stmt = conn
+        .prepare(
+            "SELECT name, category, type, address, lat, lon, details
          FROM places
          WHERE lat BETWEEN ?1 AND ?2 AND lon BETWEEN ?3 AND ?4
          ORDER BY ((lat - ?5) * (lat - ?5) + (lon - ?6) * (lon - ?6)) ASC
-         LIMIT 1"
-    ).map_err(|e| e.to_string())?;
+         LIMIT 1",
+        )
+        .map_err(|e| e.to_string())?;
 
     let result = stmt.query_row(
         rusqlite::params![lat - tol, lat + tol, lon - tol, lon + tol, lat, lon],
-        |row| Ok(PoiInfo {
-            name:     row.get(0)?,
-            category: row.get(1)?,
-            poi_type: row.get(2)?,
-            address:  row.get(3)?,
-            lat:      row.get(4)?,
-            lon:      row.get(5)?,
-            details:  row.get(6)?,
-        }),
+        |row| {
+            Ok(PoiInfo {
+                name: row.get(0)?,
+                category: row.get(1)?,
+                poi_type: row.get(2)?,
+                address: row.get(3)?,
+                lat: row.get(4)?,
+                lon: row.get(5)?,
+                details: row.get(6)?,
+            })
+        },
     );
 
     match result {
@@ -203,7 +256,8 @@ fn get_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Result<Ve
     let conn = Connection::open_with_flags(
         &db_path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    ).map_err(|e| e.to_string())?;
+    )
+    .map_err(|e| e.to_string())?;
 
     let tms_y = (1 << z) - 1 - y;
     let mut stmt = conn.prepare_cached(
@@ -226,7 +280,8 @@ fn get_dem_tile(z: u32, x: u32, y: u32, state: State<'_, MbtilesState>) -> Resul
     let conn = Connection::open_with_flags(
         &dem_path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    ).map_err(|e| e.to_string())?;
+    )
+    .map_err(|e| e.to_string())?;
 
     // Fallback to max available DEM zoom level (z=8) when map is zoomed in to zoom 9..16+
     let target_z = if z > 8 { 8 } else { z };
@@ -285,7 +340,8 @@ async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String
     });
 
     let client = reqwest::Client::new();
-    let res = client.post("http://localhost:8002/route")
+    let res = client
+        .post("http://localhost:8002/route")
         .json(&request_body)
         .send()
         .await
@@ -296,17 +352,20 @@ async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String
     // Extract geojson line
     let trip = valhalla_response.get("trip").ok_or("No trip in response")?;
     let summary = trip.get("summary").ok_or("No summary in response")?;
-    
-    let distance = summary.get("length").and_then(|v| v.as_f64()).unwrap_or(0.0);
+
+    let distance = summary
+        .get("length")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0);
     let time = summary.get("time").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    
+
     // Convert Valhalla shape to GeoJSON (Valhalla uses polyline6 by default)
     // For simplicity, we just return the raw shape string, and let the frontend decode it using polyline library or we can decode it here.
     // It's easier if we ask Valhalla for polyline and decode it in JS, or if we can't easily, we just return the shape.
-    // Wait, MapLibre doesn't natively decode polyline6. 
-    // Let's ask Valhalla for GeoJSON format by passing "format": "osrm" which MapLibre might not directly ingest, 
+    // Wait, MapLibre doesn't natively decode polyline6.
+    // Let's ask Valhalla for GeoJSON format by passing "format": "osrm" which MapLibre might not directly ingest,
     // but actually, we can just return the raw polyline shape string and handle decoding in `main.ts` or we can return the trip.
-    
+
     Ok(RouteResult {
         geojson: valhalla_response,
         distance,
@@ -333,6 +392,8 @@ fn open_maps_folder(app_handle: &tauri::AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -359,11 +420,34 @@ pub fn run() {
             });
 
             // File Menu
+            let file_new_item = MenuItemBuilder::with_id("file-new", "New Trip")
+                .accelerator("CmdOrCtrl+N")
+                .build(app)?;
+            let file_load_item = MenuItemBuilder::with_id("file-load", "Load Trip...")
+                .accelerator("CmdOrCtrl+O")
+                .build(app)?;
+            let file_save_item = MenuItemBuilder::with_id("file-save", "Save Trip")
+                .accelerator("CmdOrCtrl+S")
+                .build(app)?;
+            let file_save_as_item = MenuItemBuilder::with_id("file-save-as", "Save As...")
+                .accelerator("CmdOrCtrl+Shift+S")
+                .build(app)?;
+            let file_print_item = MenuItemBuilder::with_id("file-print", "Print Itinerary...")
+                .accelerator("CmdOrCtrl+P")
+                .build(app)?;
+                
             let quit_item = MenuItemBuilder::with_id("quit", "Quit Mensa")
                 .accelerator("CmdOrCtrl+Q")
                 .build(app)?;
 
             let file_menu = SubmenuBuilder::new(app, "File")
+                .item(&file_new_item)
+                .item(&file_load_item)
+                .item(&file_save_item)
+                .item(&file_save_as_item)
+                .separator()
+                .item(&file_print_item)
+                .separator()
                 .item(&quit_item)
                 .build()?;
 
@@ -399,11 +483,29 @@ pub fn run() {
             app.set_menu(menu)?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_tile, get_dem_tile, get_poi_info, calculate_route])
+        .invoke_handler(tauri::generate_handler![
+            get_tile,
+            get_dem_tile,
+            get_poi_info,
+            calculate_route,
+            get_trips_dir,
+            save_trip_file,
+            load_trip_file
+        ])
         .on_menu_event(|app, event| {
             let id = event.id().as_ref();
             if id == "quit" {
                 app.exit(0);
+            } else if id == "file-new" {
+                let _ = app.emit("menu-file-new", ());
+            } else if id == "file-load" {
+                let _ = app.emit("menu-file-load", ());
+            } else if id == "file-save" {
+                let _ = app.emit("menu-file-save", ());
+            } else if id == "file-save-as" {
+                let _ = app.emit("menu-file-save-as", ());
+            } else if id == "file-print" {
+                let _ = app.emit("menu-file-print", ());
             } else if id == "open_maps_folder" {
                 open_maps_folder(app);
             } else if id.starts_with("theme-") {

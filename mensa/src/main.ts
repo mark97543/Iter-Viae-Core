@@ -1,6 +1,7 @@
 import * as maplibregl from "maplibre-gl";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { save, open } from '@tauri-apps/plugin-dialog';
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import "flatpickr/dist/themes/dark.css";
@@ -735,9 +736,6 @@ function initMap() {
   const coordLat  = document.getElementById('poi-coord-lat')!;
   const coordLng  = document.getElementById('poi-coord-lng')!;
   const closeBtn  = document.getElementById('poi-panel-close')!;
-  const canvas    = map.getCanvas()!;
-  const canvasContainer = canvas.parentElement!;
-
   // ── Row builders ──────────────────────────────────────────────────────────
 
   /** Plain labelled row — only call when value is non-empty */
@@ -950,6 +948,9 @@ function initMap() {
     overnightDepartureTime: string;
     budget: number;
     notes: string;
+    timeOffsetSeconds?: number;
+    calculatedArrivalString?: string;
+    calculatedDepartureString?: string;
   }
 
   function getWaypointColor(type: string): string {
@@ -998,11 +999,6 @@ function initMap() {
   const sNotes = document.getElementById("summary-trip-notes") as HTMLTextAreaElement;
 
   const sTotWp = document.getElementById("summary-tot-wp")!;
-  const sTotDist = document.getElementById("summary-tot-dist")!;
-  const sTotTime = document.getElementById("summary-tot-time")!;
-  const sTotBudget = document.getElementById("summary-tot-budget")!;
-  const sEstEnd = document.getElementById("summary-est-end")!;
-
   const sStartPicker = flatpickr(sStartTimeInput, {
     enableTime: true,
     dateFormat: "Y-m-d H:i",
@@ -1332,6 +1328,7 @@ function initMap() {
           if (i === 0 || currDateStr !== lastDateString) {
             lastDateString = currDateStr;
             if (i > 0) dayCounter++; // Increment before display on new days
+            
             const li = tripListEl.querySelector(`li[data-index="${i}"]`);
             if (li) {
               const divider = document.createElement("div");
@@ -1341,6 +1338,17 @@ function initMap() {
                 : `Day ${dayCounter}`;
               tripListEl.insertBefore(divider, li);
             }
+          }
+
+          // Generate Print Strings
+          if (tripHasSpecificDate) {
+             wp.calculatedArrivalString = currentArrival.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+             wp.calculatedDepartureString = currentDeparture.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+          } else {
+             wp.calculatedArrivalString = `Day ${dayCounter}, ${currentArrival.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+             let depDay = dayCounter;
+             if (currentDeparture.getDate() !== currentArrival.getDate()) depDay++;
+             wp.calculatedDepartureString = `Day ${depDay}, ${currentDeparture.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
           }
 
           // Update UI Badges
@@ -1518,6 +1526,276 @@ function initMap() {
       addWaypoint(parseFloat(latStr), parseFloat(lngStr), name);
     }
   });
+
+  // ── File Persistence Logic ───────────────────────────────────────────────
+  
+  let currentFilePath: string | null = null;
+  
+  function serializeTrip() {
+    return JSON.stringify({
+      version: 1,
+      tripTitle,
+      tripStartTime,
+      tripHasSpecificDate,
+      tripNotes,
+      tripWaypoints
+    }, null, 2);
+  }
+
+  function deserializeTrip(data: string) {
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.version === 1) {
+        tripTitle = parsed.tripTitle || "My Tactical Operation";
+        tripStartTime = parsed.tripStartTime ? new Date(parsed.tripStartTime) : new Date();
+        tripHasSpecificDate = parsed.tripHasSpecificDate ?? true;
+        tripNotes = parsed.tripNotes || "";
+        tripWaypoints = parsed.tripWaypoints || [];
+        
+        tripTitleDisplay.textContent = tripTitle;
+        renderWaypointList();
+        updateMapRoute();
+      }
+    } catch (err) {
+      console.error("Failed to load trip", err);
+    }
+  }
+
+  async function getSaveDir() {
+    try {
+      return await invoke<string>("get_trips_dir");
+    } catch (e) {
+      console.warn("Could not get trips dir", e);
+      return undefined;
+    }
+  }
+
+  async function saveTripAs() {
+    try {
+      const defaultPath = await getSaveDir();
+      let path = await save({
+        defaultPath,
+        filters: [{ name: 'Iter Viae Trip', extensions: ['viae', 'json'] }]
+      });
+      if (path) {
+        if (!path.endsWith('.viae') && !path.endsWith('.json')) {
+          path += '.viae';
+        }
+        currentFilePath = path;
+        await invoke("save_trip_file", { path, data: serializeTrip() });
+      }
+    } catch (err) {
+      console.error("Save As Failed", err);
+    }
+  }
+
+  async function saveTrip() {
+    try {
+      if (currentFilePath) {
+        await invoke("save_trip_file", { path: currentFilePath, data: serializeTrip() });
+      } else {
+        await saveTripAs();
+      }
+    } catch (err) {
+      console.error("Save Failed", err);
+    }
+  }
+
+  async function loadTrip() {
+    try {
+      const defaultPath = await getSaveDir();
+      const path = await open({
+        defaultPath,
+        filters: [{ name: 'Iter Viae Trip', extensions: ['viae', 'json'] }]
+      });
+      if (path && typeof path === 'string') {
+        const data = await invoke<string>("load_trip_file", { path });
+        currentFilePath = path;
+        deserializeTrip(data);
+      }
+    } catch (err) {
+      console.error("Load Failed", err);
+    }
+  }
+
+  function newTrip() {
+    currentFilePath = null;
+    tripTitle = "My Tactical Operation";
+    tripStartTime = new Date();
+    tripHasSpecificDate = true;
+    tripNotes = "";
+    tripWaypoints = [];
+    
+    tripTitleDisplay.textContent = tripTitle;
+    renderWaypointList();
+    updateMapRoute();
+  }
+
+  // ── Print Engine ────────────────────────────────────────────────────────
+  const printModal = document.getElementById("print-modal");
+  const printCancelBtn = document.getElementById("print-cancel-btn");
+  const printConfirmBtn = document.getElementById("print-confirm-btn");
+  const printSizeSelect = document.getElementById("print-size") as HTMLSelectElement;
+  const printContainer = document.getElementById("print-container")!;
+  const printPreviewContainer = document.getElementById("print-preview-container")!;
+
+  function openPrintModal() {
+    if (printModal) {
+      updatePrintPreview();
+      printModal.style.display = "flex";
+    }
+  }
+
+  printSizeSelect?.addEventListener("change", () => {
+    updatePrintPreview();
+  });
+
+  function updatePrintPreview() {
+    printPreviewContainer.className = `print-core-styles`;
+    printPreviewContainer.innerHTML = generatePrintLayoutHTML();
+  }
+
+  printCancelBtn?.addEventListener("click", () => {
+    if (printModal) printModal.style.display = "none";
+  });
+
+  printConfirmBtn?.addEventListener("click", () => {
+    if (printModal) printModal.style.display = "none";
+    
+    // Inject into actual print container
+    printContainer.className = `print-core-styles`;
+    printContainer.innerHTML = generatePrintLayoutHTML();
+
+    // Tiny delay to ensure DOM is updated before print dialog triggers
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  });
+
+  function generatePrintLayoutHTML(): string {
+    const size = printSizeSelect.value;
+    
+    // Chunking settings based on size
+    let firstPageCapacity = 0;
+    let subsequentPageCapacity = 0;
+    
+    if (size === 'letter') {
+       firstPageCapacity = 7;
+       subsequentPageCapacity = 9;
+    } else if (size === 'a5') {
+       firstPageCapacity = 3;
+       subsequentPageCapacity = 5;
+    } else if (size === 'field-notes') {
+       firstPageCapacity = 1; // 1 under header
+       subsequentPageCapacity = 2; // 2 per tiny page max
+    }
+
+    // Build Waypoint Cards
+    const cards = tripWaypoints.map((wp, index) => {
+      let arrTime = wp.calculatedArrivalString || "N/A";
+      let depTime = wp.calculatedDepartureString || "N/A";
+      
+      let card = `<div class="print-wp-log">`;
+      card += `<div class="print-wp-header">
+                 <div class="print-wp-title">[${index + 1}] ${wp.name} ${wp.isOvernight ? '<span class="print-tag-overnight">OVERNIGHT</span>' : ''}</div>
+                 <div class="print-wp-type">${wp.type || "WP"}</div>
+               </div>`;
+               
+      if (size === 'field-notes') {
+         // Dense vertical stacking for narrow widths
+         card += `<div class="print-wp-row">
+                    <div class="print-wp-cell"><div class="print-wp-label">Arr</div><div class="print-wp-val">${arrTime}</div></div>
+                    <div class="print-wp-cell"><div class="print-wp-label">Dep</div><div class="print-wp-val">${depTime}</div></div>
+                  </div>`;
+         card += `<div class="print-wp-row">
+                    <div class="print-wp-cell"><div class="print-wp-label">Lat / Lng</div><div class="print-wp-val">${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)}</div></div>
+                  </div>`;
+         card += `<div class="print-wp-row">
+                    <div class="print-wp-cell"><div class="print-wp-label">Stay</div><div class="print-wp-val">${wp.stayDurationMinutes || 0}m</div></div>
+                    <div class="print-wp-cell"><div class="print-wp-label">Budget</div><div class="print-wp-val">$${wp.budget || 0}</div></div>
+                  </div>`;
+      } else {
+         // Wider horizontal layout for A5 and Letter
+         card += `<div class="print-wp-row">
+                    <div class="print-wp-cell"><div class="print-wp-label">Arr</div><div class="print-wp-val">${arrTime}</div></div>
+                    <div class="print-wp-cell"><div class="print-wp-label">Dep</div><div class="print-wp-val">${depTime}</div></div>
+                    <div class="print-wp-cell"><div class="print-wp-label">Stay</div><div class="print-wp-val">${wp.stayDurationMinutes || 0}m</div></div>
+                  </div>`;
+         card += `<div class="print-wp-row">
+                    <div class="print-wp-cell"><div class="print-wp-label">Lat</div><div class="print-wp-val">${wp.lat.toFixed(5)}</div></div>
+                    <div class="print-wp-cell"><div class="print-wp-label">Lng</div><div class="print-wp-val">${wp.lng.toFixed(5)}</div></div>
+                    <div class="print-wp-cell"><div class="print-wp-label">Budget</div><div class="print-wp-val">$${wp.budget || 0}</div></div>
+                  </div>`;
+      }
+      
+      if (wp.notes) {
+        card += `<div class="print-wp-notes">${wp.notes}</div>`;
+      }
+      card += `</div>`;
+      return card;
+    });
+
+    const totalBudget = tripWaypoints.reduce((acc, wp) => acc + (wp.budget || 0), 0);
+    let headerHTML = `
+      <div class="print-header-brand">Iter Viae : Tactical Itinerary</div>
+      <h1 class="print-header-title">${tripTitle}</h1>
+      <div class="print-header-meta">TOTAL BUDGET: $${totalBudget} &nbsp;&nbsp;|&nbsp;&nbsp; WAYPOINTS: ${tripWaypoints.length}</div>
+      ${tripNotes ? `<div class="print-header-notes">${tripNotes}</div>` : ''}
+    `;
+
+    let logicalPages: string[] = [];
+    let currentWpIndex = 0;
+    let logicalPageNum = 1;
+
+    while (currentWpIndex < cards.length || logicalPageNum === 1) {
+      let pageCapacity = (logicalPageNum === 1) ? firstPageCapacity : subsequentPageCapacity;
+      let pageCards = cards.slice(currentWpIndex, currentWpIndex + pageCapacity);
+      
+      let pageHtml = '';
+      if (logicalPageNum === 1) pageHtml += headerHTML;
+      pageHtml += pageCards.join('');
+      
+      logicalPages.push(pageHtml);
+      currentWpIndex += pageCapacity;
+      logicalPageNum++;
+      if (currentWpIndex >= cards.length) break;
+    }
+
+    let html = '';
+    
+    if (size === 'field-notes') {
+       // Pack 2 logical pages per physical 8.5x11 sheet
+       for (let i = 0; i < logicalPages.length; i += 2) {
+          html += `<div class="print-sheet size-field-notes">`;
+          html += `<div class="print-bounds">${logicalPages[i]}</div>`;
+          if (i + 1 < logicalPages.length) {
+              html += `<div class="print-bounds">${logicalPages[i+1]}</div>`;
+          }
+          html += `</div>`;
+       }
+    } else if (size === 'a5') {
+       // Pack 1 logical page per physical sheet
+       for (let i = 0; i < logicalPages.length; i++) {
+          html += `<div class="print-sheet size-a5">`;
+          html += `<div class="print-bounds">${logicalPages[i]}</div>`;
+          html += `</div>`;
+       }
+    } else if (size === 'letter') {
+       for (let i = 0; i < logicalPages.length; i++) {
+          html += `<div class="print-sheet size-letter">`;
+          html += logicalPages[i];
+          html += `</div>`;
+       }
+    }
+
+    return html;
+  }
+
+  listen("menu-file-new", () => newTrip());
+  listen("menu-file-load", () => loadTrip());
+  listen("menu-file-save", () => saveTrip());
+  listen("menu-file-save-as", () => saveTripAs());
+  listen("menu-file-print", () => openPrintModal());
 
   return map;
 }

@@ -82,3 +82,7 @@ Iter Viae Core/
 [X] Add an itinerary builder where the start time and end time between points is calculated based on how long the user stays at the point.
 [X] Add Waypoint Editor Modal for stay duration, overnight planning, budget, and notes.
 [X] Add Trip Summary Modal with support for overall trip notes and dateless future planning.
+[X] Use our Iter Via icon for the widow title.
+[X] Add persistence Save, Loade, Save As, Export (save to custom location)
+[ ] Add print Itinerary 3 sized with automatic page breaks and they should all be printed on letter sized peaper and black and white. 
+
