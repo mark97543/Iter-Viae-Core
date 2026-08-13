@@ -9,6 +9,7 @@ use tauri_plugin_shell::ShellExt;
 
 pub struct MbtilesState {
     app_handle: tauri::AppHandle,
+    geocoder_conn: std::sync::Arc<std::sync::Mutex<Option<Connection>>>,
 }
 
 fn find_mbtiles_in_dir(dir: &std::path::Path) -> Option<PathBuf> {
@@ -196,54 +197,163 @@ fn find_geocoder_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> {
 }
 
 #[tauri::command]
-fn get_poi_info(
+async fn get_poi_info(
     lat: f64,
     lon: f64,
     state: State<'_, MbtilesState>,
 ) -> Result<Option<PoiInfo>, String> {
-    let db_path = match find_geocoder_path(&state.app_handle) {
-        Some(p) => p,
-        None => return Ok(None),
-    };
+    let app_handle = state.app_handle.clone();
+    let conn_arc = state.geocoder_conn.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut guard = conn_arc.lock().map_err(|e| e.to_string())?;
+        if guard.is_none() {
+            if let Some(db_path) = find_geocoder_path(&app_handle) {
+                if let Ok(conn) = Connection::open_with_flags(
+                    &db_path,
+                    OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+                ).or_else(|_| {
+                    Connection::open_with_flags(
+                        &db_path,
+                        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+                    )
+                }) {
+                    let _ = conn.execute("PRAGMA mmap_size = 268435456;", []);
+                    let _ = conn.execute("CREATE INDEX IF NOT EXISTS temp.idx_places_lat_lon ON places(lat, lon);", []);
+                    let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_places_lat_lon ON places(lat, lon);", []);
+                    *guard = Some(conn);
+                }
+            }
+        }
 
-    let conn = Connection::open_with_flags(
-        &db_path,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    )
-    .map_err(|e| e.to_string())?;
+        let conn = match guard.as_ref() {
+            Some(c) => c,
+            None => return Ok(None),
+        };
 
-    // Search within ~0.003 deg (~300 m) bounding box, pick the closest row
-    let tol = 0.003_f64;
-    let mut stmt = conn
-        .prepare(
-            "SELECT name, category, type, address, lat, lon, details
-         FROM places
-         WHERE lat BETWEEN ?1 AND ?2 AND lon BETWEEN ?3 AND ?4
-         ORDER BY ((lat - ?5) * (lat - ?5) + (lon - ?6) * (lon - ?6)) ASC
-         LIMIT 1",
-        )
-        .map_err(|e| e.to_string())?;
+        // Search within ~0.003 deg (~300 m) bounding box, pick the closest row
+        let tol = 0.003_f64;
+        let mut stmt = conn
+            .prepare(
+                "SELECT name, category, type, address, lat, lon, details
+             FROM places
+             WHERE lat BETWEEN ?1 AND ?2 AND lon BETWEEN ?3 AND ?4
+             ORDER BY ((lat - ?5) * (lat - ?5) + (lon - ?6) * (lon - ?6)) ASC
+             LIMIT 1",
+            )
+            .map_err(|e| e.to_string())?;
 
-    let result = stmt.query_row(
-        rusqlite::params![lat - tol, lat + tol, lon - tol, lon + tol, lat, lon],
-        |row| {
-            Ok(PoiInfo {
-                name: row.get(0)?,
-                category: row.get(1)?,
-                poi_type: row.get(2)?,
-                address: row.get(3)?,
-                lat: row.get(4)?,
-                lon: row.get(5)?,
-                details: row.get(6)?,
-            })
-        },
-    );
+        let result = stmt.query_row(
+            rusqlite::params![lat - tol, lat + tol, lon - tol, lon + tol, lat, lon],
+            |row| {
+                Ok(PoiInfo {
+                    name: row.get(0)?,
+                    category: row.get(1)?,
+                    poi_type: row.get(2)?,
+                    address: row.get(3)?,
+                    lat: row.get(4)?,
+                    lon: row.get(5)?,
+                    details: row.get(6)?,
+                })
+            },
+        );
 
-    match result {
-        Ok(info) => Ok(Some(info)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e.to_string()),
-    }
+        match result {
+            Ok(info) => Ok(Some(info)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.to_string()),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn query_pois_near_point(
+    lat: f64,
+    lon: f64,
+    radius_miles: f64,
+    category: Option<String>,
+    state: State<'_, MbtilesState>,
+) -> Result<Vec<PoiInfo>, String> {
+    let app_handle = state.app_handle.clone();
+    let conn_arc = state.geocoder_conn.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut guard = conn_arc.lock().map_err(|e| e.to_string())?;
+        if guard.is_none() {
+            if let Some(db_path) = find_geocoder_path(&app_handle) {
+                if let Ok(conn) = Connection::open_with_flags(
+                    &db_path,
+                    OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+                ).or_else(|_| {
+                    Connection::open_with_flags(
+                        &db_path,
+                        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+                    )
+                }) {
+                    let _ = conn.execute("PRAGMA mmap_size = 268435456;", []);
+                    let _ = conn.execute("CREATE INDEX IF NOT EXISTS temp.idx_places_lat_lon ON places(lat, lon);", []);
+                    let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_places_lat_lon ON places(lat, lon);", []);
+                    *guard = Some(conn);
+                }
+            }
+        }
+
+        let conn = match guard.as_ref() {
+            Some(c) => c,
+            None => return Ok(Vec::new()),
+        };
+
+        let lat_delta = radius_miles / 69.0;
+        let lon_delta = radius_miles / (69.0 * lat.to_radians().cos().max(0.1));
+
+        let min_lat = lat - lat_delta;
+        let max_lat = lat + lat_delta;
+        let min_lon = lon - lon_delta;
+        let max_lon = lon + lon_delta;
+
+        let cat_filter = category.unwrap_or_else(|| "fuel".to_string());
+        let search_term = cat_filter.trim_start_matches("poi_");
+        let like_pattern = format!("%{}%", search_term);
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT name, category, type, address, lat, lon, details
+                 FROM places
+                 WHERE lat BETWEEN ?1 AND ?2 AND lon BETWEEN ?3 AND ?4
+                   AND (category = ?5 OR category LIKE ?6 OR type LIKE ?6)
+                 ORDER BY ((lat - ?7) * (lat - ?7) + (lon - ?8) * (lon - ?8)) ASC
+                 LIMIT 10",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let rows = stmt
+            .query_map(
+                rusqlite::params![min_lat, max_lat, min_lon, max_lon, cat_filter, like_pattern, lat, lon],
+                |row| {
+                    Ok(PoiInfo {
+                        name: row.get(0)?,
+                        category: row.get(1)?,
+                        poi_type: row.get(2)?,
+                        address: row.get(3)?,
+                        lat: row.get(4)?,
+                        lon: row.get(5)?,
+                        details: row.get(6)?,
+                    })
+                },
+            )
+            .map_err(|e| e.to_string())?;
+
+        let mut results = Vec::new();
+        for r in rows {
+            if let Ok(poi) = r {
+                results.push(poi);
+            }
+        }
+
+        Ok(results)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -417,6 +527,7 @@ pub fn run() {
 
             app.manage(MbtilesState {
                 app_handle: app.handle().clone(),
+                geocoder_conn: std::sync::Arc::new(std::sync::Mutex::new(None)),
             });
 
             // File Menu
@@ -469,15 +580,24 @@ pub fn run() {
             }
             let theme_submenu = theme_menu_builder.build()?;
 
-            // Maps Menu containing Local Maps & Theme Submenu
             let maps_menu = SubmenuBuilder::new(app, "Maps")
                 .item(&local_maps_item)
                 .item(&theme_submenu)
                 .build()?;
 
+            // Tools Menu
+            let gas_planner_item = MenuItemBuilder::with_id("tools-gas-planner", "Fuel Stop Planner...")
+                .accelerator("CmdOrCtrl+F")
+                .build(app)?;
+
+            let tools_menu = SubmenuBuilder::new(app, "Tools")
+                .item(&gas_planner_item)
+                .build()?;
+
             let menu = MenuBuilder::new(app)
                 .item(&file_menu)
                 .item(&maps_menu)
+                .item(&tools_menu)
                 .build()?;
 
             app.set_menu(menu)?;
@@ -487,6 +607,7 @@ pub fn run() {
             get_tile,
             get_dem_tile,
             get_poi_info,
+            query_pois_near_point,
             calculate_route,
             get_trips_dir,
             save_trip_file,
@@ -506,6 +627,8 @@ pub fn run() {
                 let _ = app.emit("menu-file-save-as", ());
             } else if id == "file-print" {
                 let _ = app.emit("menu-file-print", ());
+            } else if id == "tools-gas-planner" {
+                let _ = app.emit("menu-tools-gas-planner", ());
             } else if id == "open_maps_folder" {
                 open_maps_folder(app);
             } else if id.starts_with("theme-") {

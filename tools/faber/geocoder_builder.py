@@ -79,10 +79,13 @@ def finalize_geocoder_db(conn):
     
     conn.commit()
     
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_lat_lon ON places(lat, lon);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_cat_lat_lon ON places(category, lat, lon);")
+    
     cursor.execute("PRAGMA journal_mode = WAL;")
     cursor.execute("PRAGMA synchronous = NORMAL;")
     conn.close()
-    print("[+] FTS5 search index creation completed.")
+    print("[+] FTS5 search index and spatial POI indexes created successfully.")
 
 def extract_and_populate(pbf_path, db_path):
     conn = create_geocoder_db(db_path)

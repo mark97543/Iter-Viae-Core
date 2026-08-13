@@ -1,4 +1,5 @@
 import * as maplibregl from "maplibre-gl";
+import * as turf from "@turf/turf";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save, open } from '@tauri-apps/plugin-dialog';
@@ -852,75 +853,67 @@ function initMap() {
 
   // ── Show panel (async — queries geocoder.db first) ────────────────────────
 
-  async function showPoiPanel(
+  function showPoiPanel(
     layerId: string,
     tileProps: Record<string, unknown>,
     lngLat: maplibregl.LngLat
-  ): Promise<void> {
+  ): void {
     const cfg = POI_CATEGORY_CONFIG[layerId] ?? POI_CATEGORY_CONFIG.poi_general;
 
-    // Open immediately with a loading state
+    const initialName = (tileProps['name:latin'] ?? tileProps['name:en'] ?? tileProps['name']
+      ?? tileProps['brand'] ?? tileProps['subclass'] ?? tileProps['class'] ?? cfg.label ?? 'POI') as string;
+
+    // Render immediately with vector tile properties so user can interact or Add to Trip with 0ms delay
     panelBadge.textContent      = `${cfg.icon}  ${cfg.label}`;
     panelBadge.style.color      = cfg.color;
     panelBadge.style.background = cfg.bg;
     panelBadge.style.border     = `1px solid ${cfg.border}`;
-    panelName.textContent       = '…';
+    panelName.textContent       = String(initialName);
+    coordLat.textContent        = `φ ${lngLat.lat.toFixed(6)}°`;
+    coordLng.textContent        = `λ ${lngLat.lng.toFixed(6)}°`;
     panelBody.innerHTML         = '';
+    panelBody.appendChild(makeCoordRow(lngLat.lat, lngLat.lng));
     panel.setAttribute('aria-hidden', 'false');
     panel.classList.add('open');
 
-    // ── Query geocoder.db via Tauri IPC ──────────────────────────────────
-    let db: GeocoderResult | null = null;
-    try {
-      db = await invoke<GeocoderResult | null>('get_poi_info', {
-        lat: lngLat.lat,
-        lon: lngLat.lng,
-      });
-    } catch (_) { /* DB unavailable — fall through */ }
+    // Fetch extra offline geocoder metadata asynchronously in background without blocking UI
+    invoke<GeocoderResult | null>('get_poi_info', {
+      lat: lngLat.lat,
+      lon: lngLat.lng,
+    }).then(db => {
+      if (!db || !panel.classList.contains('open')) return;
 
-    // ── Resolve core fields ───────────────────────────────────────────────
+      if (db.name) panelName.textContent = String(db.name);
 
-    const name = db?.name
-      ?? (tileProps['name:latin'] ?? tileProps['name:en'] ?? tileProps['name']
-          ?? tileProps['brand'] ?? tileProps['subclass'] ?? tileProps['class'])
-      ?? null;
+      const finalLat = db.lat ?? lngLat.lat;
+      const finalLng = db.lon ?? lngLat.lng;
+      coordLat.textContent = `φ ${finalLat.toFixed(6)}°`;
+      coordLng.textContent = `λ ${finalLng.toFixed(6)}°`;
 
-    const address = (db?.address && db.address.trim()) ? db.address.trim() : null;
-    const finalLat = db?.lat ?? lngLat.lat;
-    const finalLng = db?.lon ?? lngLat.lng;
+      panelBody.innerHTML = '';
 
-    // ── Parse details JSON blob ───────────────────────────────────────────
-    let extra: Record<string, string> = {};
-    if (db?.details) {
-      try { extra = JSON.parse(db.details) as Record<string, string>; } catch (_) {}
-    }
+      const address = (db.address && db.address.trim()) ? db.address.trim() : null;
+      if (address) {
+        panelBody.appendChild(makeRow('Address', address));
+      }
 
-    // ── Update header ─────────────────────────────────────────────────────
-    panelName.textContent = String(name ?? '—');
-    coordLat.textContent  = `φ ${finalLat.toFixed(6)}°`;
-    coordLng.textContent  = `λ ${finalLng.toFixed(6)}°`;
+      panelBody.appendChild(makeCoordRow(finalLat, finalLng));
 
-    // ── Build body rows — only render if data exists ───────────────────────
-    panelBody.innerHTML = '';
+      let extra: Record<string, string> = {};
+      if (db.details) {
+        try { extra = JSON.parse(db.details) as Record<string, string>; } catch (_) {}
+      }
 
-    // 1. Address (top-level column)
-    if (address) {
-      panelBody.appendChild(makeRow('Address', address));
-    }
-
-    // 2. Coordinates (always shown, one-click copy)
-    panelBody.appendChild(makeCoordRow(finalLat, finalLng));
-
-    // 3. Curated details fields — hide any that are missing or empty
-    const seenKeys = new Set<string>();
-    for (const [key, label, fmt] of DETAIL_FIELDS) {
-      if (seenKeys.has(key)) continue;
-      const raw = extra[key];
-      if (raw === undefined || raw === null || String(raw).trim() === '') continue;
-      const display = fmt ? fmt(String(raw).trim()) : String(raw).trim();
-      panelBody.appendChild(makeRow(label, display));
-      seenKeys.add(key);
-    }
+      const seenKeys = new Set<string>();
+      for (const [key, label, fmt] of DETAIL_FIELDS) {
+        if (seenKeys.has(key)) continue;
+        const raw = extra[key];
+        if (raw === undefined || raw === null || String(raw).trim() === '') continue;
+        const display = fmt ? fmt(String(raw).trim()) : String(raw).trim();
+        panelBody.appendChild(makeRow(label, display));
+        seenKeys.add(key);
+      }
+    }).catch(() => {});
   }
 
 
@@ -982,6 +975,7 @@ function initMap() {
   let routeMarkers: maplibregl.Marker[] = [];
   let isDraggingWp = false;
   let draggedWpIndex: number | null = null;
+  let currentRouteLineCoords: number[][] = [];
 
   const tripListEl = document.getElementById("trip-waypoint-list")!;
   const distEl = document.getElementById("trip-dist-val")!;
@@ -1060,12 +1054,17 @@ function initMap() {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
+  let activeListDragIndex: number | null = null;
+
   // Render Waypoint List (UI)
   function renderWaypointList() {
     tripListEl.innerHTML = "";
     tripWaypoints.forEach((wp, index) => {
       const li = document.createElement("li");
       li.className = "wp-item";
+      if (activeListDragIndex === index) {
+        li.classList.add("dragging");
+      }
       li.draggable = true;
       li.dataset.index = index.toString();
       
@@ -1108,40 +1107,54 @@ function initMap() {
         openWaypointModal(wp.id);
       });
 
-      // Drag and Drop Logic
+      // Live Dynamic Drag & Drop Logic
       li.addEventListener("dragstart", (e) => {
+        activeListDragIndex = index;
         li.classList.add("dragging");
-        e.dataTransfer?.setData("text/plain", index.toString());
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", index.toString());
+        }
       });
+
       li.addEventListener("dragend", () => {
-        li.classList.remove("dragging");
+        activeListDragIndex = null;
+        renderWaypointList();
+        updateMapRoute();
       });
-      li.addEventListener("dragenter", (e) => {
-        e.preventDefault();
-      });
+
       li.addEventListener("dragover", (e) => {
-        e.preventDefault(); // Necessary to allow dropping
+        e.preventDefault();
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = "move";
+        }
+        if (activeListDragIndex !== null && activeListDragIndex !== index) {
+          const item = tripWaypoints.splice(activeListDragIndex, 1)[0];
+          tripWaypoints.splice(index, 0, item);
+          activeListDragIndex = index;
+          renderWaypointList();
+          updateMapWaypointMarkersOnly();
+        }
       });
+
       li.addEventListener("drop", (e) => {
         e.preventDefault();
-        const draggedIdx = parseInt(e.dataTransfer?.getData("text/plain") || "-1", 10);
-        const targetIdx = index;
-        if (draggedIdx > -1 && draggedIdx !== targetIdx) {
-          reorderWaypoints(draggedIdx, targetIdx);
-        }
+        activeListDragIndex = null;
+        renderWaypointList();
+        updateMapRoute();
       });
 
       tripListEl.appendChild(li);
     });
   }
 
-  function addWaypoint(lat: number, lng: number, name: string) {
+  function addWaypoint(lat: number, lng: number, name: string, type?: string) {
     tripWaypoints.push({
       id: Math.random().toString(36).substring(2, 9),
       lat,
       lng,
       name,
-      type: "Waypoint",
+      type: type || "Waypoint",
       stayDurationMinutes: 0,
       isOvernight: false,
       overnightDepartureTime: "08:00",
@@ -1158,12 +1171,7 @@ function initMap() {
     updateMapRoute();
   }
 
-  function reorderWaypoints(oldIdx: number, newIdx: number) {
-    const item = tripWaypoints.splice(oldIdx, 1)[0];
-    tripWaypoints.splice(newIdx, 0, item);
-    renderWaypointList();
-    updateMapRoute();
-  }
+
 
   // ── Waypoint Modal Logic ──────────────────────────────────────────
 
@@ -1248,12 +1256,10 @@ function initMap() {
   });
 
   // Update MapLibre Markers & Route
-  async function updateMapRoute() {
-    // Clear old markers
+  function updateMapWaypointMarkersOnly() {
     routeMarkers.forEach(m => m.remove());
     routeMarkers = [];
 
-    // Update WebGL Waypoint GeoJSON source (hardware-locked to map tiles on GPU)
     const waypointsGeoJson: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
       features: tripWaypoints.map((wp, i) => ({
@@ -1333,22 +1339,7 @@ function initMap() {
             tripWaypoints[draggedWpIndex].lat = coords.lat;
             tripWaypoints[draggedWpIndex].lng = coords.lng;
 
-            const currentWpSource = map.getSource("trip-waypoints") as maplibregl.GeoJSONSource;
-            if (currentWpSource) {
-              currentWpSource.setData({
-                type: "FeatureCollection",
-                features: tripWaypoints.map((wp, i) => ({
-                  type: "Feature",
-                  properties: {
-                    id: wp.id,
-                    name: wp.name,
-                    color: getWaypointColor(wp.type),
-                    index: i + 1
-                  },
-                  geometry: { type: "Point", coordinates: [wp.lng, wp.lat] }
-                }))
-              });
-            }
+            updateMapWaypointMarkersOnly();
           }
         }
 
@@ -1369,9 +1360,28 @@ function initMap() {
         map.on('mouseup', onUp);
       });
     }
+  }
 
-    // (WebGL GeoJSON layers above handle hardware-locked rendering of waypoints)
+  let routeCalcDebounceTimer: any = null;
 
+  function updateMapRoute(immediate = false) {
+    updateMapWaypointMarkersOnly();
+
+    if (routeCalcDebounceTimer) {
+      clearTimeout(routeCalcDebounceTimer);
+      routeCalcDebounceTimer = null;
+    }
+
+    if (immediate) {
+      void performRouteCalculation();
+    } else {
+      routeCalcDebounceTimer = setTimeout(() => {
+        void performRouteCalculation();
+      }, 150);
+    }
+  }
+
+  async function performRouteCalculation() {
     if (tripWaypoints.length < 2) {
       if (map.getSource("trip-route")) {
         (map.getSource("trip-route") as maplibregl.GeoJSONSource).setData({ type: "FeatureCollection", features: [] });
@@ -1379,6 +1389,8 @@ function initMap() {
       distEl.textContent = "0 mi";
       timeEl.textContent = "0 hrs";
       document.getElementById("trip-budget-val")!.textContent = "$0.00";
+      currentRouteLineCoords = [];
+      refreshFuelCorridorsIfActive();
       return;
     }
 
@@ -1550,6 +1562,8 @@ function initMap() {
         lineCoords = tripWaypoints.map(w => [w.lng, w.lat]);
       }
       
+      currentRouteLineCoords = lineCoords;
+      
       const geojson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
         features: [{
@@ -1608,6 +1622,7 @@ function initMap() {
         });
       }
     }
+    refreshFuelCorridorsIfActive();
   }
 
   // Map Context Menu
@@ -1826,6 +1841,7 @@ function initMap() {
     
     tripTitleDisplay.textContent = tripTitle;
     renderWaypointList();
+    clearFuelCorridors();
     updateMapRoute();
   }
 
@@ -1989,11 +2005,425 @@ function initMap() {
     return html;
   }
 
+  // ── Fuel & Gas Stop Auto-Planner ──────────────────────────────────────────
+  const gasModal = document.getElementById("gas-modal");
+  const gasPlannerBtn = document.getElementById("trip-gas-planner-btn");
+  const gasModalClose = document.getElementById("gas-modal-close");
+  const gasModalDone = document.getElementById("gas-modal-done");
+  const gasRangeInput = document.getElementById("gas-range-input") as HTMLInputElement;
+  const gasBufferInput = document.getElementById("gas-buffer-input") as HTMLInputElement;
+  const gasCorridorWidthInput = document.getElementById("gas-corridor-width-input") as HTMLInputElement;
+  const gasShowCorridorsToggle = document.getElementById("gas-show-corridors-toggle") as HTMLInputElement;
+  const gasCalcBtn = document.getElementById("gas-calc-btn");
+  const gasResultsContainer = document.getElementById("gas-results-container");
+  const gasAddAllBtn = document.getElementById("gas-add-all-btn");
+
+  function clearFuelCorridors() {
+    if (map.getLayer("fuel-corridors-outline")) map.removeLayer("fuel-corridors-outline");
+    if (map.getLayer("fuel-corridors-fill")) map.removeLayer("fuel-corridors-fill");
+    if (map.getSource("fuel-corridors-source")) map.removeSource("fuel-corridors-source");
+  }
+
+  function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3958.8; // Earth radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function refreshFuelCorridorsIfActive() {
+    if (gasShowCorridorsToggle?.checked && currentRouteLineCoords && currentRouteLineCoords.length >= 2) {
+      const maxRange = parseFloat(gasRangeInput?.value || "300");
+      const buffer = parseFloat(gasBufferInput?.value || "30");
+      const corridorWidth = parseFloat(gasCorridorWidthInput?.value || "5");
+      renderFuelCorridors(currentRouteLineCoords, maxRange, buffer, corridorWidth);
+    } else {
+      clearFuelCorridors();
+    }
+    if (gasModal && gasModal.style.display !== "none") {
+      analyzeGasStops();
+    }
+  }
+
+
+
+  function sliceCoordsByDistance(
+    coords: number[][],
+    cumDistances: number[],
+    startDist: number,
+    endDist: number
+  ): number[][] {
+    if (!coords || coords.length < 2 || cumDistances.length !== coords.length) return [];
+    
+    let startIdx = 0;
+    while (startIdx < cumDistances.length - 1 && cumDistances[startIdx + 1] < startDist) {
+      startIdx++;
+    }
+    
+    let endIdx = startIdx;
+    while (endIdx < cumDistances.length - 1 && cumDistances[endIdx] < endDist) {
+      endIdx++;
+    }
+
+    const sub = coords.slice(startIdx, Math.min(coords.length, endIdx + 1));
+    if (sub.length < 2) return [];
+    return sub;
+  }
+
+  function renderFuelCorridors(
+    lineCoords: number[][],
+    maxRange: number,
+    _buffer: number,
+    _corridorWidthMiles: number
+  ) {
+    if (!lineCoords || lineCoords.length < 2) {
+      clearFuelCorridors();
+      return;
+    }
+
+    const safeMaxRange = Math.max(20, isNaN(maxRange) ? 300 : maxRange);
+
+    try {
+      // 1. Calculate cumulative distances along route
+      const cumDistances: number[] = [0];
+      let totalLengthMiles = 0;
+      for (let i = 1; i < lineCoords.length; i++) {
+        const prev = lineCoords[i - 1];
+        const curr = lineCoords[i];
+        const seg = haversineMiles(prev[1], prev[0], curr[1], curr[0]);
+        totalLengthMiles += seg;
+        cumDistances.push(totalLengthMiles);
+      }
+
+      if (totalLengthMiles <= 0.05) {
+        clearFuelCorridors();
+        return;
+      }
+
+      // 2. Identify all waypoints labeled as "Gas" or "Fuel" to reset range accumulator
+      const gasStopDistances: number[] = [];
+      for (const wp of tripWaypoints) {
+        const t = (wp.type || "").toLowerCase();
+        const n = (wp.name || "").toLowerCase();
+        if (t === "gas" || t === "fuel" || n.includes("gas") || n.includes("fuel") || n.includes("refuel")) {
+          let bestIdx = 0;
+          let bestDistSq = Infinity;
+          for (let i = 0; i < lineCoords.length; i++) {
+            const dx = lineCoords[i][0] - wp.lng;
+            const dy = lineCoords[i][1] - wp.lat;
+            const dSq = dx * dx + dy * dy;
+            if (dSq < bestDistSq) {
+              bestDistSq = dSq;
+              bestIdx = i;
+            }
+          }
+          const loc = cumDistances[bestIdx];
+          if (loc > 0.1 && loc < totalLengthMiles - 0.1) {
+            gasStopDistances.push(loc);
+          }
+        }
+      }
+
+      gasStopDistances.sort((a, b) => a - b);
+
+      const refuelPoints: number[] = [0];
+      for (const d of gasStopDistances) {
+        if (d - refuelPoints[refuelPoints.length - 1] > 0.5) {
+          refuelPoints.push(d);
+        }
+      }
+
+      const greenRange = safeMaxRange * 0.8;
+      const yellowRange = safeMaxRange * 1.0;
+      const features: any[] = [];
+
+      for (let i = 0; i < refuelPoints.length; i++) {
+        const legStart = refuelPoints[i];
+        const legEnd = (i + 1 < refuelPoints.length) ? refuelPoints[i + 1] : totalLengthMiles;
+        const legSpan = legEnd - legStart;
+        const legNum = i + 1;
+
+        if (legSpan <= 0) continue;
+
+        const greenEnd = legStart + Math.min(legSpan, greenRange);
+        const yellowEnd = legStart + Math.min(legSpan, yellowRange);
+        const redEnd = legEnd;
+
+        // 1. Green Zone
+        if (greenEnd > legStart + 0.05) {
+          const sub = sliceCoordsByDistance(lineCoords, cumDistances, legStart, greenEnd);
+          if (sub.length >= 2) {
+            features.push(turf.lineString(sub, { zone: "green", leg: legNum }));
+          }
+        }
+
+        // 2. Yellow Zone
+        if (yellowEnd > greenEnd + 0.05) {
+          const sub = sliceCoordsByDistance(lineCoords, cumDistances, greenEnd, yellowEnd);
+          if (sub.length >= 2) {
+            features.push(turf.lineString(sub, { zone: "yellow", leg: legNum }));
+          }
+        }
+
+        // 3. Red Zone
+        if (redEnd > yellowEnd + 0.05) {
+          const sub = sliceCoordsByDistance(lineCoords, cumDistances, yellowEnd, redEnd);
+          if (sub.length >= 2) {
+            features.push(turf.lineString(sub, { zone: "red", leg: legNum }));
+          }
+        }
+      }
+
+      const corridorGeoJson: GeoJSON.FeatureCollection = {
+        type: "FeatureCollection",
+        features
+      };
+
+      const source = map.getSource("fuel-corridors-source") as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData(corridorGeoJson);
+      } else {
+        map.addSource("fuel-corridors-source", {
+          type: "geojson",
+          data: corridorGeoJson
+        });
+
+        const beforeLayer = map.getLayer("trip-route-layer") ? "trip-route-layer" : undefined;
+
+        map.addLayer(
+          {
+            id: "fuel-corridors-fill",
+            type: "line",
+            source: "fuel-corridors-source",
+            layout: {
+              "line-join": "round",
+              "line-cap": "round"
+            },
+            paint: {
+              "line-color": [
+                "match",
+                ["get", "zone"],
+                "green",
+                "#10b981",
+                "yellow",
+                "#f59e0b",
+                "red",
+                "#ef4444",
+                "#94a3b8"
+              ],
+              "line-width": [
+                "interpolate",
+                ["exponential", 1.4],
+                ["zoom"],
+                3, 4,
+                8, 14,
+                12, 32,
+                16, 80
+              ],
+              "line-opacity": 0.5
+            }
+          },
+          beforeLayer
+        );
+      }
+    } catch (e) {
+      console.error("Failed to render fuel corridors:", e);
+    }
+  }
+
+  function openGasModal() {
+    if (gasModal) {
+      gasModal.style.display = "flex";
+      analyzeGasStops();
+    }
+  }
+
+  gasPlannerBtn?.addEventListener("click", openGasModal);
+
+  gasModalClose?.addEventListener("click", () => {
+    if (gasModal) gasModal.style.display = "none";
+  });
+
+  gasModalDone?.addEventListener("click", () => {
+    if (gasModal) gasModal.style.display = "none";
+  });
+
+  gasCalcBtn?.addEventListener("click", () => {
+    analyzeGasStops();
+  });
+
+  let gasInputDebounceTimer: any = null;
+  const triggerGasRefreshDebounced = () => {
+    if (gasInputDebounceTimer) clearTimeout(gasInputDebounceTimer);
+    gasInputDebounceTimer = setTimeout(() => {
+      refreshFuelCorridorsIfActive();
+    }, 150);
+  };
+
+  gasRangeInput?.addEventListener("input", triggerGasRefreshDebounced);
+  gasBufferInput?.addEventListener("input", triggerGasRefreshDebounced);
+  gasCorridorWidthInput?.addEventListener("input", triggerGasRefreshDebounced);
+
+  [gasRangeInput, gasBufferInput, gasCorridorWidthInput].forEach(inp => {
+    if (!inp) return;
+    const handleSelectAll = () => setTimeout(() => inp.select(), 0);
+    inp.addEventListener("focus", handleSelectAll);
+    inp.addEventListener("click", handleSelectAll);
+  });
+
+  gasShowCorridorsToggle?.addEventListener("change", () => {
+    if (gasShowCorridorsToggle.checked) {
+      const maxRange = parseFloat(gasRangeInput?.value || "300");
+      const buffer = parseFloat(gasBufferInput?.value || "30");
+      const corridorWidth = parseFloat(gasCorridorWidthInput?.value || "5");
+      renderFuelCorridors(currentRouteLineCoords, maxRange, buffer, corridorWidth);
+    } else {
+      clearFuelCorridors();
+    }
+  });
+
+  function analyzeGasStops() {
+    if (!gasResultsContainer) return;
+    if (gasAddAllBtn) gasAddAllBtn.style.display = "none";
+
+    const rawRange = parseFloat(gasRangeInput?.value || "300");
+    const maxRange = Math.max(20, isNaN(rawRange) ? 300 : rawRange);
+
+    const rawBuffer = parseFloat(gasBufferInput?.value || "30");
+    const buffer = Math.max(0, isNaN(rawBuffer) ? 30 : rawBuffer);
+
+    const rawCorridor = parseFloat(gasCorridorWidthInput?.value || "5");
+    const corridorWidth = Math.max(0.5, isNaN(rawCorridor) ? 5 : rawCorridor);
+
+    const showCorridors = gasShowCorridorsToggle?.checked ?? true;
+
+    if (tripWaypoints.length < 2) {
+      gasResultsContainer.innerHTML = `<div style="color: #ef4444; font-size: 0.85rem; text-align: center; padding: 20px;">Route requires at least 2 waypoints to analyze gas stops.</div>`;
+      clearFuelCorridors();
+      return;
+    }
+
+    if (!currentRouteLineCoords || currentRouteLineCoords.length < 2) {
+      gasResultsContainer.innerHTML = `<div style="color: #f59e0b; font-size: 0.85rem; text-align: center; padding: 20px;">No calculated road route found. Please wait for route calculation to complete.</div>`;
+      clearFuelCorridors();
+      return;
+    }
+
+    // Render shaded corridors on map if enabled
+    if (showCorridors) {
+      renderFuelCorridors(currentRouteLineCoords, maxRange, buffer, corridorWidth);
+    } else {
+      clearFuelCorridors();
+    }
+
+    const cumDistances: number[] = [0];
+    let totalDist = 0;
+    for (let i = 1; i < currentRouteLineCoords.length; i++) {
+      const prev = currentRouteLineCoords[i - 1];
+      const curr = currentRouteLineCoords[i];
+      const seg = haversineMiles(prev[1], prev[0], curr[1], curr[0]);
+      totalDist += seg;
+      cumDistances.push(totalDist);
+    }
+
+    const gasStopDistances: number[] = [];
+    for (const wp of tripWaypoints) {
+      const t = (wp.type || "").toLowerCase();
+      const n = (wp.name || "").toLowerCase();
+      if (t === "gas" || t === "fuel" || n.includes("gas") || n.includes("fuel") || n.includes("refuel")) {
+        let bestIdx = 0;
+        let bestDistSq = Infinity;
+        for (let i = 0; i < currentRouteLineCoords.length; i++) {
+          const dx = currentRouteLineCoords[i][0] - wp.lng;
+          const dy = currentRouteLineCoords[i][1] - wp.lat;
+          const dSq = dx * dx + dy * dy;
+          if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            bestIdx = i;
+          }
+        }
+        const loc = cumDistances[bestIdx];
+        if (loc > 0.1 && loc < totalDist - 0.1) {
+          gasStopDistances.push(loc);
+        }
+      }
+    }
+
+    gasStopDistances.sort((a, b) => a - b);
+    const refuelPoints: number[] = [0];
+    for (const d of gasStopDistances) {
+      if (d - refuelPoints[refuelPoints.length - 1] > 0.5) {
+        refuelPoints.push(d);
+      }
+    }
+
+    const greenRange = maxRange * 0.8;
+    const yellowRange = maxRange * 1.0;
+
+    let htmlResults = '';
+    let hasRedZone = false;
+
+    for (let i = 0; i < refuelPoints.length; i++) {
+      const legStart = refuelPoints[i];
+      const legEnd = (i + 1 < refuelPoints.length) ? refuelPoints[i + 1] : totalDist;
+      const legSpan = legEnd - legStart;
+      const legNum = i + 1;
+
+      if (legSpan <= 0) continue;
+
+      const greenEnd = legStart + Math.min(legSpan, greenRange);
+      const yellowEnd = legStart + Math.min(legSpan, yellowRange);
+      const redEnd = legEnd;
+
+      const isExceeded = (redEnd > yellowEnd + 0.1);
+      if (isExceeded) hasRedZone = true;
+
+      const legTitle = (i === 0 && refuelPoints.length === 1)
+        ? `FULL ROUTE (Trip Distance: ${totalDist.toFixed(1)} mi)`
+        : `LEG #${legNum}: Mile ${legStart.toFixed(0)} → ${legEnd.toFixed(0)} (${legSpan.toFixed(1)} mi)`;
+
+      htmlResults += `
+        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid ${isExceeded ? 'rgba(239, 68, 68, 0.5)' : '#334155'}; border-radius: 6px; padding: 12px;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: ${isExceeded ? '#fca5a5' : '#f59e0b'}; letter-spacing: 0.05em; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span>${legTitle}</span>
+            ${isExceeded ? '<span style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: bold;">⚠️ EXCEEDS FUEL RANGE</span>' : '<span style="color: #34d399; font-size: 0.7rem;">✓ REFUEL OK</span>'}
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem;">
+            <div style="color: #34d399;">🟩 <strong>Green Zone (0–80%):</strong> Miles ${legStart.toFixed(0)} – ${greenEnd.toFixed(0)} (Safe Driving)</div>
+            ${yellowEnd > greenEnd + 0.1 ? `<div style="color: #fbbf24;">🟨 <strong>Yellow Zone (80–100%):</strong> Miles ${greenEnd.toFixed(0)} – ${yellowEnd.toFixed(0)} (Optimal Refuel Window)</div>` : ''}
+            ${isExceeded ? `<div style="color: #fca5a5; font-weight: bold;">🟥 <strong>Red Zone (100%+):</strong> Miles ${yellowEnd.toFixed(0)} – ${redEnd.toFixed(0)} (⚠️ FUEL EXHAUSTED - ADD GAS STOP HERE!)</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    if (hasRedZone) {
+      htmlResults = `
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 10px 12px; border-radius: 6px; color: #fca5a5; font-size: 0.8rem; margin-bottom: 8px;">
+          <strong>⚠️ Refuel Warning:</strong> Route has shaded RED sections past your vehicle's ${maxRange} mi fuel range. Add a Gas stop in the Yellow or Red zones on your map!
+        </div>
+      ` + htmlResults;
+    } else {
+      htmlResults = `
+        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 10px 12px; border-radius: 6px; color: #34d399; font-size: 0.8rem; margin-bottom: 8px;">
+          <strong>✓ Refuel Plan Valid:</strong> All route legs between Gas stops are within your ${maxRange} mi vehicle fuel range.
+        </div>
+      ` + htmlResults;
+    }
+
+    gasResultsContainer.innerHTML = htmlResults;
+  }
+
   listen("menu-file-new", () => newTrip());
   listen("menu-file-load", () => loadTrip());
   listen("menu-file-save", () => saveTrip());
   listen("menu-file-save-as", () => saveTripAs());
   listen("menu-file-print", () => openPrintModal());
+  listen("menu-tools-gas-planner", () => openGasModal());
 
   return map;
 }
