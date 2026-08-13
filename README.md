@@ -88,7 +88,7 @@ Iter Viae Core/
 [X] Add Fuel / Gas Stop Auto-Planner along the route based on vehicle range and offline gas POI database
 - [X] BUG FUEL STOP PLANNER FREEZES APP NEED TO FIX IT MAYBE JUST A SHADED AREA AND THE USER COULD SELECT GAS ON THE MAP
 - [X] WE SHOULD ADD TO THE RIGHT CLICK MENU TO COPY COORDINATES 
-- [ ] When adding point should have it put in logical place in order 
+- [X] When adding point should have it put in logical place in order 
 - [X] The fuel calculater inputs should select all items when clicking on it for better user experience 
 - [ ] Make the gas calculater default to off (Maybe make the toggles on the home screen? Not sure it his will look good)
 - [ ] Make a hotel Calculater (based ontime or distance )

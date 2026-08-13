@@ -2342,7 +2342,7 @@ function initMap() {
     const rawCorridor = parseFloat(gasCorridorWidthInput?.value || "5");
     const corridorWidth = Math.max(0.5, isNaN(rawCorridor) ? 5 : rawCorridor);
 
-    const showCorridors = gasShowCorridorsToggle?.checked ?? true;
+    const showCorridors = gasShowCorridorsToggle?.checked ?? false;
 
     if (tripWaypoints.length < 2) {
       gasResultsContainer.innerHTML = `<div style="color: #ef4444; font-size: 0.85rem; text-align: center; padding: 20px;">Route requires at least 2 waypoints to analyze gas stops.</div>`;
