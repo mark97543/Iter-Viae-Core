@@ -1148,8 +1148,38 @@ function initMap() {
     });
   }
 
+  function findLogicalInsertionIndex(lat: number, lng: number): number {
+    const n = tripWaypoints.length;
+    if (n < 2) return n;
+
+    let bestIndex = n;
+    let minDetour = Infinity;
+
+    for (let i = 0; i <= n; i++) {
+      let detour = 0;
+      if (i === 0) {
+        detour = haversineMiles(lat, lng, tripWaypoints[0].lat, tripWaypoints[0].lng);
+      } else if (i === n) {
+        detour = haversineMiles(tripWaypoints[n - 1].lat, tripWaypoints[n - 1].lng, lat, lng);
+      } else {
+        const prev = tripWaypoints[i - 1];
+        const next = tripWaypoints[i];
+        const distOld = haversineMiles(prev.lat, prev.lng, next.lat, next.lng);
+        const distNew = haversineMiles(prev.lat, prev.lng, lat, lng) + haversineMiles(lat, lng, next.lat, next.lng);
+        detour = distNew - distOld;
+      }
+
+      if (detour < minDetour) {
+        minDetour = detour;
+        bestIndex = i;
+      }
+    }
+
+    return bestIndex;
+  }
+
   function addWaypoint(lat: number, lng: number, name: string, type?: string) {
-    tripWaypoints.push({
+    const newWp: Waypoint = {
       id: Math.random().toString(36).substring(2, 9),
       lat,
       lng,
@@ -1160,7 +1190,11 @@ function initMap() {
       overnightDepartureTime: "08:00",
       budget: 0,
       notes: ""
-    });
+    };
+
+    const targetIndex = findLogicalInsertionIndex(lat, lng);
+    tripWaypoints.splice(targetIndex, 0, newWp);
+
     renderWaypointList();
     updateMapRoute();
   }

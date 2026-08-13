@@ -90,3 +90,5 @@ Iter Viae Core/
 - [X] WE SHOULD ADD TO THE RIGHT CLICK MENU TO COPY COORDINATES 
 - [ ] When adding point should have it put in logical place in order 
 - [X] The fuel calculater inputs should select all items when clicking on it for better user experience 
+- [ ] Make the gas calculater default to off (Maybe make the toggles on the home screen? Not sure it his will look good)
+- [ ] Make a hotel Calculater (based ontime or distance )
