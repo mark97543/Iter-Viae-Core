@@ -1645,6 +1645,15 @@ function initMap() {
     ctxMenu.classList.add('hidden');
   });
 
+  const ctxCopyCoordsBtn = document.getElementById("ctx-copy-coords");
+  ctxCopyCoordsBtn?.addEventListener('click', () => {
+    if (ctxLngLat) {
+      const coordStr = `${ctxLngLat.lat.toFixed(6)}, ${ctxLngLat.lng.toFixed(6)}`;
+      void navigator.clipboard.writeText(coordStr);
+    }
+    ctxMenu.classList.add('hidden');
+  });
+
   // ── Coordinate Search UI ────────────────────────────────────────────────
   const searchInput = document.getElementById("coord-search-input") as HTMLInputElement | null;
   const searchBtn = document.getElementById("coord-search-btn") as HTMLButtonElement | null;

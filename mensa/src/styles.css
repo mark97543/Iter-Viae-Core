@@ -500,6 +500,8 @@ html, body {
 
 #map-context-menu {
   position: absolute;
+  display: inline-flex;
+  flex-direction: column;
   background: rgba(15, 23, 42, 0.95);
   border: 1px solid rgba(51, 65, 85, 0.8);
   border-radius: 6px;
@@ -507,21 +509,24 @@ html, body {
   backdrop-filter: blur(8px);
   z-index: 100;
   padding: 4px 0;
-  min-width: 150px;
+  width: fit-content;
 }
 
 #map-context-menu.hidden {
-  display: none;
+  display: none !important;
 }
 
 #map-context-menu button {
+  display: block;
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 14px;
   background: transparent;
   border: none;
   color: #e2e8f0;
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  box-sizing: border-box;
   cursor: pointer;
   transition: background 0.15s;
 }
