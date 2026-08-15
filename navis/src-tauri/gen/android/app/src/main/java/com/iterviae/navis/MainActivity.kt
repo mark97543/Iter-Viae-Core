@@ -276,7 +276,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 styleBuilder.withLayer(localRoadLayer)
 
-                // Primary Highways & Motorways - Steel Amber
+                // Primary Highways & Motorways - Steel Slate
                 val highwayLayer = LineLayer("highway-layer", "openmaptiles")
                     .withSourceLayer("transportation")
                     .withProperties(
@@ -313,7 +313,7 @@ class MainActivity : AppCompatActivity() {
                 )
             style.addLayer(routeCasingLayer)
 
-            // Route Polyline High-Contrast Neon Orange Route (Width 6f) - Distinct from blue/slate roads!
+            // Route Polyline High-Contrast Neon Orange Route (Width 6f) - Distinct from roads!
             val routeLineLayer = LineLayer("nav-route-line", "nav-route")
                 .withProperties(
                     lineColor("#ff6b00"),
@@ -421,41 +421,47 @@ class MainActivity : AppCompatActivity() {
             if (jsonStr.trim().startsWith("[")) {
                 val arr = JSONArray(jsonStr)
                 for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
-                    val lat = obj.optDouble("lat", obj.optDouble("latitude", Double.NaN))
-                    val lng = obj.optDouble("lng", obj.optDouble("longitude", Double.NaN))
-                    if (!lat.isNaN() && !lng.isNaN()) {
+                    val item = arr.get(i)
+                    if (item is JSONArray && item.length() >= 2) {
+                        val lng = item.getDouble(0)
+                        val lat = item.getDouble(1)
                         pts.add(LatLng(lat, lng))
+                    } else if (item is JSONObject) {
+                        val lat = item.optDouble("lat", item.optDouble("latitude", Double.NaN))
+                        val lng = item.optDouble("lng", item.optDouble("longitude", Double.NaN))
+                        if (!lat.isNaN() && !lng.isNaN()) {
+                            pts.add(LatLng(lat, lng))
+                        }
                     }
                 }
             } else {
                 val obj = JSONObject(jsonStr)
 
-                // 1. Check for encoded Valhalla Polyline shape string ("shape" or "polyline")
-                val shapeStr = obj.optString("shape", obj.optString("polyline", ""))
-                if (shapeStr.isNotEmpty()) {
-                    val decoded = decodePolyline(shapeStr, 1e6)
-                    if (decoded.isNotEmpty()) {
-                        pts.addAll(decoded)
-                    }
-                }
-
-                // 2. Check for GeoJSON Geometry / Trip Geometry coordinates array
-                if (pts.isEmpty()) {
-                    val tripObj = obj.optJSONObject("trip") ?: obj
-                    val legsArr = tripObj.optJSONArray("legs")
-                    if (legsArr != null) {
-                        for (l in 0 until legsArr.length()) {
-                            val leg = legsArr.getJSONObject(l)
-                            val legShape = leg.optString("shape", "")
-                            if (legShape.isNotEmpty()) {
-                                pts.addAll(decodePolyline(legShape, 1e6))
-                            }
+                // 1. Check for tripShape (array of [lng, lat] coordinate pairs exported by Mensa)
+                val tripShapeArr = obj.optJSONArray("tripShape")
+                if (tripShapeArr != null && tripShapeArr.length() > 0) {
+                    for (i in 0 until tripShapeArr.length()) {
+                        val pair = tripShapeArr.optJSONArray(i)
+                        if (pair != null && pair.length() >= 2) {
+                            val lng = pair.getDouble(0)
+                            val lat = pair.getDouble(1)
+                            pts.add(LatLng(lat, lng))
                         }
                     }
                 }
 
-                // 3. Fallback to Waypoint objects list if shape is absent
+                // 2. Check for encoded Polyline shape string ("shape" or "polyline")
+                if (pts.isEmpty()) {
+                    val shapeStr = obj.optString("shape", obj.optString("polyline", ""))
+                    if (shapeStr.isNotEmpty()) {
+                        val decoded = decodePolyline(shapeStr, 1e6)
+                        if (decoded.isNotEmpty()) {
+                            pts.addAll(decoded)
+                        }
+                    }
+                }
+
+                // 3. Fallback to Waypoint objects list if no detailed shape exists
                 if (pts.isEmpty()) {
                     val arr = obj.optJSONArray("tripWaypoints") ?: obj.optJSONArray("waypoints") ?: obj.optJSONArray("points")
                     if (arr != null) {

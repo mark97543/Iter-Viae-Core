@@ -1794,7 +1794,8 @@ function initMap() {
       tripStartTime,
       tripHasSpecificDate,
       tripNotes,
-      tripWaypoints
+      tripWaypoints,
+      tripShape: currentRouteLineCoords
     }, null, 2);
   }
 
