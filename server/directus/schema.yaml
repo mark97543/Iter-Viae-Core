@@ -1,195 +1,55 @@
 version: 1
-collections:
-  - collection: api_keys
-    meta:
-      icon: key
-      note: Master registry for Iter Viae user API keys and subscription tiers
-      display_template: "{{owner_name}} ({{key}})"
-      hidden: false
-      singleton: false
-    schema:
-      name: api_keys
-
-  - collection: request_logs
-    meta:
-      icon: query_stats
-      note: Live request logs and usage analytics for route and map tile calls
-      display_template: "{{endpoint}} - {{ip_address}}"
-      hidden: false
-      singleton: false
-    schema:
-      name: request_logs
-
-  - collection: subscriptions
-    meta:
-      icon: credit_card
-      note: Stripe customer and active subscription sync
-      display_template: "{{customer_email}} - {{billing_status}}"
-      hidden: false
-      singleton: false
-    schema:
-      name: subscriptions
-
-fields:
-  - collection: api_keys
-    field: id
-    type: uuid
-    meta:
-      hidden: true
-      readonly: true
-      interface: input
-    schema:
-      is_primary_key: true
-      has_auto_increment: false
-
-  - collection: api_keys
-    field: key
-    type: string
-    meta:
-      interface: input
-      options:
-        font: monospace
-      note: "Unique API Key string (e.g. iv_key_mark_8891)"
-      required: true
-    schema:
-      is_unique: true
-      is_nullable: false
-
-  - collection: api_keys
-    field: owner_name
-    type: string
-    meta:
-      interface: input
-      note: Name of user, team, or customer
-      required: true
-
-  - collection: api_keys
-    field: email
-    type: string
-    meta:
-      interface: input
-      note: Contact email address
-
-  - collection: api_keys
-    field: status
-    type: string
-    meta:
-      interface: select-dropdown
-      options:
-        choices:
-          - text: Active
-            value: active
-          - text: Suspended
-            value: suspended
-          - text: Revoked
-            value: revoked
-          - text: Expired
-            value: expired
-      default_value: active
-
-  - collection: api_keys
-    field: tier
-    type: string
-    meta:
-      interface: select-dropdown
-      options:
-        choices:
-          - text: Admin / Unlimited
-            value: admin_unlimited
-          - text: Team Annual
-            value: team_annual
-          - text: Pro Monthly
-            value: pro_monthly
-          - text: Free Trial
-            value: free_trial
-      default_value: pro_monthly
-
-  - collection: api_keys
-    field: daily_limit
-    type: integer
-    meta:
-      interface: input
-      note: Max requests allowed per day (e.g. 5000)
-
-  - collection: api_keys
-    field: expires_at
-    type: timestamp
-    meta:
-      interface: datetime
-
-  - collection: request_logs
-    field: id
-    type: uuid
-    meta:
-      hidden: true
-      readonly: true
-    schema:
-      is_primary_key: true
-
-  - collection: request_logs
-    field: api_key
-    type: string
-    meta:
-      interface: input
-      options:
-        font: monospace
-
-  - collection: request_logs
-    field: endpoint
-    type: string
-    meta:
-      interface: input
-
-  - collection: request_logs
-    field: ip_address
-    type: string
-    meta:
-      interface: input
-
-  - collection: request_logs
+directus: 12.2.0
+vendor: sqlite
+collections: []
+fields: []
+systemFields:
+  - collection: directus_activity
     field: timestamp
-    type: timestamp
-    meta:
-      interface: datetime
-
-  - collection: subscriptions
-    field: id
-    type: uuid
-    meta:
-      hidden: true
-      readonly: true
     schema:
-      is_primary_key: true
-
-  - collection: subscriptions
-    field: customer_email
-    type: string
-    meta:
-      interface: input
-
-  - collection: subscriptions
-    field: stripe_customer_id
-    type: string
-    meta:
-      interface: input
-
-  - collection: subscriptions
-    field: stripe_sub_id
-    type: string
-    meta:
-      interface: input
-
-  - collection: subscriptions
-    field: billing_status
-    type: string
-    meta:
-      interface: select-dropdown
-      options:
-        choices:
-          - text: Active
-            value: active
-          - text: Past Due
-            value: past_due
-          - text: Canceled
-            value: canceled
-      default_value: active
+      is_indexed: true
+  - collection: directus_oauth_clients
+    field: date_created
+    schema:
+      is_indexed: true
+  - collection: directus_oauth_codes
+    field: expires_at
+    schema:
+      is_indexed: true
+  - collection: directus_oauth_codes
+    field: used_at
+    schema:
+      is_indexed: true
+  - collection: directus_oauth_consents
+    field: client
+    schema:
+      is_indexed: true
+  - collection: directus_oauth_tokens
+    field: code_hash
+    schema:
+      is_indexed: true
+  - collection: directus_oauth_tokens
+    field: expires_at
+    schema:
+      is_indexed: true
+  - collection: directus_oauth_tokens
+    field: previous_session
+    schema:
+      is_indexed: true
+  - collection: directus_oauth_tokens
+    field: session
+    schema:
+      is_indexed: true
+  - collection: directus_revisions
+    field: activity
+    schema:
+      is_indexed: true
+  - collection: directus_revisions
+    field: parent
+    schema:
+      is_indexed: true
+  - collection: directus_sessions
+    field: oauth_client
+    schema:
+      is_indexed: true
+relations: []
