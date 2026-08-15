@@ -43,7 +43,7 @@ Faber compiles your map files locally on your computer to save server CPU and RA
 
 - **Generated Files**:
   - `map.mbtiles` (~12.15 GB Master OpenMapTiles Vector Map)
-  - `routing.tar` (~20.13 GB Valhalla Highway Routing Graph Tiles)
+  - `valhalla_tiles.tar` (~20.13 GB Valhalla Highway Routing Graph Tiles)
 
 ---
 

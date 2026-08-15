@@ -16,8 +16,8 @@ echo "📤 [1/2] Uploading map.mbtiles (12.15 GB)..."
 rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/map.mbtiles" "root@$SERVER_IP:/etc/easypanel/projects/iterviae/tiles/map.mbtiles"
 
 echo ""
-echo "📤 [2/2] Uploading routing.tar (20.13 GB)..."
-rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" "root@$SERVER_IP:/etc/easypanel/projects/iterviae/valhalla/routing.tar"
+echo "📤 [2/2] Uploading routing.tar as valhalla_tiles.tar (20.13 GB)..."
+rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" "root@$SERVER_IP:/etc/easypanel/projects/iterviae/valhalla/valhalla_tiles.tar"
 
 echo ""
 echo "✅ Upload complete! All map and routing files are active on $SERVER_IP."
