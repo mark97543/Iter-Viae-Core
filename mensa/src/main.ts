@@ -6,6 +6,7 @@ import { save, open } from '@tauri-apps/plugin-dialog';
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import "flatpickr/dist/themes/dark.css";
+import QRCode from "qrcode";
 function createFuelIconImageData(): ImageData {
   const canvas = document.createElement("canvas");
   canvas.width = 32;
@@ -1897,32 +1898,32 @@ function initMap() {
   const printContainer = document.getElementById("print-container")!;
   const printPreviewContainer = document.getElementById("print-preview-container")!;
 
-  function openPrintModal() {
+  async function openPrintModal() {
     if (printModal) {
-      updatePrintPreview();
+      await updatePrintPreview();
       printModal.style.display = "flex";
     }
   }
 
-  printSizeSelect?.addEventListener("change", () => {
-    updatePrintPreview();
+  printSizeSelect?.addEventListener("change", async () => {
+    await updatePrintPreview();
   });
 
-  function updatePrintPreview() {
+  async function updatePrintPreview() {
     printPreviewContainer.className = `print-core-styles`;
-    printPreviewContainer.innerHTML = generatePrintLayoutHTML();
+    printPreviewContainer.innerHTML = await generatePrintLayoutHTML();
   }
 
   printCancelBtn?.addEventListener("click", () => {
     if (printModal) printModal.style.display = "none";
   });
 
-  printConfirmBtn?.addEventListener("click", () => {
+  printConfirmBtn?.addEventListener("click", async () => {
     if (printModal) printModal.style.display = "none";
     
     // Inject into actual print container
     printContainer.className = `print-core-styles`;
-    printContainer.innerHTML = generatePrintLayoutHTML();
+    printContainer.innerHTML = await generatePrintLayoutHTML();
 
     // Tiny delay to ensure DOM is updated before print dialog triggers
     setTimeout(() => {
@@ -1930,9 +1931,17 @@ function initMap() {
     }, 100);
   });
 
-  function generatePrintLayoutHTML(): string {
+  async function generatePrintLayoutHTML(): Promise<string> {
     const size = printSizeSelect.value;
     
+    // Generate Google Maps QR Code Data URLs for all waypoints in parallel
+    const qrDataUrls = await Promise.all(
+      tripWaypoints.map(wp => {
+        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${wp.lat},${wp.lng}&travelmode=driving`;
+        return QRCode.toDataURL(mapsUrl, { width: 140, margin: 1 });
+      })
+    );
+
     // Chunking settings based on size
     let firstPageCapacity = 0;
     let subsequentPageCapacity = 0;
@@ -1948,12 +1957,14 @@ function initMap() {
        subsequentPageCapacity = 2; // 2 per tiny page max
     }
 
-    // Build Waypoint Cards
+    // Build Waypoint Cards with embedded Google Maps QR Code
     const cards = tripWaypoints.map((wp, index) => {
       let arrTime = wp.calculatedArrivalString || "N/A";
       let depTime = wp.calculatedDepartureString || "N/A";
+      let qrImg = qrDataUrls[index] || "";
       
-      let card = `<div class="print-wp-log">`;
+      let card = `<div class="print-wp-log" style="display: flex; justify-content: space-between; align-items: center;">`;
+      card += `<div style="flex: 1; min-width: 0;">`;
       card += `<div class="print-wp-header">
                  <div class="print-wp-title">[${index + 1}] ${wp.name} ${wp.isOvernight ? '<span class="print-tag-overnight">OVERNIGHT</span>' : ''}</div>
                  <div class="print-wp-type">${wp.type || "WP"}</div>
@@ -1989,6 +2000,16 @@ function initMap() {
       if (wp.notes) {
         card += `<div class="print-wp-notes">${wp.notes}</div>`;
       }
+      card += `</div>`; // End text details container
+
+      // Right-side QR Code Container
+      if (qrImg) {
+        card += `<div class="print-wp-qr" style="margin-left: 12px; text-align: center; flex-shrink: 0;">
+                   <img src="${qrImg}" alt="Google Maps QR" style="width: 70px; height: 70px; border-radius: 4px; border: 1px solid #cbd5e1; display: block; margin: 0 auto;" />
+                   <div style="font-size: 0.58rem; color: #475569; font-weight: 700; margin-top: 3px; letter-spacing: 0.5px;">SCAN FOR GPS</div>
+                 </div>`;
+      }
+
       card += `</div>`;
       return card;
     });

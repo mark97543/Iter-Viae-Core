@@ -15,8 +15,10 @@
     "@tauri-apps/plugin-fs": "^2.5.1",
     "@tauri-apps/plugin-opener": "^2",
     "@turf/turf": "^7.4.0",
+    "@types/qrcode": "^1.5.6",
     "flatpickr": "^4.6.13",
-    "maplibre-gl": "^6.1.0"
+    "maplibre-gl": "^6.1.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
