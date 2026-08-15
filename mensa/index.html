@@ -169,7 +169,13 @@
           </div>
           
           <label class="modal-label" style="margin-top: 8px;">Overall Mission Notes</label>
-          <textarea id="summary-trip-notes" class="modal-input" rows="4" placeholder="Enter high-level tactical notes or briefings..."></textarea>
+          <textarea id="summary-trip-notes" class="modal-input" rows="3" placeholder="Enter high-level tactical notes or briefings..."></textarea>
+          
+          <div style="margin-top: 12px; border-top: 1px solid rgba(51, 65, 85, 0.8); padding-top: 12px;">
+            <label class="modal-label" style="color: #38bdf8; font-weight: bold;">🔑 Server API Key</label>
+            <input type="password" id="summary-api-key" class="modal-input" placeholder="iv_key_..." style="font-family: monospace;" />
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Enter your server API key to authenticate map tile and routing requests.</div>
+          </div>
         </div>
         <div class="modal-footer">
           <button id="summary-save-btn" class="btn-primary">Save & Apply</button>

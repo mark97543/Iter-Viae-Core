@@ -129,6 +129,14 @@ function initMap() {
 
   const map = new maplibregl.Map({
     container: "map",
+    transformRequest: (url, resourceType) => {
+      const apiKey = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
+      if (url.includes("tiles.wade-usa.com") && apiKey) {
+        const separator = url.includes("?") ? "&" : "?";
+        return { url: `${url}${separator}key=${encodeURIComponent(apiKey)}` };
+      }
+      return { url };
+    },
     style: {
       version: 8,
       name: "Mensa 3D & 2D Tactical Engine",
@@ -1005,6 +1013,7 @@ function initMap() {
   const sDateFields = document.getElementById("summary-date-fields")!;
   const sStartTimeInput = document.getElementById("summary-start-time") as HTMLInputElement;
   const sNotes = document.getElementById("summary-trip-notes") as HTMLTextAreaElement;
+  const sApiKey = document.getElementById("summary-api-key") as HTMLInputElement;
 
   const sTotWp = document.getElementById("summary-tot-wp")!;
   const sStartPicker = flatpickr(sStartTimeInput, {
@@ -1019,6 +1028,7 @@ function initMap() {
     sDateFields.style.display = tripHasSpecificDate ? "block" : "none";
     sStartPicker.setDate(tripStartTime);
     sNotes.value = tripNotes;
+    sApiKey.value = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
     
     sTotWp.textContent = tripWaypoints.length.toString();
     summaryModal.style.display = "flex";
@@ -1037,6 +1047,10 @@ function initMap() {
     tripTitleDisplay.textContent = tripTitle;
     tripHasSpecificDate = sHasDate.checked;
     tripNotes = sNotes.value;
+    
+    if (sApiKey && sApiKey.value.trim()) {
+      localStorage.setItem("iterviae_api_key", sApiKey.value.trim());
+    }
     
     if (sStartTimeInput.value) {
       tripStartTime = new Date(sStartTimeInput.value);
@@ -1436,7 +1450,11 @@ function initMap() {
         lon: w.lng,
         type: w.type === 'Shaping' ? 'through' : 'break'
       }));
-      const result = await invoke<{ geojson: any, distance: number, time: number }>("calculate_route", { waypoints: payload });
+      const apiKey = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
+      const result = await invoke<{ geojson: any, distance: number, time: number }>("calculate_route", { 
+        waypoints: payload,
+        apiKey: apiKey
+      });
       
       distEl.textContent = `${result.distance.toFixed(2)} mi`;
       const hrs = Math.floor(result.time / 3600);

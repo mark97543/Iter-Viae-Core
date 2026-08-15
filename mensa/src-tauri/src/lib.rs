@@ -430,7 +430,7 @@ pub struct RouteResult {
 static HTTP_CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
 
 #[tauri::command]
-async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String> {
+async fn calculate_route(waypoints: Vec<Waypoint>, api_key: Option<String>) -> Result<RouteResult, String> {
     if waypoints.len() < 2 {
         return Err("Need at least 2 waypoints".into());
     }
@@ -459,9 +459,17 @@ async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String
             .unwrap_or_else(|_| reqwest::Client::new())
     });
 
-    let res = client
+    let mut request_builder = client
         .post("https://valhalla.wade-usa.com/route")
-        .json(&request_body)
+        .json(&request_body);
+
+    if let Some(ref key) = api_key {
+        if !key.trim().is_empty() {
+            request_builder = request_builder.header("X-API-Key", key.trim());
+        }
+    }
+
+    let res = request_builder
         .send()
         .await
         .map_err(|e| e.to_string())?;
