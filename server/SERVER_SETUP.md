@@ -36,10 +36,9 @@ This is a comprehensive, step-by-step guide for building offline map data locall
 
 Run Faber locally on your workstation to forge the map and routing data files before uploading:
 
-1. **Build Vector Map Tiles (`map.mbtiles`)**:
-   - Outputs: `map.mbtiles` (~12 GB for North America).
-2. **Build Valhalla Routing Graph (`routing.tar` / `valhalla_tiles`)**:
-   - Outputs: `routing.tar` (~20 GB for North America).
+- **Local Compiled Output Folder**: `/home/mark/Documents/Iter Viae Core/data/maps/compiled/`
+  - `map.mbtiles` (~12 GB master vector tiles for North America)
+  - `routing.tar` (~20 GB Valhalla routing graph tiles for North America)
 
 ---
 
@@ -74,6 +73,9 @@ curl -sSL https://get.easypanel.io | sh
 > [!IMPORTANT]
 > **Run these commands from a terminal on your LOCAL WORKSTATION (your computer).**  
 > Do **NOT** run them while logged into the SSH server session, as `rsync` needs to read the source files from your local computer disk.
+
+Local Compiled Source Directory:
+`/home/mark/Documents/Iter Viae Core/data/maps/compiled/`
 
 ### 1. Create Server Directory & Upload `map.mbtiles`
 ```bash
