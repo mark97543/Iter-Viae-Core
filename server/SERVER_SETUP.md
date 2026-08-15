@@ -92,51 +92,51 @@ cd "/home/mark/Documents/Iter Viae Core" && ./upload_to_server.sh
 
 ---
 
-## ⚙️ Phase 4: Detailed EasyPanel Git Service Setup (Click-by-Click)
+## ⚙️ Phase 4: Detailed EasyPanel Git Service Setup (Click-by-Click) 🐙
 
 ### Service 1: Deploy Valhalla (Routing Engine via Git)
 
 1. Open **EasyPanel** at `http://46.202.179.124:3000`.
 2. Click project **`iterviae`** on the left menu.
 3. Click **+ Service** $\rightarrow$ select **Git Repository**.
-4. **General / Source Configuration**:
+4. **Source Settings**:
    - **Service Name**: `valhalla`
    - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
    - **Branch**: `main`
-   - **Build Context / Path**: `server/valhalla`
-5. **Port Configuration**:
-   - Click **+ Add Port**
-   - **Published Port**: `8002`
-   - **Target Port**: `8002`
-   - **Protocol**: `TCP`
-6. **Volume Mounts**:
+5. **Build Settings**:
+   - **Build Type**: Select `Dockerfile`
+   - **Dockerfile Path**: `server/valhalla/Dockerfile`
+6. **Domains / Ports Settings (under "Domains" / "Ports" tab)**:
+   - *Option A (Direct IP & Port Access)*: Go to **Ports** $\rightarrow$ **+ Add Port** $\rightarrow$ Set Published Port `8002` $\rightarrow$ Target Port `8002` (`TCP`).
+   - *Option B (Custom Domain)*: Go to **Domains** $\rightarrow$ **+ Add Domain** $\rightarrow$ Enter `valhalla.yourdomain.com` $\rightarrow$ Set Container Port to `8002`.
+7. **Volume Mounts (under "Mounts" tab)**:
    - Click **+ Add Mount**
-   - **Mount Type**: `Bind`
+   - **Type**: `Bind`
    - **Host Path**: `/etc/easypanel/projects/iterviae/valhalla`
    - **Mount Path**: `/custom_files`
-7. Click **Deploy**. EasyPanel will pull the repository Dockerfile and launch Valhalla!
+8. Click **Deploy**. EasyPanel will pull `server/valhalla/Dockerfile` from GitHub and start Valhalla!
 
 ---
 
 ### Service 2: Deploy TileServer GL (Vector Maps via Git)
 
 1. Inside project **`iterviae`**, click **+ Service** $\rightarrow$ select **Git Repository**.
-2. **General / Source Configuration**:
+2. **Source Settings**:
    - **Service Name**: `tileserver`
    - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
    - **Branch**: `main`
-   - **Build Context / Path**: `server/tileserver`
-3. **Port Configuration**:
-   - Click **+ Add Port**
-   - **Published Port**: `8080`
-   - **Target Port**: `8080`
-   - **Protocol**: `TCP`
-4. **Volume Mounts**:
+3. **Build Settings**:
+   - **Build Type**: Select `Dockerfile`
+   - **Dockerfile Path**: `server/tileserver/Dockerfile`
+4. **Domains / Ports Settings (under "Domains" / "Ports" tab)**:
+   - *Option A (Direct IP & Port Access)*: Go to **Ports** $\rightarrow$ **+ Add Port** $\rightarrow$ Set Published Port `8080` $\rightarrow$ Target Port `8080` (`TCP`).
+   - *Option B (Custom Domain)*: Go to **Domains** $\rightarrow$ **+ Add Domain** $\rightarrow$ Enter `tiles.yourdomain.com` $\rightarrow$ Set Container Port to `8080`.
+5. **Volume Mounts (under "Mounts" tab)**:
    - Click **+ Add Mount**
-   - **Mount Type**: `Bind`
+   - **Type**: `Bind`
    - **Host Path**: `/etc/easypanel/projects/iterviae/tiles`
    - **Mount Path**: `/data`
-5. Click **Deploy**. EasyPanel will pull the repository Dockerfile and launch TileServer!
+6. Click **Deploy**. EasyPanel will pull `server/tileserver/Dockerfile` from GitHub and start TileServer!
 
 ---
 
