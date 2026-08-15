@@ -1060,6 +1060,51 @@ function initMap() {
     renderWaypointList();
     updateMapRoute();
   });
+
+  // ── Dedicated Server & API Key Settings Modal Handler ─────────────
+  const serverSettingsBtn = document.getElementById("server-settings-btn");
+  const serverSettingsModal = document.getElementById("server-settings-modal")!;
+  const serverSettingsCloseBtn = document.getElementById("server-settings-close-btn")!;
+  const serverSettingsSaveBtn = document.getElementById("server-settings-save-btn")!;
+
+  const modalApiKeyInput = document.getElementById("modal-api-key-input") as HTMLInputElement;
+  const modalTilesUrlInput = document.getElementById("modal-tiles-url-input") as HTMLInputElement;
+  const modalValhallaUrlInput = document.getElementById("modal-valhalla-url-input") as HTMLInputElement;
+  const modalDirectusUrlInput = document.getElementById("modal-directus-url-input") as HTMLInputElement;
+
+  function openServerSettingsModal() {
+    modalApiKeyInput.value = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
+    modalTilesUrlInput.value = localStorage.getItem("iterviae_tiles_url") || "https://tiles.wade-usa.com";
+    modalValhallaUrlInput.value = localStorage.getItem("iterviae_valhalla_url") || "https://valhalla.wade-usa.com";
+    modalDirectusUrlInput.value = localStorage.getItem("iterviae_directus_url") || "https://api.wade-usa.com";
+    serverSettingsModal.style.display = "flex";
+  }
+
+  if (serverSettingsBtn) {
+    serverSettingsBtn.addEventListener("click", openServerSettingsModal);
+  }
+
+  if (serverSettingsCloseBtn) {
+    serverSettingsCloseBtn.addEventListener("click", () => {
+      serverSettingsModal.style.display = "none";
+    });
+  }
+
+  if (serverSettingsSaveBtn) {
+    serverSettingsSaveBtn.addEventListener("click", () => {
+      if (modalApiKeyInput.value.trim()) localStorage.setItem("iterviae_api_key", modalApiKeyInput.value.trim());
+      if (modalTilesUrlInput.value.trim()) localStorage.setItem("iterviae_tiles_url", modalTilesUrlInput.value.trim());
+      if (modalValhallaUrlInput.value.trim()) localStorage.setItem("iterviae_valhalla_url", modalValhallaUrlInput.value.trim());
+      if (modalDirectusUrlInput.value.trim()) localStorage.setItem("iterviae_directus_url", modalDirectusUrlInput.value.trim());
+      serverSettingsModal.style.display = "none";
+      updateMapRoute();
+    });
+  }
+
+  // Native Tauri menu listener
+  listen("menu-settings-server", () => {
+    openServerSettingsModal();
+  });
   
   // Format dates cleanly for UI
   function formatTime(d: Date): string {

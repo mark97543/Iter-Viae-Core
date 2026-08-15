@@ -769,10 +769,19 @@ pub fn run() {
                 .item(&gas_planner_item)
                 .build()?;
 
+            let server_settings_item = MenuItemBuilder::with_id("settings-server", "Server & API Key Settings...")
+                .accelerator("CmdOrCtrl+,")
+                .build(app)?;
+
+            let settings_menu = SubmenuBuilder::new(app, "Settings")
+                .item(&server_settings_item)
+                .build()?;
+
             let menu = MenuBuilder::new(app)
                 .item(&file_menu)
                 .item(&maps_menu)
                 .item(&tools_menu)
+                .item(&settings_menu)
                 .build()?;
 
             app.set_menu(menu)?;
@@ -804,6 +813,8 @@ pub fn run() {
                 let _ = app.emit("menu-file-save-as", ());
             } else if id == "file-print" {
                 let _ = app.emit("menu-file-print", ());
+            } else if id == "settings-server" {
+                let _ = app.emit("menu-settings-server", ());
             } else if id == "tools-gas-planner" {
                 let _ = app.emit("menu-tools-gas-planner", ());
             } else if id == "open_maps_folder" {
