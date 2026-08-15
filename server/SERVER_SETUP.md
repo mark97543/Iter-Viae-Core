@@ -142,6 +142,37 @@ cd "/home/mark/Documents/Iter Viae Core" && ./upload_to_server.sh
 
 ---
 
+### Service 3: Deploy Directus API Control Center (`api.wade-usa.com` via Git) 🔑
+
+1. Inside project **`iterviae`**, click **+ Service** $\rightarrow$ select **Git Repository**.
+2. **Source Settings**:
+   - **Service Name**: `directus`
+   - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
+   - **Branch**: `main`
+3. **Build Settings**:
+   - **Build Type**: Select `Dockerfile`
+   - **Build Context / Root**: Set to `.` (or leave empty)
+   - **Dockerfile Path**: `server/directus/Dockerfile`
+4. **Domains Settings (under "Domains" tab)**:
+   - Click **+ Add Domain**
+   - **Domain**: `api.wade-usa.com`
+   - **Container Port**: `8055`
+   - **HTTPS**: Enabled (Checked)
+5. **Environment Variables (under "Environment" tab)**:
+   - `KEY`: `9b1deb4d-3b7d-4bad-9bdd-2b0d7b3d001a`
+   - `SECRET`: `5c9f9d2a-8c7a-4a2b-9e1d-3c7f9d1a2b3c`
+   - `ADMIN_EMAIL`: `admin@wade-usa.com`
+   - `ADMIN_PASSWORD`: `YOUR_SECURE_ADMIN_PASSWORD`
+   - `PUBLIC_URL`: `https://api.wade-usa.com`
+   - `DB_CLIENT`: `sqlite3`
+   - `DB_FILENAME`: `/directus/database/data.db`
+6. **Volume Mounts (under "Mounts" tab)**:
+   - **Mount A**: Host Path `/etc/easypanel/projects/iterviae/directus/database` $\rightarrow$ Mount Path `/directus/database`
+   - **Mount B**: Host Path `/etc/easypanel/projects/iterviae/directus/uploads` $\rightarrow$ Mount Path `/directus/uploads`
+7. Click **Deploy**. EasyPanel will pull `server/directus/Dockerfile` from GitHub, launch Directus, and provision `https://api.wade-usa.com`!
+
+---
+
 ## 🧪 Phase 5: Verification & Service Testing
 
 ### 1. Test Valhalla Turn-by-Turn Routing Service
