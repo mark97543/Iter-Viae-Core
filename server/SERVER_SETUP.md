@@ -77,15 +77,18 @@ curl -sSL https://get.easypanel.io | sh
 Local Compiled Source Directory:
 `/home/mark/Documents/Iter Viae Core/data/maps/compiled/`
 
-### 1. Create Server Directory & Upload `map.mbtiles`
+### Option A: Automatic 1-Command Upload Script (Recommended)
 ```bash
-ssh root@46.202.179.124 "mkdir -p /etc/easypanel/projects/iterviae/tiles"
-rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/map.mbtiles" root@46.202.179.124:/etc/easypanel/projects/iterviae/tiles/map.mbtiles
+cd "/home/mark/Documents/Iter Viae Core"
+./upload_to_server.sh 46.202.179.124
 ```
 
-### 2. Create Server Directory & Upload `routing.tar`
+### Option B: Manual Single-Line Commands
 ```bash
-ssh root@46.202.179.124 "mkdir -p /etc/easypanel/projects/iterviae/valhalla"
+# Upload map.mbtiles
+rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/map.mbtiles" root@46.202.179.124:/etc/easypanel/projects/iterviae/tiles/map.mbtiles
+
+# Upload routing.tar
 rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" root@46.202.179.124:/etc/easypanel/projects/iterviae/valhalla/routing.tar
 ```
 
