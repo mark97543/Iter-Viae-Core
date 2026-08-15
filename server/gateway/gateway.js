@@ -10,6 +10,17 @@ const DB_PATH = process.env.DB_PATH || '/directus/database/data.db';
 const VALHALLA_HOST = process.env.VALHALLA_HOST || 'http://iterviae_valhalla:8002';
 const TILESERVER_HOST = process.env.TILESERVER_HOST || 'http://iterviae_tileserver:8080';
 
+// 🌐 Enable CORS for all incoming requests (Mensa Desktop & Web Apps)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 let db = null;
 function getDb() {
   if (!db) {
