@@ -71,18 +71,20 @@ curl -sSL https://get.easypanel.io | sh
 
 ## 📤 Phase 3: Upload Local Maps & Routing Data to Server
 
-From your **Local Workstation**, transfer your built map files to the server directories created for EasyPanel:
+> [!IMPORTANT]
+> **Run these commands from a terminal on your LOCAL WORKSTATION (your computer).**  
+> Do **NOT** run them while logged into the SSH server session, as `rsync` needs to read the source files from your local computer disk.
 
-### 1. Create Server Directories & Upload `map.mbtiles`
+### 1. Create Server Directory & Upload `map.mbtiles`
 ```bash
 ssh root@YOUR_SERVER_IP "mkdir -p /etc/easypanel/projects/iterviae/tiles"
-rsync -P -z /path/to/your/local/map.mbtiles root@YOUR_SERVER_IP:/etc/easypanel/projects/iterviae/tiles/map.mbtiles
+rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/map.mbtiles" root@YOUR_SERVER_IP:/etc/easypanel/projects/iterviae/tiles/map.mbtiles
 ```
 
-### 2. Create Server Directories & Upload `routing.tar`
+### 2. Create Server Directory & Upload `routing.tar`
 ```bash
 ssh root@YOUR_SERVER_IP "mkdir -p /etc/easypanel/projects/iterviae/valhalla"
-rsync -P -z /path/to/your/local/routing.tar root@YOUR_SERVER_IP:/etc/easypanel/projects/iterviae/valhalla/routing.tar
+rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" root@YOUR_SERVER_IP:/etc/easypanel/projects/iterviae/valhalla/routing.tar
 ```
 
 *(If you extracted `routing.tar` into a `valhalla_tiles/` folder, upload the folder directly to `/etc/easypanel/projects/iterviae/valhalla/valhalla_tiles`).*
