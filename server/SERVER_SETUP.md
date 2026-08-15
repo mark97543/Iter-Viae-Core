@@ -1,35 +1,35 @@
 # Iter Viae : Complete EasyPanel & Server Setup Guide 🚀
 
-This is the ultimate, step-by-step guide for deploying the **Valhalla Routing Engine** and **TileServer GL** on **EasyPanel** (Docker-based control panel) connected to your GitHub repository ([`https://github.com/mark97543/Iter-Viae-Core.git`](https://github.com/mark97543/Iter-Viae-Core.git)).
+This is the ultimate, step-by-step guide for deploying the **Valhalla Routing Engine**, **TileServer GL**, and **Directus API Control Center** (`api.wade-usa.com`) on **EasyPanel** connected to your GitHub repository ([`https://github.com/mark97543/Iter-Viae-Core.git`](https://github.com/mark97543/Iter-Viae-Core.git)).
 
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                     LOCAL WORKSTATION                       │
-│  Compiles map.mbtiles (Vector) & routing.tar (Valhalla)     │
-│  Path: /home/mark/Documents/Iter Viae Core/data/maps/      │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ Upload via ./upload_to_server.sh
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│               EASYPANEL SERVER (46.202.179.124)             │
-│                                                             │
-│  ┌──────────────────────────┐    ┌───────────────────────┐  │
-│  │   TileServer GL Service  │    │   Valhalla Service    │  │
-│  │   Port: 8080             │    │   Port: 8002          │  │
-│  │   Git: server/tileserver │    │   Git: server/valhalla│  │
-│  └────────────▲─────────────┘    └───────────▲───────────┘  │
-└───────────────┼──────────────────────────────┼──────────────┘
-                │ Vector PBF Tiles             │ Turn-by-Turn
-                └──────────────┬───────────────┘
-                               │
-                ┌──────────────┴──────────────┐
-                │     Mensa Desktop App       │
-                │    (Saves trips locally)    │
-                └─────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             LOCAL WORKSTATION                               │
+│  Compiles map.mbtiles (Vector) & routing.tar (Valhalla)                     │
+│  Path: /home/mark/Documents/Iter Viae Core/data/maps/                      │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ Upload via ./upload_to_server.sh
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       EASYPANEL SERVER (46.202.179.124)                     │
+│                                                                             │
+│  ┌────────────────────────┐  ┌──────────────────────┐  ┌─────────────────┐  │
+│  │ TileServer GL Service  │  │  Valhalla Service    │  │ Directus API    │  │
+│  │ tiles.wade-usa.com     │  │ valhalla.wade-usa.com│  │api.wade-usa.com │  │
+│  │ Port: 8080             │  │ Port: 8002           │  │ Port: 8055      │  │
+│  └───────────▲────────────┘  └──────────▲───────────┘  └────────▲────────┘  │
+└──────────────┼──────────────────────────┼───────────────────────┼───────────┘
+               │ Vector PBF Tiles         │ Turn-by-Turn          │ API Keys
+               └──────────────────────────┼───────────────────────┘
+                                          │
+                           ┌──────────────┴──────────────┐
+                           │     Mensa Desktop App       │
+                           │    (Saves trips locally)    │
+                           └─────────────────────────────┘
 ```
 
 ---
