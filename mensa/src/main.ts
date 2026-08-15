@@ -135,7 +135,7 @@ function initMap() {
       sources: {
         openmaptiles: {
           type: "vector",
-          tiles: ["mbtiles://{z}/{x}/{y}"],
+          tiles: ["https://tiles.wade-usa.com/data/v3/{z}/{x}/{y}.pbf"],
           minzoom: 0,
           maxzoom: 14
         },

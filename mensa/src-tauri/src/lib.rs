@@ -451,7 +451,7 @@ async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String
 
     let client = reqwest::Client::new();
     let res = client
-        .post("http://localhost:8002/route")
+        .post("https://valhalla.wade-usa.com/route")
         .json(&request_body)
         .send()
         .await
