@@ -2461,12 +2461,247 @@ function initMap() {
     gasResultsContainer.innerHTML = htmlResults;
   }
 
+  // ── Modal 1: Push Maps & APK Package Logic ──────────────────────────────
+  const mobileMapsModal = document.getElementById("mobile-maps-modal") as HTMLDivElement | null;
+  const mapsModalClose = document.getElementById("maps-modal-close") as HTMLButtonElement | null;
+  const mapsModalCancel = document.getElementById("maps-modal-cancel") as HTMLButtonElement | null;
+  const mapsModalStartBtn = document.getElementById("maps-modal-start-btn") as HTMLButtonElement | null;
+  const mapsBrowseBtn = document.getElementById("maps-browse-btn") as HTMLButtonElement | null;
+  const mapsDestPathInput = document.getElementById("maps-dest-path") as HTMLInputElement | null;
+  const mapsStatusMsg = document.getElementById("maps-status-msg") as HTMLDivElement | null;
+  const mapsProgressContainer = document.getElementById("maps-progress-container") as HTMLDivElement | null;
+  const mapsProgressStatus = document.getElementById("maps-progress-status") as HTMLSpanElement | null;
+  const mapsProgressPct = document.getElementById("maps-progress-pct") as HTMLSpanElement | null;
+  const mapsProgressBar = document.getElementById("maps-progress-bar") as HTMLDivElement | null;
+  const toolbarPushMapsBtn = document.getElementById("toolbar-push-maps-btn") as HTMLButtonElement | null;
+
+  function openMobileMapsModal() {
+    if (mobileMapsModal) mobileMapsModal.style.display = "flex";
+    if (mapsStatusMsg) mapsStatusMsg.style.display = "none";
+    if (mapsProgressContainer) mapsProgressContainer.style.display = "none";
+  }
+
+  function closeMobileMapsModal() {
+    if (mobileMapsModal) mobileMapsModal.style.display = "none";
+  }
+
+  toolbarPushMapsBtn?.addEventListener("click", openMobileMapsModal);
+  mapsModalClose?.addEventListener("click", closeMobileMapsModal);
+  mapsModalCancel?.addEventListener("click", closeMobileMapsModal);
+
+  mapsBrowseBtn?.addEventListener("click", async () => {
+    try {
+      const selected = await open({ directory: true, multiple: false });
+      if (selected && typeof selected === "string" && mapsDestPathInput) {
+        mapsDestPathInput.value = selected;
+      }
+    } catch (err) {
+      console.error("Browse dialog error:", err);
+    }
+  });
+
+  mapsModalStartBtn?.addEventListener("click", async () => {
+    const destDir = mapsDestPathInput?.value.trim();
+    if (!destDir) {
+      alert("Please specify a destination SD Card or USB directory path.");
+      return;
+    }
+
+    if (mapsStatusMsg) mapsStatusMsg.style.display = "none";
+    if (mapsProgressContainer) mapsProgressContainer.style.display = "block";
+    if (mapsProgressStatus) mapsProgressStatus.textContent = "Initializing push...";
+    if (mapsProgressPct) mapsProgressPct.textContent = "0%";
+    if (mapsProgressBar) mapsProgressBar.style.width = "0%";
+
+    if (mapsModalStartBtn) {
+      mapsModalStartBtn.disabled = true;
+      mapsModalStartBtn.textContent = "Pushing Data...";
+      mapsModalStartBtn.style.opacity = "0.6";
+    }
+
+    try {
+      const msg = await invoke<string>("sync_maps_and_apk", { destDir });
+      if (mapsStatusMsg) {
+        mapsStatusMsg.style.display = "block";
+        mapsStatusMsg.style.color = "#34d399";
+        mapsStatusMsg.textContent = `✓ ${msg}`;
+      }
+    } catch (err: any) {
+      if (mapsStatusMsg) {
+        mapsStatusMsg.style.display = "block";
+        mapsStatusMsg.style.color = "#ef4444";
+        mapsStatusMsg.textContent = `Error: ${err}`;
+      }
+    } finally {
+      if (mapsModalStartBtn) {
+        mapsModalStartBtn.disabled = false;
+        mapsModalStartBtn.textContent = "Push Maps & APK";
+        mapsModalStartBtn.style.opacity = "1";
+      }
+    }
+  });
+
+  // ── Modal 2: Push Trips Manager Logic ────────────────────────────────────
+  const mobileTripsModal = document.getElementById("mobile-trips-modal") as HTMLDivElement | null;
+  const tripsModalClose = document.getElementById("trips-modal-close") as HTMLButtonElement | null;
+  const tripsModalCancel = document.getElementById("trips-modal-cancel") as HTMLButtonElement | null;
+  const tripsModalStartBtn = document.getElementById("trips-modal-start-btn") as HTMLButtonElement | null;
+  const tripsBrowseBtn = document.getElementById("trips-browse-btn") as HTMLButtonElement | null;
+  const tripsDestPathInput = document.getElementById("trips-dest-path") as HTMLInputElement | null;
+  const tripsStatusMsg = document.getElementById("trips-status-msg") as HTMLDivElement | null;
+  const tripsProgressContainer = document.getElementById("trips-progress-container") as HTMLDivElement | null;
+  const tripsProgressStatus = document.getElementById("trips-progress-status") as HTMLSpanElement | null;
+  const tripsProgressPct = document.getElementById("trips-progress-pct") as HTMLSpanElement | null;
+  const tripsProgressBar = document.getElementById("trips-progress-bar") as HTMLDivElement | null;
+  const tripsSelectionList = document.getElementById("trips-selection-list") as HTMLDivElement | null;
+  const toolbarPushTripsBtn = document.getElementById("toolbar-push-trips-btn") as HTMLButtonElement | null;
+
+  async function openMobileTripsModal() {
+    if (mobileTripsModal) mobileTripsModal.style.display = "flex";
+    if (tripsStatusMsg) tripsStatusMsg.style.display = "none";
+    if (tripsProgressContainer) tripsProgressContainer.style.display = "none";
+
+    // Populate saved trips from app storage
+    if (tripsSelectionList) {
+      tripsSelectionList.innerHTML = `
+        <label style="font-size: 0.85rem; color: #34d399; font-weight: bold;"><input type="checkbox" id="push-active-trip-cb" checked style="accent-color: #10b981;" /> Active Itinerary Trip (${tripTitle || "My Tactical Operation"})</label>
+      `;
+
+      try {
+        const savedTrips = await invoke<{ name: string; path: string }[]>("list_saved_trips");
+        savedTrips.forEach((t) => {
+          const itemLabel = document.createElement("label");
+          itemLabel.style.fontSize = "0.85rem";
+          itemLabel.style.color = "#cbd5e1";
+          itemLabel.innerHTML = `<input type="checkbox" class="push-trip-cb" data-path="${t.path}" checked style="accent-color: #38bdf8;" /> ${t.name}`;
+          tripsSelectionList.appendChild(itemLabel);
+        });
+      } catch (err) {
+        console.warn("Failed to list saved trips", err);
+      }
+    }
+  }
+
+  function closeMobileTripsModal() {
+    if (mobileTripsModal) mobileTripsModal.style.display = "none";
+  }
+
+  toolbarPushTripsBtn?.addEventListener("click", openMobileTripsModal);
+  tripsModalClose?.addEventListener("click", closeMobileTripsModal);
+  tripsModalCancel?.addEventListener("click", closeMobileTripsModal);
+
+  tripsBrowseBtn?.addEventListener("click", async () => {
+    try {
+      const selected = await open({ directory: true, multiple: false });
+      if (selected && typeof selected === "string" && tripsDestPathInput) {
+        tripsDestPathInput.value = selected;
+      }
+    } catch (err) {
+      console.error("Browse dialog error:", err);
+    }
+  });
+
+  tripsModalStartBtn?.addEventListener("click", async () => {
+    const destDir = tripsDestPathInput?.value.trim();
+    if (!destDir) {
+      alert("Please specify a destination SD Card or USB directory path.");
+      return;
+    }
+
+    const selectedTripPaths: string[] = [];
+    const tripCheckboxes = document.querySelectorAll(".push-trip-cb") as NodeListOf<HTMLInputElement>;
+    tripCheckboxes.forEach((cb) => {
+      if (cb.checked && cb.dataset.path) {
+        selectedTripPaths.push(cb.dataset.path);
+      }
+    });
+
+    const activeCb = document.getElementById("push-active-trip-cb") as HTMLInputElement | null;
+    let activeName: string | undefined = undefined;
+    let activeJson: string | undefined = undefined;
+
+    if (activeCb?.checked) {
+      activeName = tripTitle || "active_trip";
+      activeJson = JSON.stringify({
+        version: 1,
+        tripTitle: tripTitle || "My Tactical Operation",
+        tripStartTime: tripStartTime.toISOString(),
+        tripHasSpecificDate,
+        tripNotes,
+        tripWaypoints
+      }, null, 2);
+    }
+
+    if (tripsStatusMsg) tripsStatusMsg.style.display = "none";
+    if (tripsProgressContainer) tripsProgressContainer.style.display = "block";
+    if (tripsProgressStatus) tripsProgressStatus.textContent = "Initializing push...";
+    if (tripsProgressPct) tripsProgressPct.textContent = "0%";
+    if (tripsProgressBar) tripsProgressBar.style.width = "0%";
+
+    if (tripsModalStartBtn) {
+      tripsModalStartBtn.disabled = true;
+      tripsModalStartBtn.textContent = "Pushing Data...";
+      tripsModalStartBtn.style.opacity = "0.6";
+    }
+
+    try {
+      const msg = await invoke<string>("sync_trips_to_mobile", {
+        destDir,
+        tripPaths: selectedTripPaths,
+        activeTripName: activeName,
+        activeTripJson: activeJson
+      });
+
+      if (tripsStatusMsg) {
+        tripsStatusMsg.style.display = "block";
+        tripsStatusMsg.style.color = "#34d399";
+        tripsStatusMsg.textContent = `✓ ${msg}`;
+      }
+    } catch (err: any) {
+      if (tripsStatusMsg) {
+        tripsStatusMsg.style.display = "block";
+        tripsStatusMsg.style.color = "#ef4444";
+        tripsStatusMsg.textContent = `Error: ${err}`;
+      }
+    } finally {
+      if (tripsModalStartBtn) {
+        tripsModalStartBtn.disabled = false;
+        tripsModalStartBtn.textContent = "Push Selected Trip(s)";
+        tripsModalStartBtn.style.opacity = "1";
+      }
+    }
+  });
+
+  interface SyncProgressPayload {
+    file_name: string;
+    copied_bytes: number;
+    total_bytes: number;
+    percentage: number;
+    status_text: string;
+  }
+
+  listen<SyncProgressPayload>("sync-progress", (event) => {
+    const payload = event.payload;
+    if (mapsProgressContainer && mapsProgressContainer.style.display !== "none") {
+      if (mapsProgressStatus) mapsProgressStatus.textContent = payload.status_text;
+      if (mapsProgressPct) mapsProgressPct.textContent = `${payload.percentage}%`;
+      if (mapsProgressBar) mapsProgressBar.style.width = `${payload.percentage}%`;
+    }
+    if (tripsProgressContainer && tripsProgressContainer.style.display !== "none") {
+      if (tripsProgressStatus) tripsProgressStatus.textContent = payload.status_text;
+      if (tripsProgressPct) tripsProgressPct.textContent = `${payload.percentage}%`;
+      if (tripsProgressBar) tripsProgressBar.style.width = `${payload.percentage}%`;
+    }
+  });
+
   listen("menu-file-new", () => newTrip());
   listen("menu-file-load", () => loadTrip());
   listen("menu-file-save", () => saveTrip());
   listen("menu-file-save-as", () => saveTripAs());
   listen("menu-file-print", () => openPrintModal());
   listen("menu-tools-gas-planner", () => openGasModal());
+  listen("menu-tools-push-maps", () => openMobileMapsModal());
+  listen("menu-tools-push-trips", () => openMobileTripsModal());
 
   return map;
 }

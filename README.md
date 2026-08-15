@@ -90,5 +90,22 @@ Iter Viae Core/
 - [X] WE SHOULD ADD TO THE RIGHT CLICK MENU TO COPY COORDINATES 
 - [X] When adding point should have it put in logical place in order 
 - [X] The fuel calculater inputs should select all items when clicking on it for better user experience 
-- [ ] Make the gas calculater default to off (Maybe make the toggles on the home screen? Not sure it his will look good)
-- [ ] Make a hotel Calculater (based ontime or distance )
+- [X] Make the gas calculater default to off (Maybe make the toggles on the home screen? Not sure it his will look good)
+
+
+## Version 4 - Navis 08/12/26
+- [X] Built Navis mobile app codebase (`navis/`) with driver-safe high-contrast UI
+- [X] Added Desktop-to-Mobile Sync Tool in Mensa (`Tools → Push to Mobile Device / SD Card...`) to automatically push APK, maps, and trips to connected mobile storage/SD card
+- [X] Implemented Local Offline Auto-Rerouting Engine (> 50m off-route threshold detector & local recalculation)
+- [X] Added humorous / sarcastic custom voice pack schema (`voice_prompts.json`) & Web Speech API engine
+- [X] Single-point coordinate search bar (`Lat, Lng`) for on-the-go destination routing
+- [X] Mobile trip JSON loader for exported Mensa itinerary files
+- [X] Push Navis.apk installation package onto SD Card root (`/IterViae/Navis_v1.0.apk`)
+- [X] Need to make like a waiting screen or somthing while pushing the mapfiles tot he sd card
+- [X] Update app to be cleaner and to have it show the map
+- [X] App map rendering & trip loader verified with tactical basemaps
+- [X] BUG: the screen takes 100% of phone and is flickering
+- [X] BUG: The Trips are not loading and map is not rendering 
+- [X] Added Local Offline Valhalla Routing Sidecar & Street Rerouting Engine to Navis
+
+

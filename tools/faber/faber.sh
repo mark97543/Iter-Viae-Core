@@ -55,6 +55,7 @@ banner() {
 SKIP_TILEMAKER=false
 DEM_ONLY=false
 GEOCODER_ONLY=false
+RASTER_ONLY=false
 
 for arg in "$@"; do
     if [ "$arg" = "--skip-tilemaker" ] || [ "$arg" = "--preserve" ]; then
@@ -63,6 +64,8 @@ for arg in "$@"; do
         DEM_ONLY=true
     elif [ "$arg" = "--geocoder-only" ]; then
         GEOCODER_ONLY=true
+    elif [ "$arg" = "--raster" ] || [ "$arg" = "--raster-only" ]; then
+        RASTER_ONLY=true
     fi
 done
 

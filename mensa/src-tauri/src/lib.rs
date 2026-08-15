@@ -1,6 +1,6 @@
 use flate2::read::GzDecoder;
 use rusqlite::{Connection, OpenFlags};
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager, State};
@@ -483,6 +483,208 @@ async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String
     })
 }
 
+#[derive(serde::Serialize)]
+struct SavedTripItem {
+    name: String,
+    path: String,
+}
+
+#[tauri::command]
+fn list_saved_trips(app_handle: tauri::AppHandle) -> Result<Vec<SavedTripItem>, String> {
+    let trips_dir = std::path::PathBuf::from(get_trips_dir(app_handle));
+    let mut items = Vec::new();
+
+    if trips_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(trips_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+                    if ext == "json" || ext == "viae" {
+                        let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("Trip").to_string();
+                        items.push(SavedTripItem {
+                            name,
+                            path: path.to_string_lossy().to_string(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(items)
+}
+
+#[derive(Clone, serde::Serialize)]
+struct SyncProgressPayload {
+    file_name: String,
+    copied_bytes: u64,
+    total_bytes: u64,
+    percentage: u32,
+    status_text: String,
+}
+
+/// Dereferences symlinks and copies raw file content with live progress event emission
+fn copy_dereferenced_with_progress(
+    app_handle: &tauri::AppHandle,
+    src: &std::path::Path,
+    dst: &std::path::Path,
+    file_label: &str,
+) -> Result<u64, String> {
+    let real_src = match std::fs::canonicalize(src) {
+        Ok(path) => path,
+        Err(_) => src.to_path_buf(),
+    };
+
+    let metadata = std::fs::metadata(&real_src).map_err(|e| e.to_string())?;
+    if !metadata.is_file() || metadata.len() == 0 {
+        return Err("File is empty or not a regular file".to_string());
+    }
+
+    let total_bytes = metadata.len();
+    let mut reader = std::fs::File::open(&real_src).map_err(|e| e.to_string())?;
+    let mut writer = std::fs::File::create(dst).map_err(|e| e.to_string())?;
+
+    let mut buffer = [0u8; 1024 * 1024]; // 1MB chunks
+    let mut copied_bytes = 0u64;
+
+    loop {
+        let n = reader.read(&mut buffer).map_err(|e| e.to_string())?;
+        if n == 0 {
+            break;
+        }
+        writer.write_all(&buffer[..n]).map_err(|e| e.to_string())?;
+        copied_bytes += n as u64;
+
+        let percentage = (((copied_bytes as f64) / (total_bytes as f64)) * 100.0) as u32;
+        let _ = app_handle.emit(
+            "sync-progress",
+            SyncProgressPayload {
+                file_name: file_label.to_string(),
+                copied_bytes,
+                total_bytes,
+                percentage,
+                status_text: format!(
+                    "Copying {} ({:.1} MB / {:.1} MB)...",
+                    file_label,
+                    (copied_bytes as f64) / 1_048_576.0,
+                    (total_bytes as f64) / 1_048_576.0
+                ),
+            },
+        );
+    }
+
+    Ok(copied_bytes)
+}
+
+#[tauri::command]
+async fn sync_maps_and_apk(app_handle: tauri::AppHandle, dest_dir: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let base_path = std::path::Path::new(&dest_dir).join("IterViae");
+        let maps_dir = base_path.join("maps");
+        let config_dir = base_path.join("config");
+
+        std::fs::create_dir_all(&maps_dir).map_err(|e| e.to_string())?;
+        std::fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
+
+        // Scan all candidate map directories for offline map artifacts
+        let candidates = [
+            get_os_app_maps_dir(&app_handle),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/tools/faber/output"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/tools/faber/data"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/data/maps/compiled"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/data/maps"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/mensa/src-tauri/data/maps/compiled"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/mensa/src-tauri/data/maps"),
+        ];
+
+        let artifacts = ["map.mbtiles", "raster.mbtiles", "dem.mbtiles", "geocoder.db", "routing.tar"];
+        let mut copied_count = 0;
+
+        for artifact in artifacts {
+            for dir in &candidates {
+                let src = dir.join(artifact);
+                if src.exists() {
+                    let dst = maps_dir.join(artifact);
+                    if copy_dereferenced_with_progress(&app_handle, &src, &dst, artifact).is_ok() {
+                        copied_count += 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Copy default voice_prompts.json template if present
+        let voice_src = std::path::Path::new("/home/mark/Documents/Iter Viae Core/navis/public/voice_prompts.json");
+        if voice_src.exists() {
+            let _ = copy_dereferenced_with_progress(&app_handle, voice_src, &config_dir.join("voice_prompts.json"), "voice_prompts.json");
+        }
+
+        // Scan candidate locations for Navis APK installation binary
+        let apk_candidates = [
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/navis/Navis_v1.0.apk"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/navis/dist/Navis_v1.0.apk"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/navis/src-tauri/target/release/bundle/apk/app-release.apk"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/navis/src-tauri/gen/android/app/build/outputs/apk/debug/app-debug.apk"),
+            std::path::PathBuf::from("/home/mark/Documents/Iter Viae Core/navis/src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk"),
+        ];
+
+        let mut copied_apk = false;
+        for apk_path in &apk_candidates {
+            if apk_path.exists() {
+                let dst = base_path.join("Navis_v1.0.apk");
+                if copy_dereferenced_with_progress(&app_handle, apk_path, &dst, "Navis_v1.0.apk").is_ok() {
+                    copied_apk = true;
+                    break;
+                }
+            }
+        }
+
+        let apk_status = if copied_apk { "Navis.apk installer, " } else { "" };
+        Ok(format!("Pushed {}{} map artifacts, and voice config to {}", apk_status, copied_count, base_path.display()))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn sync_trips_to_mobile(app_handle: tauri::AppHandle, dest_dir: String, trip_paths: Vec<String>, active_trip_name: Option<String>, active_trip_json: Option<String>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let base_path = std::path::Path::new(&dest_dir).join("IterViae");
+        let trips_dir = base_path.join("trips");
+        std::fs::create_dir_all(&trips_dir).map_err(|e| e.to_string())?;
+
+        let mut synced_count = 0;
+
+        // Copy selected saved trips using dereferenced progress copy
+        for src_path in trip_paths {
+            let p = std::path::Path::new(&src_path);
+            if p.exists() {
+                if let Some(file_name) = p.file_name() {
+                    let file_name_str = file_name.to_string_lossy();
+                    let dst = trips_dir.join(file_name);
+                    if copy_dereferenced_with_progress(&app_handle, p, &dst, &file_name_str).is_ok() {
+                        synced_count += 1;
+                    }
+                }
+            }
+        }
+
+    // Copy active trip if provided
+    if let (Some(name), Some(json_data)) = (active_trip_name, active_trip_json) {
+        let safe_filename = format!("{}.json", name.replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "_"));
+        let dst = trips_dir.join(safe_filename);
+        if std::fs::write(dst, json_data).is_ok() {
+            synced_count += 1;
+        }
+    }
+
+        Ok(format!("Successfully pushed {} trip(s) to {}", synced_count, trips_dir.display()))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn open_maps_folder(app_handle: &tauri::AppHandle) {
     let path = get_os_app_maps_dir(app_handle);
     #[cfg(target_os = "linux")]
@@ -507,7 +709,6 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // Spawn the Valhalla Sidecar in the background
             let maps_dir = get_os_app_maps_dir(app.handle());
             let maps_dir_str = maps_dir.to_string_lossy().to_string();
 
@@ -530,7 +731,6 @@ pub fn run() {
                 geocoder_conn: std::sync::Arc::new(std::sync::Mutex::new(None)),
             });
 
-            // File Menu
             let file_new_item = MenuItemBuilder::with_id("file-new", "New Trip")
                 .accelerator("CmdOrCtrl+N")
                 .build(app)?;
@@ -562,12 +762,10 @@ pub fn run() {
                 .item(&quit_item)
                 .build()?;
 
-            // Local Maps Item
             let local_maps_item = MenuItemBuilder::with_id("open_maps_folder", "Local Maps")
                 .accelerator("CmdOrCtrl+M")
                 .build(app)?;
 
-            // 3 Core Map Modes: 2D Basic, 3D Buildings, 3D Mountain Terrain
             let theme_options = [
                 ("theme-2d-basic", "2D Basic Tactical (Default)"),
                 ("theme-3d-buildings", "3D Buildings"),
@@ -585,13 +783,23 @@ pub fn run() {
                 .item(&theme_submenu)
                 .build()?;
 
-            // Tools Menu
             let gas_planner_item = MenuItemBuilder::with_id("tools-gas-planner", "Fuel Stop Planner...")
                 .accelerator("CmdOrCtrl+F")
                 .build(app)?;
 
+            let push_maps_item = MenuItemBuilder::with_id("tools-push-maps", "Push Map Files & APK to Mobile...")
+                .accelerator("CmdOrCtrl+Shift+M")
+                .build(app)?;
+
+            let push_trips_item = MenuItemBuilder::with_id("tools-push-trips", "Push Trip(s) to Mobile...")
+                .accelerator("CmdOrCtrl+Shift+U")
+                .build(app)?;
+
             let tools_menu = SubmenuBuilder::new(app, "Tools")
                 .item(&gas_planner_item)
+                .separator()
+                .item(&push_maps_item)
+                .item(&push_trips_item)
                 .build()?;
 
             let menu = MenuBuilder::new(app)
@@ -611,7 +819,10 @@ pub fn run() {
             calculate_route,
             get_trips_dir,
             save_trip_file,
-            load_trip_file
+            load_trip_file,
+            sync_maps_and_apk,
+            list_saved_trips,
+            sync_trips_to_mobile
         ])
         .on_menu_event(|app, event| {
             let id = event.id().as_ref();
@@ -629,6 +840,10 @@ pub fn run() {
                 let _ = app.emit("menu-file-print", ());
             } else if id == "tools-gas-planner" {
                 let _ = app.emit("menu-tools-gas-planner", ());
+            } else if id == "tools-push-maps" {
+                let _ = app.emit("menu-tools-push-maps", ());
+            } else if id == "tools-push-trips" {
+                let _ = app.emit("menu-tools-push-trips", ());
             } else if id == "open_maps_folder" {
                 open_maps_folder(app);
             } else if id.starts_with("theme-") {

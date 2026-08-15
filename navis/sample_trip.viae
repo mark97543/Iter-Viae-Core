@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "tripTitle": "Seattle Tactical Operations",
+  "tripStartTime": "2026-08-14T12:00:00.000Z",
+  "tripHasSpecificDate": true,
+  "tripNotes": "Field verification trip",
+  "tripWaypoints": [
+    {
+      "id": "wp-1",
+      "lat": 47.6062,
+      "lng": -122.3321,
+      "name": "Seattle Downtown HQ",
+      "type": "Start"
+    },
+    {
+      "id": "wp-2",
+      "lat": 47.6101,
+      "lng": -122.3421,
+      "name": "Pike Place Outpost",
+      "type": "Waypoint"
+    },
+    {
+      "id": "wp-3",
+      "lat": 47.6205,
+      "lng": -122.3493,
+      "name": "Space Needle Terminal",
+      "type": "End"
+    }
+  ]
+}
