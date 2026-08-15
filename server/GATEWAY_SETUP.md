@@ -49,13 +49,15 @@ Mount the Directus database directory so the Gateway reads key statuses in real-
 ---
 
 ### 5. Configure Environment Variables (under "Environment" tab)
-Add these environment variables:
+Add these exact environment variables:
 
 | Variable Name | Value | Description |
 | :--- | :--- | :--- |
 | `DB_PATH` | `/directus/database/data.db` | Directus SQLite database file |
-| `VALHALLA_HOST` | `http://iterviae_valhalla:8002` | Internal Valhalla container target |
-| `TILESERVER_HOST` | `http://iterviae_tileserver:8080` | Internal TileServer container target |
+| `VALHALLA_HOST` | `http://iterviae_valhalla:8002` | Internal Valhalla service target |
+| `TILESERVER_HOST` | `http://iterviae_tileserver:8080` | Internal TileServer service target |
+
+*(Note: In EasyPanel, internal service URLs follow the pattern `http://<project_name>_<service_name>:<port>`).*
 
 ---
 
