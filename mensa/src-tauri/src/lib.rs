@@ -646,45 +646,6 @@ async fn sync_maps_and_apk(app_handle: tauri::AppHandle, dest_dir: String) -> Re
     .await
     .map_err(|e| e.to_string())?
 }
-
-#[tauri::command]
-async fn sync_trips_to_mobile(app_handle: tauri::AppHandle, dest_dir: String, trip_paths: Vec<String>, active_trip_name: Option<String>, active_trip_json: Option<String>) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let base_path = std::path::Path::new(&dest_dir).join("IterViae");
-        let trips_dir = base_path.join("trips");
-        std::fs::create_dir_all(&trips_dir).map_err(|e| e.to_string())?;
-
-        let mut synced_count = 0;
-
-        // Copy selected saved trips using dereferenced progress copy
-        for src_path in trip_paths {
-            let p = std::path::Path::new(&src_path);
-            if p.exists() {
-                if let Some(file_name) = p.file_name() {
-                    let file_name_str = file_name.to_string_lossy();
-                    let dst = trips_dir.join(file_name);
-                    if copy_dereferenced_with_progress(&app_handle, p, &dst, &file_name_str).is_ok() {
-                        synced_count += 1;
-                    }
-                }
-            }
-        }
-
-    // Copy active trip if provided
-    if let (Some(name), Some(json_data)) = (active_trip_name, active_trip_json) {
-        let safe_filename = format!("{}.json", name.replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "_"));
-        let dst = trips_dir.join(safe_filename);
-        if std::fs::write(dst, json_data).is_ok() {
-            synced_count += 1;
-        }
-    }
-
-        Ok(format!("Successfully pushed {} trip(s) to {}", synced_count, trips_dir.display()))
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-
 fn open_maps_folder(app_handle: &tauri::AppHandle) {
     let path = get_os_app_maps_dir(app_handle);
     #[cfg(target_os = "linux")]
@@ -787,19 +748,8 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+F")
                 .build(app)?;
 
-            let push_maps_item = MenuItemBuilder::with_id("tools-push-maps", "Push Map Files & APK to Mobile...")
-                .accelerator("CmdOrCtrl+Shift+M")
-                .build(app)?;
-
-            let push_trips_item = MenuItemBuilder::with_id("tools-push-trips", "Push Trip(s) to Mobile...")
-                .accelerator("CmdOrCtrl+Shift+U")
-                .build(app)?;
-
             let tools_menu = SubmenuBuilder::new(app, "Tools")
                 .item(&gas_planner_item)
-                .separator()
-                .item(&push_maps_item)
-                .item(&push_trips_item)
                 .build()?;
 
             let menu = MenuBuilder::new(app)
@@ -821,8 +771,7 @@ pub fn run() {
             save_trip_file,
             load_trip_file,
             sync_maps_and_apk,
-            list_saved_trips,
-            sync_trips_to_mobile
+            list_saved_trips
         ])
         .on_menu_event(|app, event| {
             let id = event.id().as_ref();
@@ -840,10 +789,6 @@ pub fn run() {
                 let _ = app.emit("menu-file-print", ());
             } else if id == "tools-gas-planner" {
                 let _ = app.emit("menu-tools-gas-planner", ());
-            } else if id == "tools-push-maps" {
-                let _ = app.emit("menu-tools-push-maps", ());
-            } else if id == "tools-push-trips" {
-                let _ = app.emit("menu-tools-push-trips", ());
             } else if id == "open_maps_folder" {
                 open_maps_folder(app);
             } else if id.starts_with("theme-") {
