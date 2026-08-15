@@ -48,7 +48,7 @@ Run Faber locally on your workstation to forge the map and routing data files be
 Log into your fresh Linux server (Ubuntu 22.04 / 24.04 recommended) via SSH:
 
 ```bash
-ssh root@YOUR_SERVER_IP
+ssh root@46.202.179.124
 ```
 
 ### 1. Update Server Packages
@@ -63,7 +63,7 @@ curl -sSL https://get.easypanel.io | sh
 ```
 
 ### 3. Open EasyPanel Dashboard
-- Open your browser to: `http://YOUR_SERVER_IP:3000`
+- Open your browser to: `http://46.202.179.124:3000`
 - Create your **Admin Account** (email & password).
 - Create a **New Project** named `iterviae`.
 
@@ -77,14 +77,14 @@ curl -sSL https://get.easypanel.io | sh
 
 ### 1. Create Server Directory & Upload `map.mbtiles`
 ```bash
-ssh root@YOUR_SERVER_IP "mkdir -p /etc/easypanel/projects/iterviae/tiles"
-rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/map.mbtiles" root@YOUR_SERVER_IP:/etc/easypanel/projects/iterviae/tiles/map.mbtiles
+ssh root@46.202.179.124 "mkdir -p /etc/easypanel/projects/iterviae/tiles"
+rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/map.mbtiles" root@46.202.179.124:/etc/easypanel/projects/iterviae/tiles/map.mbtiles
 ```
 
 ### 2. Create Server Directory & Upload `routing.tar`
 ```bash
-ssh root@YOUR_SERVER_IP "mkdir -p /etc/easypanel/projects/iterviae/valhalla"
-rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" root@YOUR_SERVER_IP:/etc/easypanel/projects/iterviae/valhalla/routing.tar
+ssh root@46.202.179.124 "mkdir -p /etc/easypanel/projects/iterviae/valhalla"
+rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" root@46.202.179.124:/etc/easypanel/projects/iterviae/valhalla/routing.tar
 ```
 
 *(If you extracted `routing.tar` into a `valhalla_tiles/` folder, upload the folder directly to `/etc/easypanel/projects/iterviae/valhalla/valhalla_tiles`).*
@@ -141,12 +141,12 @@ rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar"
 ### 1. Verify Valhalla Turn-by-Turn Service
 Run this command from your terminal or open in browser:
 ```bash
-curl "http://YOUR_SERVER_IP:8002/route?json={\"locations\":[{\"lat\":47.6062,\"lon\":-122.3321},{\"lat\":47.6101,\"lon\":-122.3421}],\"costing\":\"auto\"}"
+curl "http://46.202.179.124:8002/route?json={\"locations\":[{\"lat\":47.6062,\"lon\":-122.3321},{\"lat\":47.6101,\"lon\":-122.3421}],\"costing\":\"auto\"}"
 ```
 - **Expected Output**: JSON object containing `trip` maneuvers, distance, and polyline `shape`.
 
 ### 2. Verify TileServer GL Vector Maps
-- Open `http://YOUR_SERVER_IP:8080` in your web browser.
+- Open `http://46.202.179.124:8080` in your web browser.
 - You will see the TileServer GL dashboard displaying your `map.mbtiles` vector map styles and PBF tile endpoints!
 
 ---
@@ -154,8 +154,8 @@ curl "http://YOUR_SERVER_IP:8002/route?json={\"locations\":[{\"lat\":47.6062,\"l
 ## 🔗 Phase 6: Connect Mensa Desktop App
 
 In Mensa Desktop (`mensa/src/main.ts`):
-- **Tile Endpoint**: `http://YOUR_SERVER_IP:8080/tiles/{z}/{x}/{y}.pbf`
-- **Valhalla Routing Endpoint**: `http://YOUR_SERVER_IP:8002/route`
+- **Tile Endpoint**: `http://46.202.179.124:8080/tiles/{z}/{x}/{y}.pbf`
+- **Valhalla Routing Endpoint**: `http://46.202.179.124:8002/route`
 
 ---
 
