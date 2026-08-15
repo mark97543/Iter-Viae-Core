@@ -427,6 +427,8 @@ pub struct RouteResult {
     pub time: f64,
 }
 
+static HTTP_CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+
 #[tauri::command]
 async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String> {
     if waypoints.len() < 2 {
@@ -449,7 +451,14 @@ async fn calculate_route(waypoints: Vec<Waypoint>) -> Result<RouteResult, String
         "units": "miles"
     });
 
-    let client = reqwest::Client::new();
+    let client = HTTP_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .tcp_keepalive(std::time::Duration::from_secs(60))
+            .pool_idle_timeout(std::time::Duration::from_secs(90))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new())
+    });
+
     let res = client
         .post("https://valhalla.wade-usa.com/route")
         .json(&request_body)
