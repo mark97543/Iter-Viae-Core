@@ -11,5 +11,6 @@ RUN npm install --production
 COPY server/gateway/gateway.js ./
 
 EXPOSE 8000
+EXPOSE 80
 
 CMD ["node", "gateway.js"]
