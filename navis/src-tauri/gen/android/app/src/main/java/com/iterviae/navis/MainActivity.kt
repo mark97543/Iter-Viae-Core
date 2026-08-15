@@ -50,6 +50,8 @@ class MainActivity : AppCompatActivity() {
     private var activeWaypoints = mutableListOf<LatLng>()
     private var mbtilesPath: String? = null
     private var tileServer: TileServer? = null
+    private var navEngine: ValhallaNavEngine? = null
+    private var currentPosition: LatLng = LatLng(47.6062, -122.3321) // Seattle Default
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +66,10 @@ class MainActivity : AppCompatActivity() {
 
         checkPermissions()
         findLocalMbtilesFile()
+
+        mbtilesPath?.let { path ->
+            navEngine = ValhallaNavEngine(path)
+        }
 
         mapView.getMapAsync { map ->
             mapLibreMap = map
@@ -313,7 +319,7 @@ class MainActivity : AppCompatActivity() {
                 )
             style.addLayer(routeCasingLayer)
 
-            // Route Polyline High-Contrast Neon Orange Route (Width 6f) - Distinct from roads!
+            // Route Polyline High-Contrast Neon Orange Route (Width 6f)
             val routeLineLayer = LineLayer("nav-route-line", "nav-route")
                 .withProperties(
                     lineColor("#ff6b00"),
@@ -324,9 +330,50 @@ class MainActivity : AppCompatActivity() {
             style.addLayer(routeLineLayer)
 
             map.cameraPosition = CameraPosition.Builder()
-                .target(LatLng(47.6062, -122.3321))
+                .target(currentPosition)
                 .zoom(12.0)
                 .build()
+
+            // Tap map to route locally from current position
+            map.addOnMapClickListener { point ->
+                calculateLocalOfflineRoute(point)
+                true
+            }
+        }
+    }
+
+    private fun calculateLocalOfflineRoute(destination: LatLng) {
+        val engine = navEngine ?: ValhallaNavEngine(mbtilesPath ?: "")
+        val result = engine.calculateRoute(currentPosition, destination)
+
+        activeWaypoints = result.path.toMutableList()
+        drawRouteOnMap(result.path)
+
+        val tvNavTitle = findViewById<TextView>(R.id.tvNavTitle)
+        val tvNavSub = findViewById<TextView>(R.id.tvNavSub)
+        tvNavTitle.text = "Offline Route Calculated"
+        tvNavSub.text = "${String.format("%.1f", result.totalDistanceMiles)} mi • ${result.estimatedTimeMinutes.toInt()} mins (${result.path.size} road pts)"
+        Toast.makeText(this, "Local Offline Route Calculated!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun handleOffRouteCheck(newLocation: LatLng) {
+        currentPosition = newLocation
+        val engine = navEngine ?: return
+
+        if (activeWaypoints.size > 1) {
+            val isOff = engine.isOffRoute(newLocation, activeWaypoints, 30.0)
+            if (isOff) {
+                Toast.makeText(this, "Off-Route Detected! Recalculating...", Toast.LENGTH_SHORT).show()
+                val dest = activeWaypoints.last()
+                val newResult = engine.calculateRoute(newLocation, dest)
+                activeWaypoints = newResult.path.toMutableList()
+                drawRouteOnMap(newResult.path)
+
+                val tvNavTitle = findViewById<TextView>(R.id.tvNavTitle)
+                val tvNavSub = findViewById<TextView>(R.id.tvNavSub)
+                tvNavTitle.text = "Recalculated Route"
+                tvNavSub.text = "${String.format("%.1f", newResult.totalDistanceMiles)} mi • ${newResult.estimatedTimeMinutes.toInt()} mins"
+            }
         }
     }
 
@@ -345,12 +392,7 @@ class MainActivity : AppCompatActivity() {
                 val lng = parts[1].toDoubleOrNull()
                 if (lat != null && lng != null) {
                     val target = LatLng(lat, lng)
-                    activeWaypoints.clear()
-                    activeWaypoints.add(target)
-
-                    mapLibreMap?.easeCamera(CameraUpdateFactory.newLatLngZoom(target, 14.0))
-                    tvNavTitle.text = "Heading to Target"
-                    tvNavSub.text = "Coordinates: (${String.format("%.4f", lat)}, ${String.format("%.4f", lng)})"
+                    calculateLocalOfflineRoute(target)
                 }
             }
         }
@@ -461,17 +503,21 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // 3. Fallback to Waypoint objects list if no detailed shape exists
+                // 3. Fallback to Waypoint objects list & calculate local road route on phone
                 if (pts.isEmpty()) {
                     val arr = obj.optJSONArray("tripWaypoints") ?: obj.optJSONArray("waypoints") ?: obj.optJSONArray("points")
-                    if (arr != null) {
-                        for (i in 0 until arr.length()) {
-                            val item = arr.getJSONObject(i)
-                            val lat = item.optDouble("lat", item.optDouble("latitude", Double.NaN))
-                            val lng = item.optDouble("lng", item.optDouble("longitude", Double.NaN))
-                            if (!lat.isNaN() && !lng.isNaN()) {
-                                pts.add(LatLng(lat, lng))
-                            }
+                    if (arr != null && arr.length() >= 2) {
+                        val first = arr.getJSONObject(0)
+                        val last = arr.getJSONObject(arr.length() - 1)
+                        val startLat = first.optDouble("lat", first.optDouble("latitude", Double.NaN))
+                        val startLng = first.optDouble("lng", first.optDouble("longitude", Double.NaN))
+                        val endLat = last.optDouble("lat", last.optDouble("latitude", Double.NaN))
+                        val endLng = last.optDouble("lng", last.optDouble("longitude", Double.NaN))
+
+                        if (!startLat.isNaN() && !startLng.isNaN() && !endLat.isNaN() && !endLng.isNaN()) {
+                            val engine = navEngine ?: ValhallaNavEngine(mbtilesPath ?: "")
+                            val routeRes = engine.calculateRoute(LatLng(startLat, startLng), LatLng(endLat, endLng))
+                            pts.addAll(routeRes.path)
                         }
                     }
                 }
@@ -506,7 +552,7 @@ class MainActivity : AppCompatActivity() {
             map.easeCamera(CameraUpdateFactory.newLatLngZoom(pts[0], 14.0))
         }
 
-        findViewById<TextView>(R.id.tvNavTitle).text = "Tactical Route Loaded"
+        findViewById<TextView>(R.id.tvNavTitle).text = "Tactical Route Active"
         findViewById<TextView>(R.id.tvNavSub).text = "${pts.size} road geometry points active"
     }
 
@@ -529,6 +575,7 @@ class MainActivity : AppCompatActivity() {
         super.onStop()
         mapView.onStop()
         tileServer?.stopServer()
+        navEngine?.close()
     }
 
     override fun onLowMemory() {
@@ -540,6 +587,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         mapView.onDestroy()
         tileServer?.stopServer()
+        navEngine?.close()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
