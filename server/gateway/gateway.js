@@ -1,5 +1,5 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 const Database = require('better-sqlite3');
 const path = require('path');
 const http = require('http');
@@ -9,6 +9,10 @@ const DB_PATH = process.env.DB_PATH || '/directus/database/data.db';
 
 const VALHALLA_HOST = process.env.VALHALLA_HOST || 'http://iterviae_valhalla:8002';
 const TILESERVER_HOST = process.env.TILESERVER_HOST || 'http://iterviae_tileserver:8080';
+
+// Parse raw text/json body if needed, but keep stream intact
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // 🌐 Enable CORS for all incoming requests (Mensa Desktop & Web Apps)
 app.use((req, res, next) => {
@@ -120,11 +124,11 @@ function onProxyError(err, req, res) {
   }
 }
 
-// Proxy Valhalla routing calls (target: VALHALLA_HOST, path: /route)
+// Proxy Valhalla routing calls (with fixRequestBody to re-stream JSON POST payload)
 app.use('/route', createProxyMiddleware({
   target: VALHALLA_HOST,
   changeOrigin: true,
-  pathRewrite: (path) => '/route' + (path.startsWith('/') ? path : '/' + path),
+  onProxyReq: fixRequestBody,
   onProxyRes: onProxyRes,
   onError: onProxyError
 }));
