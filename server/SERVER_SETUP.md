@@ -1,56 +1,61 @@
-# Iter Viae : Complete EasyPanel & Server Deployment Guide 🚀
+# Iter Viae : Complete EasyPanel & Server Setup Guide 🚀
 
-This is a comprehensive, step-by-step guide for building offline map data locally and deploying the **Valhalla Routing Engine** and **TileServer GL** on a fresh Linux server using **EasyPanel** (Docker-based control panel).
-
----
-
-## 🏗️ Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    LOCAL WORKSTATION                    │
-│   Builds map.mbtiles (Vector) & routing.tar (Valhalla)   │
-└────────────────────────────┬────────────────────────────┘
-                             │ rsync / scp upload
-                             ▼
-┌─────────────────────────────────────────────────────────┐
-│                    EASYPANEL SERVER                     │
-│  ┌──────────────────────┐    ┌──────────────────────┐   │
-│  │   TileServer GL      │    │   Valhalla Router    │   │
-│  │   Port: 8080         │    │   Port: 8002         │   │
-│  │   /data/map.mbtiles  │    │   /custom_files      │   │
-│  └──────────▲───────────┘    └──────────▲───────────┘   │
-└─────────────┼───────────────────────────┼───────────────┘
-              │ Vector Tiles              │ Turn-by-Turn
-              └─────────────┬─────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              │   Mensa Desktop App       │
-              │  (Saves trips locally)    │
-              └───────────────────────────┘
-```
+This is the ultimate, step-by-step guide for deploying the **Valhalla Routing Engine** and **TileServer GL** on **EasyPanel** (Docker-based control panel) connected to your GitHub repository ([`https://github.com/mark97543/Iter-Viae-Core.git`](https://github.com/mark97543/Iter-Viae-Core.git)).
 
 ---
 
-## 📍 Phase 1: Local Data Build (Workstation)
+## 🏗️ System Architecture
 
-Run Faber locally on your workstation to forge the map and routing data files before uploading:
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                     LOCAL WORKSTATION                       │
+│  Compiles map.mbtiles (Vector) & routing.tar (Valhalla)     │
+│  Path: /home/mark/Documents/Iter Viae Core/data/maps/      │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Upload via ./upload_to_server.sh
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│               EASYPANEL SERVER (46.202.179.124)             │
+│                                                             │
+│  ┌──────────────────────────┐    ┌───────────────────────┐  │
+│  │   TileServer GL Service  │    │   Valhalla Service    │  │
+│  │   Port: 8080             │    │   Port: 8002          │  │
+│  │   Git: server/tileserver │    │   Git: server/valhalla│  │
+│  └────────────▲─────────────┘    └───────────▲───────────┘  │
+└───────────────┼──────────────────────────────┼──────────────┘
+                │ Vector PBF Tiles             │ Turn-by-Turn
+                └──────────────┬───────────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │     Mensa Desktop App       │
+                │    (Saves trips locally)    │
+                └─────────────────────────────┘
+```
 
-- **Local Compiled Output Folder**: `/home/mark/Documents/Iter Viae Core/data/maps/compiled/`
-  - `map.mbtiles` (~12 GB master vector tiles for North America)
-  - `routing.tar` (~20 GB Valhalla routing graph tiles for North America)
+---
+
+## 📍 Phase 1: Local Map Data Build (Workstation)
+
+Faber compiles your map files locally on your computer to save server CPU and RAM:
+
+- **Local Compiled Output Directory**:  
+  `/home/mark/Documents/Iter Viae Core/data/maps/compiled/`
+
+- **Generated Files**:
+  - `map.mbtiles` (~12.15 GB Master OpenMapTiles Vector Map)
+  - `routing.tar` (~20.13 GB Valhalla Highway Routing Graph Tiles)
 
 ---
 
 ## 🐧 Phase 2: Fresh Server Setup & EasyPanel Installation
 
-Log into your fresh Linux server (Ubuntu 22.04 / 24.04 recommended) via SSH:
+Connect to your server via SSH:
 
 ```bash
 ssh root@46.202.179.124
 ```
 
-### 1. Update Server Packages
+### 1. Update Operating System
 ```bash
 apt update && apt upgrade -y
 ```
@@ -61,109 +66,115 @@ Run the official 1-command installer:
 curl -sSL https://get.easypanel.io | sh
 ```
 
-### 3. Open EasyPanel Dashboard
-- Open your browser to: `http://46.202.179.124:3000`
-- Create your **Admin Account** (email & password).
-- Create a **New Project** named `iterviae`.
+### 3. Initialize EasyPanel Dashboard
+1. Open your browser to: `http://46.202.179.124:3000`
+2. Create your **Admin Account** (Email & Password).
+3. On the left sidebar, click **+ Project** and name it `iterviae`.
 
 ---
 
 ## 📤 Phase 3: Upload Local Maps & Routing Data to Server
 
 > [!IMPORTANT]
-> **Run these commands from a terminal on your LOCAL WORKSTATION (your computer).**  
-> Do **NOT** run them while logged into the SSH server session, as `rsync` needs to read the source files from your local computer disk.
+> **Run this command from a terminal on your LOCAL WORKSTATION (your computer).**  
+> Do **NOT** run it inside the server SSH session.
 
-Local Compiled Source Directory:
-`/home/mark/Documents/Iter Viae Core/data/maps/compiled/`
+Run the automated 1-command upload script from your laptop terminal:
 
-### Option A: Automatic 1-Command Upload Script (Recommended)
 ```bash
-cd "/home/mark/Documents/Iter Viae Core"
-./upload_to_server.sh 46.202.179.124
+cd "/home/mark/Documents/Iter Viae Core" && ./upload_to_server.sh
 ```
 
-### Option B: Manual Single-Line Commands
-```bash
-# Upload map.mbtiles
-rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/map.mbtiles" root@46.202.179.124:/etc/easypanel/projects/iterviae/tiles/map.mbtiles
-
-# Upload routing.tar
-rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" root@46.202.179.124:/etc/easypanel/projects/iterviae/valhalla/routing.tar
-```
-
-*(If you extracted `routing.tar` into a `valhalla_tiles/` folder, upload the folder directly to `/etc/easypanel/projects/iterviae/valhalla/valhalla_tiles`).*
+### What this script does automatically:
+- Connects to `root@46.202.179.124`.
+- Creates server target folders `/etc/easypanel/projects/iterviae/tiles` and `/etc/easypanel/projects/iterviae/valhalla`.
+- Transfers `map.mbtiles` and `routing.tar` with live progress bars.
 
 ---
 
-## ⚙️ Phase 4: Configure Services in EasyPanel via Git Repository 🐙
+## ⚙️ Phase 4: Detailed EasyPanel Git Service Setup (Click-by-Click)
 
-### Service A: Deploy Valhalla (Routing Engine via Git)
+### Service 1: Deploy Valhalla (Routing Engine via Git)
 
-1. In EasyPanel, open project `iterviae` $\rightarrow$ click **+ Service** $\rightarrow$ select **Git Repository**.
-2. **Source Settings**:
-   - Repository: `https://github.com/mark97543/Iter-Viae-Core.git`
-   - Branch: `main`
-   - Build Path / Context: `server/valhalla`
-3. **Ports**:
-   - Target Port: `8002`
-   - Published Port: `8002`
+1. Open **EasyPanel** at `http://46.202.179.124:3000`.
+2. Click project **`iterviae`** on the left menu.
+3. Click **+ Service** $\rightarrow$ select **Git Repository**.
+4. **General / Source Configuration**:
+   - **Service Name**: `valhalla`
+   - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
+   - **Branch**: `main`
+   - **Build Context / Path**: `server/valhalla`
+5. **Port Configuration**:
+   - Click **+ Add Port**
+   - **Published Port**: `8002`
+   - **Target Port**: `8002`
+   - **Protocol**: `TCP`
+6. **Volume Mounts**:
+   - Click **+ Add Mount**
+   - **Mount Type**: `Bind`
+   - **Host Path**: `/etc/easypanel/projects/iterviae/valhalla`
+   - **Mount Path**: `/custom_files`
+7. Click **Deploy**. EasyPanel will pull the repository Dockerfile and launch Valhalla!
+
+---
+
+### Service 2: Deploy TileServer GL (Vector Maps via Git)
+
+1. Inside project **`iterviae`**, click **+ Service** $\rightarrow$ select **Git Repository**.
+2. **General / Source Configuration**:
+   - **Service Name**: `tileserver`
+   - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
+   - **Branch**: `main`
+   - **Build Context / Path**: `server/tileserver`
+3. **Port Configuration**:
+   - Click **+ Add Port**
+   - **Published Port**: `8080`
+   - **Target Port**: `8080`
+   - **Protocol**: `TCP`
 4. **Volume Mounts**:
-   - Host Path: `/etc/easypanel/projects/iterviae/valhalla`
-   - Mount Path: `/custom_files`
-5. Click **Deploy**. EasyPanel will pull the Dockerfile from GitHub and start Valhalla!
+   - Click **+ Add Mount**
+   - **Mount Type**: `Bind`
+   - **Host Path**: `/etc/easypanel/projects/iterviae/tiles`
+   - **Mount Path**: `/data`
+5. Click **Deploy**. EasyPanel will pull the repository Dockerfile and launch TileServer!
 
 ---
 
-### Service B: Deploy TileServer GL (Vector Maps via Git)
+## 🧪 Phase 5: Verification & Service Testing
 
-1. In EasyPanel project `iterviae`, click **+ Service** $\rightarrow$ select **Git Repository**.
-2. **Source Settings**:
-   - Repository: `https://github.com/mark97543/Iter-Viae-Core.git`
-   - Branch: `main`
-   - Build Path / Context: `server/tileserver`
-3. **Ports**:
-   - Target Port: `8080`
-   - Published Port: `8080`
-4. **Volume Mounts**:
-   - Host Path: `/etc/easypanel/projects/iterviae/tiles`
-   - Mount Path: `/data`
-5. Click **Deploy**. EasyPanel will pull the Dockerfile from GitHub and start TileServer!
+### 1. Test Valhalla Turn-by-Turn Routing Service
+Run this command from any terminal or paste the URL into your browser:
 
----
-
-## 🧪 Phase 5: Verification & Endpoints
-
-### 1. Verify Valhalla Turn-by-Turn Service
-Run this command from your terminal or open in browser:
 ```bash
 curl "http://46.202.179.124:8002/route?json={\"locations\":[{\"lat\":47.6062,\"lon\":-122.3321},{\"lat\":47.6101,\"lon\":-122.3421}],\"costing\":\"auto\"}"
 ```
-- **Expected Output**: JSON object containing `trip` maneuvers, distance, and polyline `shape`.
+- **Expected Result**: Returns JSON data with decoded polyline road geometry, maneuvers, and travel time.
 
-### 2. Verify TileServer GL Vector Maps
+### 2. Test TileServer GL Vector Maps Service
 - Open `http://46.202.179.124:8080` in your web browser.
-- You will see the TileServer GL dashboard displaying your `map.mbtiles` vector map styles and PBF tile endpoints!
+- You will see the TileServer GL dashboard displaying your `map.mbtiles` vector map styles and live PBF tile preview!
 
 ---
 
 ## 🔗 Phase 6: Connect Mensa Desktop App
 
-In Mensa Desktop (`mensa/src/main.ts`):
-- **Tile Endpoint**: `http://46.202.179.124:8080/tiles/{z}/{x}/{y}.pbf`
+In Mensa Desktop settings (`mensa/src/main.ts`):
+- **Map Vector Tiles Endpoint**: `http://46.202.179.124:8080/tiles/{z}/{x}/{y}.pbf`
 - **Valhalla Routing Endpoint**: `http://46.202.179.124:8002/route`
 
 ---
 
-## 🔍 Troubleshooting & Useful Commands
+## 🔍 Helpful Commands & Logs
 
-- **Check EasyPanel Service Logs**:
+- **View Live Valhalla Container Logs**:
   ```bash
   docker logs -f iterviae-valhalla
+  ```
+- **View Live TileServer Container Logs**:
+  ```bash
   docker logs -f iterviae-tileserver
   ```
-- **Restart Services**:
+- **Restart All Services**:
   ```bash
-  docker restart iterviae-valhalla
-  docker restart iterviae-tileserver
+  docker restart iterviae-valhalla iterviae-tileserver
   ```
