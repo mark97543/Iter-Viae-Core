@@ -96,48 +96,39 @@ rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar"
 
 ---
 
-## ⚙️ Phase 4: Configure Services in EasyPanel Dashboard
+## ⚙️ Phase 4: Configure Services in EasyPanel via Git Repository 🐙
 
-### Service A: Deploy Valhalla (Routing Engine)
+### Service A: Deploy Valhalla (Routing Engine via Git)
 
-1. In EasyPanel, go to project `iterviae` $\rightarrow$ click **+ Service** $\rightarrow$ select **App** / **Docker Image**.
-2. **General Settings**:
-   - Name: `valhalla`
-   - Image: `ghcr.io/gis-ops/docker-valhalla/valhalla:latest`
+1. In EasyPanel, open project `iterviae` $\rightarrow$ click **+ Service** $\rightarrow$ select **Git Repository**.
+2. **Source Settings**:
+   - Repository: `https://github.com/mark97543/Iter-Viae-Core.git`
+   - Branch: `main`
+   - Build Path / Context: `server/valhalla`
 3. **Ports**:
-   - Click **+ Add Port**
-   - Published Port: `8002`
    - Target Port: `8002`
-   - Protocol: `tcp`
-4. **Environment Variables**:
-   - Add Variable: `tile_extract_url` = `https://download.geofabrik.de/north-america-latest.osm.pbf`
-   - Add Variable: `force_rebuild` = `false`
-5. **Volume Mounts**:
-   - Click **+ Add Mount**
-   - Type: `Bind`
+   - Published Port: `8002`
+4. **Volume Mounts**:
    - Host Path: `/etc/easypanel/projects/iterviae/valhalla`
    - Mount Path: `/custom_files`
-6. Click **Deploy**.
+5. Click **Deploy**. EasyPanel will pull the Dockerfile from GitHub and start Valhalla!
 
 ---
 
-### Service B: Deploy TileServer GL (Vector Basemaps)
+### Service B: Deploy TileServer GL (Vector Maps via Git)
 
-1. In EasyPanel project `iterviae`, click **+ Service** $\rightarrow$ select **App** / **Docker Image**.
-2. **General Settings**:
-   - Name: `tileserver`
-   - Image: `maptiler/tileserver-gl:latest`
+1. In EasyPanel project `iterviae`, click **+ Service** $\rightarrow$ select **Git Repository**.
+2. **Source Settings**:
+   - Repository: `https://github.com/mark97543/Iter-Viae-Core.git`
+   - Branch: `main`
+   - Build Path / Context: `server/tileserver`
 3. **Ports**:
-   - Click **+ Add Port**
-   - Published Port: `8080`
    - Target Port: `8080`
-   - Protocol: `tcp`
+   - Published Port: `8080`
 4. **Volume Mounts**:
-   - Click **+ Add Mount**
-   - Type: `Bind`
    - Host Path: `/etc/easypanel/projects/iterviae/tiles`
    - Mount Path: `/data`
-5. Click **Deploy**.
+5. Click **Deploy**. EasyPanel will pull the Dockerfile from GitHub and start TileServer!
 
 ---
 
