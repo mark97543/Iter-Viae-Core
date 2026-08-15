@@ -1,0 +1,43 @@
+{
+  "services": [
+    {
+      "name": "valhalla",
+      "type": "app",
+      "image": "ghcr.io/gis-ops/docker-valhalla/valhalla:latest",
+      "ports": [
+        {
+          "published": 8002,
+          "target": 8002,
+          "protocol": "tcp"
+        }
+      ],
+      "mounts": [
+        {
+          "type": "bind",
+          "source": "/etc/easypanel/projects/iterviae/valhalla",
+          "target": "/custom_files"
+        }
+      ],
+      "env": "tile_extract_url=https://download.geofabrik.de/north-america-latest.osm.pbf\nforce_rebuild=false"
+    },
+    {
+      "name": "tileserver",
+      "type": "app",
+      "image": "maptiler/tileserver-gl:latest",
+      "ports": [
+        {
+          "published": 8080,
+          "target": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "mounts": [
+        {
+          "type": "bind",
+          "source": "/etc/easypanel/projects/iterviae/tiles",
+          "target": "/data"
+        }
+      ]
+    }
+  ]
+}

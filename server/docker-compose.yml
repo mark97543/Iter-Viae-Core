@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  valhalla:
+    image: ghcr.io/gis-ops/docker-valhalla/valhalla:latest
+    container_name: iterviae-valhalla
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./valhalla_data:/custom_files
+    environment:
+      - tile_extract_url=https://download.geofabrik.de/north-america-latest.osm.pbf
+      - build_elevation=false
+      - build_admins=true
+      - build_time_zones=true
+      - force_rebuild=false
+    restart: always
+
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    container_name: iterviae-tileserver
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tiles_data:/data
+    restart: always
