@@ -100,7 +100,6 @@ class MainActivity : AppCompatActivity() {
     private fun checkFileInDir(dir: File): String? {
         if (!dir.exists() || !dir.isDirectory) return null
 
-        // Prioritize original 12.15GB master vector map file (map.mbtiles)
         val mapF = File(dir, "map.mbtiles")
         if (mapF.exists() && mapF.length() > 0) {
             return mapF.absolutePath
@@ -234,7 +233,6 @@ class MainActivity : AppCompatActivity() {
                 val rasterLayer = RasterLayer("mobile-raster-layer", "mobile-raster")
                 styleBuilder.withLayer(rasterLayer)
             } else {
-                // Vector Source for 12.15GB master map.mbtiles
                 val tileUrl = "http://127.0.0.1:8080/tiles/{z}/{x}/{y}.pbf"
                 Log.d("NavisMap", "Configuring VectorSource TileSet for map.mbtiles: $tileUrl")
                 val tileSet = TileSet("2.2.0", tileUrl)
@@ -244,44 +242,55 @@ class MainActivity : AppCompatActivity() {
                 val vectorSource = VectorSource("openmaptiles", tileSet)
                 styleBuilder.withSource(vectorSource)
 
-                // Background layer
+                // Background layer - Deep Charcoal
                 val backgroundLayer = FillLayer("background-layer", "openmaptiles")
                     .withProperties(fillColor("#090d16"))
                 styleBuilder.withLayer(backgroundLayer)
 
-                // Landcover layer
+                // Landcover layer - Muted Dark Graphite
                 val landLayer = FillLayer("land-layer", "openmaptiles")
                     .withSourceLayer("landcover")
                     .withProperties(fillColor("#111827"))
                 styleBuilder.withLayer(landLayer)
 
-                // Water layer
+                // Water layer - Deep Tactical Navy
                 val waterLayer = FillLayer("water-layer", "openmaptiles")
                     .withSourceLayer("water")
                     .withProperties(fillColor("#0284c7"))
                 styleBuilder.withLayer(waterLayer)
 
-                // Boundary layer
+                // Boundary layer - Muted Slate Border
                 val boundaryLayer = LineLayer("boundary-layer", "openmaptiles")
                     .withSourceLayer("boundary")
-                    .withProperties(lineColor("#475569"), lineWidth(1.5f))
+                    .withProperties(lineColor("#334155"), lineWidth(1.2f))
                 styleBuilder.withLayer(boundaryLayer)
 
-                // Street & Highway Transportation layer
-                val roadLayer = LineLayer("road-layer", "openmaptiles")
+                // Secondary Local Road Network - Dark Slate
+                val localRoadLayer = LineLayer("local-road-layer", "openmaptiles")
                     .withSourceLayer("transportation")
                     .withProperties(
-                        lineColor("#38bdf8"),
-                        lineWidth(2.5f),
+                        lineColor("#1e293b"),
+                        lineWidth(1.8f),
                         lineCap(Property.LINE_CAP_ROUND),
                         lineJoin(Property.LINE_JOIN_ROUND)
                     )
-                styleBuilder.withLayer(roadLayer)
+                styleBuilder.withLayer(localRoadLayer)
 
-                // Building Footprint layer
+                // Primary Highways & Motorways - Steel Amber
+                val highwayLayer = LineLayer("highway-layer", "openmaptiles")
+                    .withSourceLayer("transportation")
+                    .withProperties(
+                        lineColor("#475569"),
+                        lineWidth(3.2f),
+                        lineCap(Property.LINE_CAP_ROUND),
+                        lineJoin(Property.LINE_JOIN_ROUND)
+                    )
+                styleBuilder.withLayer(highwayLayer)
+
+                // Building Footprints - Subtle Dark Polygon
                 val buildingLayer = FillLayer("building-layer", "openmaptiles")
                     .withSourceLayer("building")
-                    .withProperties(fillColor("#1e293b"))
+                    .withProperties(fillColor("#0f172a"))
                 styleBuilder.withLayer(buildingLayer)
             }
         } else {
@@ -294,14 +303,25 @@ class MainActivity : AppCompatActivity() {
             val routeSource = GeoJsonSource("nav-route", FeatureCollection.fromFeatures(arrayOf()))
             style.addSource(routeSource)
 
-            val routeLayer = LineLayer("nav-route-line", "nav-route")
+            // Route Polyline Black Outer Casing (Width 10f)
+            val routeCasingLayer = LineLayer("nav-route-casing", "nav-route")
                 .withProperties(
-                    lineColor("#38bdf8"),
+                    lineColor("#000000"),
+                    lineWidth(10f),
+                    lineCap(Property.LINE_CAP_ROUND),
+                    lineJoin(Property.LINE_JOIN_ROUND)
+                )
+            style.addLayer(routeCasingLayer)
+
+            // Route Polyline High-Contrast Neon Orange Route (Width 6f) - Distinct from blue/slate roads!
+            val routeLineLayer = LineLayer("nav-route-line", "nav-route")
+                .withProperties(
+                    lineColor("#ff6b00"),
                     lineWidth(6f),
                     lineCap(Property.LINE_CAP_ROUND),
                     lineJoin(Property.LINE_JOIN_ROUND)
                 )
-            style.addLayer(routeLayer)
+            style.addLayer(routeLineLayer)
 
             map.cameraPosition = CameraPosition.Builder()
                 .target(LatLng(47.6062, -122.3321))
@@ -358,9 +378,46 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun decodePolyline(encoded: String, precision: Double = 1e6): List<LatLng> {
+        val poly = mutableListOf<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
+            lat += dlat
+
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
+            lng += dlng
+
+            val pLat = lat / precision
+            val pLng = lng / precision
+            poly.add(LatLng(pLat, pLng))
+        }
+        return poly
+    }
+
     private fun parseAndDrawTrip(jsonStr: String) {
         try {
             val pts = mutableListOf<LatLng>()
+
             if (jsonStr.trim().startsWith("[")) {
                 val arr = JSONArray(jsonStr)
                 for (i in 0 until arr.length()) {
@@ -373,14 +430,42 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 val obj = JSONObject(jsonStr)
-                val arr = obj.optJSONArray("tripWaypoints") ?: obj.optJSONArray("waypoints") ?: obj.optJSONArray("points")
-                if (arr != null) {
-                    for (i in 0 until arr.length()) {
-                        val item = arr.getJSONObject(i)
-                        val lat = item.optDouble("lat", item.optDouble("latitude", Double.NaN))
-                        val lng = item.optDouble("lng", item.optDouble("longitude", Double.NaN))
-                        if (!lat.isNaN() && !lng.isNaN()) {
-                            pts.add(LatLng(lat, lng))
+
+                // 1. Check for encoded Valhalla Polyline shape string ("shape" or "polyline")
+                val shapeStr = obj.optString("shape", obj.optString("polyline", ""))
+                if (shapeStr.isNotEmpty()) {
+                    val decoded = decodePolyline(shapeStr, 1e6)
+                    if (decoded.isNotEmpty()) {
+                        pts.addAll(decoded)
+                    }
+                }
+
+                // 2. Check for GeoJSON Geometry / Trip Geometry coordinates array
+                if (pts.isEmpty()) {
+                    val tripObj = obj.optJSONObject("trip") ?: obj
+                    val legsArr = tripObj.optJSONArray("legs")
+                    if (legsArr != null) {
+                        for (l in 0 until legsArr.length()) {
+                            val leg = legsArr.getJSONObject(l)
+                            val legShape = leg.optString("shape", "")
+                            if (legShape.isNotEmpty()) {
+                                pts.addAll(decodePolyline(legShape, 1e6))
+                            }
+                        }
+                    }
+                }
+
+                // 3. Fallback to Waypoint objects list if shape is absent
+                if (pts.isEmpty()) {
+                    val arr = obj.optJSONArray("tripWaypoints") ?: obj.optJSONArray("waypoints") ?: obj.optJSONArray("points")
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            val item = arr.getJSONObject(i)
+                            val lat = item.optDouble("lat", item.optDouble("latitude", Double.NaN))
+                            val lng = item.optDouble("lng", item.optDouble("longitude", Double.NaN))
+                            if (!lat.isNaN() && !lng.isNaN()) {
+                                pts.add(LatLng(lat, lng))
+                            }
                         }
                     }
                 }
@@ -389,9 +474,11 @@ class MainActivity : AppCompatActivity() {
             if (pts.isNotEmpty()) {
                 activeWaypoints = pts
                 drawRouteOnMap(pts)
+            } else {
+                Toast.makeText(this, "No route points found in trip file", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Error reading trip file", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Error reading trip file: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -413,8 +500,8 @@ class MainActivity : AppCompatActivity() {
             map.easeCamera(CameraUpdateFactory.newLatLngZoom(pts[0], 14.0))
         }
 
-        findViewById<TextView>(R.id.tvNavTitle).text = "Heading to Waypoint ${pts.size}"
-        findViewById<TextView>(R.id.tvNavSub).text = "${pts.size} stops on tactical route"
+        findViewById<TextView>(R.id.tvNavTitle).text = "Tactical Route Loaded"
+        findViewById<TextView>(R.id.tvNavSub).text = "${pts.size} road geometry points active"
     }
 
     override fun onStart() {
