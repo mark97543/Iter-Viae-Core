@@ -120,11 +120,11 @@ function onProxyError(err, req, res) {
   }
 }
 
-// Proxy Valhalla routing calls
+// Proxy Valhalla routing calls (preserve /route path)
 app.use('/route', createProxyMiddleware({
   target: VALHALLA_HOST,
   changeOrigin: true,
-  pathRewrite: { '^/route': '/route' },
+  pathRewrite: (path) => '/route' + (path === '/' ? '' : path),
   onProxyRes: onProxyRes,
   onError: onProxyError
 }));
