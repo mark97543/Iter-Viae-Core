@@ -120,11 +120,11 @@ function onProxyError(err, req, res) {
   }
 }
 
-// Proxy Valhalla routing calls (exact match without trailing slash)
+// Proxy Valhalla routing calls (target: VALHALLA_HOST, path: /route)
 app.use('/route', createProxyMiddleware({
-  target: VALHALLA_HOST + '/route',
+  target: VALHALLA_HOST,
   changeOrigin: true,
-  pathRewrite: { '^/route': '' },
+  pathRewrite: (path) => '/route' + (path.startsWith('/') ? path : '/' + path),
   onProxyRes: onProxyRes,
   onError: onProxyError
 }));
