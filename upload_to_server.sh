@@ -9,7 +9,7 @@ echo "Target Server IP: $SERVER_IP"
 echo "============================================================"
 
 echo "📁 Creating server directories on $SERVER_IP..."
-ssh "root@$SERVER_IP" "mkdir -p /etc/easypanel/projects/iterviae/tiles /etc/easypanel/projects/iterviae/valhalla"
+ssh "root@$SERVER_IP" "mkdir -p /etc/easypanel/projects/iterviae/tiles /etc/easypanel/projects/iterviae/valhalla /etc/easypanel/projects/iterviae/directus/database /etc/easypanel/projects/iterviae/directus/uploads"
 
 echo ""
 echo "📤 [1/2] Uploading map.mbtiles (12.15 GB)..."
