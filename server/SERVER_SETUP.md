@@ -105,6 +105,7 @@ cd "/home/mark/Documents/Iter Viae Core" && ./upload_to_server.sh
    - **Branch**: `main`
 5. **Build Settings**:
    - **Build Type**: Select `Dockerfile`
+   - **Build Context / Root**: Set to `.` (or leave empty)
    - **Dockerfile Path**: `server/valhalla/Dockerfile`
 6. **Domains / Ports Settings (under "Domains" / "Ports" tab)**:
    - *Option A (Direct IP & Port Access)*: Go to **Ports** $\rightarrow$ **+ Add Port** $\rightarrow$ Set Published Port `8002` $\rightarrow$ Target Port `8002` (`TCP`).
@@ -127,6 +128,7 @@ cd "/home/mark/Documents/Iter Viae Core" && ./upload_to_server.sh
    - **Branch**: `main`
 3. **Build Settings**:
    - **Build Type**: Select `Dockerfile`
+   - **Build Context / Root**: Set to `.` (or leave empty)
    - **Dockerfile Path**: `server/tileserver/Dockerfile`
 4. **Domains / Ports Settings (under "Domains" / "Ports" tab)**:
    - *Option A (Direct IP & Port Access)*: Go to **Ports** $\rightarrow$ **+ Add Port** $\rightarrow$ Set Published Port `8080` $\rightarrow$ Target Port `8080` (`TCP`).
