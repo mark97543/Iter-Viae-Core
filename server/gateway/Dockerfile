@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
 # Install build dependencies for native sqlite3 module
-RUN apk add --no-call-python3 make g++ python3
+RUN apk add --no-cache make g++ python3
 
 WORKDIR /app
 
