@@ -5,7 +5,6 @@ const path = require('path');
 const http = require('http');
 
 const app = express();
-const PRIMARY_PORT = parseInt(process.env.PORT || '8000', 10);
 const DB_PATH = process.env.DB_PATH || '/directus/database/data.db';
 
 const VALHALLA_HOST = process.env.VALHALLA_HOST || 'http://iterviae_valhalla:8002';
@@ -146,18 +145,13 @@ app.use('/', createProxyMiddleware({
   onError: onProxyError
 }));
 
-// Listen on primary port (e.g. 8000 or env.PORT)
-const server1 = http.createServer(app);
-server1.listen(PRIMARY_PORT, () => {
-  console.log(`🚀 Iter Viae Gateway listening on primary port ${PRIMARY_PORT}`);
+// ALWAYS listen on Port 8000 AND Port 80 simultaneously
+http.createServer(app).listen(8000, () => {
+  console.log('🚀 Iter Viae Gateway listening on Port 8000');
 });
 
-// Also listen on fallback port 80 if primary port is not 80
-if (PRIMARY_PORT !== 80) {
-  const server2 = http.createServer(app);
-  server2.listen(80, () => {
-    console.log(`🚀 Iter Viae Gateway listening on dual port 80`);
-  }).on('error', () => {
-    // Port 80 might be restricted or in use, ignore error
-  });
-}
+http.createServer(app).listen(80, () => {
+  console.log('🚀 Iter Viae Gateway listening on Port 80');
+}).on('error', (e) => {
+  console.log('Port 80 binding note:', e.message);
+});
