@@ -1013,7 +1013,6 @@ function initMap() {
   const sDateFields = document.getElementById("summary-date-fields")!;
   const sStartTimeInput = document.getElementById("summary-start-time") as HTMLInputElement;
   const sNotes = document.getElementById("summary-trip-notes") as HTMLTextAreaElement;
-  const sApiKey = document.getElementById("summary-api-key") as HTMLInputElement;
 
   const sTotWp = document.getElementById("summary-tot-wp")!;
   const sStartPicker = flatpickr(sStartTimeInput, {
@@ -1028,7 +1027,6 @@ function initMap() {
     sDateFields.style.display = tripHasSpecificDate ? "block" : "none";
     sStartPicker.setDate(tripStartTime);
     sNotes.value = tripNotes;
-    sApiKey.value = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
     
     sTotWp.textContent = tripWaypoints.length.toString();
     summaryModal.style.display = "flex";
@@ -1047,10 +1045,6 @@ function initMap() {
     tripTitleDisplay.textContent = tripTitle;
     tripHasSpecificDate = sHasDate.checked;
     tripNotes = sNotes.value;
-    
-    if (sApiKey && sApiKey.value.trim()) {
-      localStorage.setItem("iterviae_api_key", sApiKey.value.trim());
-    }
     
     if (sStartTimeInput.value) {
       tripStartTime = new Date(sStartTimeInput.value);

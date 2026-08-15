@@ -43,9 +43,8 @@
 
     <!-- Trip Itinerary Panel -->
     <aside id="trip-panel" aria-label="Trip Itinerary" aria-hidden="false" class="open">
-      <div id="trip-panel-header" style="display: flex; align-items: center; justify-content: space-between;">
-        <h2 id="trip-title-display" title="Click to view Trip Summary" style="margin: 0;">My Tactical Operation</h2>
-        <button id="server-settings-btn" class="btn-icon" title="Server & API Key Settings" style="background: rgba(51, 65, 85, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); color: #38bdf8; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 14px;">⚙️</button>
+      <div id="trip-panel-header">
+        <h2 id="trip-title-display" title="Click to view Trip Summary">My Tactical Operation</h2>
       </div>
       <div id="trip-panel-body">
         <ul id="trip-waypoint-list">
@@ -170,13 +169,7 @@
           </div>
           
           <label class="modal-label" style="margin-top: 8px;">Overall Mission Notes</label>
-          <textarea id="summary-trip-notes" class="modal-input" rows="3" placeholder="Enter high-level tactical notes or briefings..."></textarea>
-          
-          <div style="margin-top: 12px; border-top: 1px solid rgba(51, 65, 85, 0.8); padding-top: 12px;">
-            <label class="modal-label" style="color: #38bdf8; font-weight: bold;">🔑 Server API Key</label>
-            <input type="password" id="summary-api-key" class="modal-input" placeholder="iv_key_..." style="font-family: monospace;" />
-            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Enter your server API key to authenticate map tile and routing requests.</div>
-          </div>
+          <textarea id="summary-trip-notes" class="modal-input" rows="4" placeholder="Enter high-level tactical notes or briefings..."></textarea>
         </div>
         <div class="modal-footer">
           <button id="summary-save-btn" class="btn-primary">Save & Apply</button>
