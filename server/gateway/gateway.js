@@ -33,9 +33,16 @@ function getDb() {
   return db;
 }
 
+// Helper function to send CORS JSON responses
+function sendCorsResponse(res, status, jsonObj) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  return res.status(status).json(jsonObj);
+}
+
 // 🛡️ API Key Verification Middleware
 function validateApiKey(req, res, next) {
-  // Extract API key from query param, X-API-Key header, or Authorization header
   let apiKey = req.query.key || req.headers['x-api-key'];
   if (!apiKey && req.headers['authorization']) {
     const parts = req.headers['authorization'].split(' ');
@@ -45,7 +52,7 @@ function validateApiKey(req, res, next) {
   }
 
   if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
-    return res.status(401).json({
+    return sendCorsResponse(res, 401, {
       error: 'Unauthorized',
       message: 'Missing required API key. Provide ?key=... parameter or X-API-Key header.'
     });
@@ -56,22 +63,21 @@ function validateApiKey(req, res, next) {
   try {
     const database = getDb();
     if (!database) {
-      // If DB is temporarily unreadable, fall through gracefully or retry
-      return res.status(503).json({ error: 'Service Temporarily Unavailable', message: 'Database connecting...' });
+      return sendCorsResponse(res, 503, { error: 'Service Temporarily Unavailable', message: 'Database connecting...' });
     }
 
     const stmt = database.prepare('SELECT status, owner_name, tier FROM api_keys WHERE key = ?');
     const record = stmt.get(cleanKey);
 
     if (!record) {
-      return res.status(401).json({
+      return sendCorsResponse(res, 401, {
         error: 'Unauthorized',
         message: 'Invalid API key.'
       });
     }
 
     if (record.status !== 'active') {
-      return res.status(401).json({
+      return sendCorsResponse(res, 401, {
         error: 'Unauthorized',
         message: `API Key is currently ${record.status}. Contact administrator.`
       });
@@ -82,9 +88,8 @@ function validateApiKey(req, res, next) {
     next();
   } catch (err) {
     console.error('Database query error in Gateway:', err);
-    // Re-initialize DB connection in case file was replaced
     db = null;
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return sendCorsResponse(res, 500, { error: 'Internal Server Error' });
   }
 }
 
@@ -96,35 +101,48 @@ app.get('/health', (req, res) => {
 // Apply Key Validation Middleware to all routes below
 app.use(validateApiKey);
 
+// Proxy Response CORS Helper
+function onProxyRes(proxyRes, req, res) {
+  proxyRes.headers['access-control-allow-origin'] = '*';
+  proxyRes.headers['access-control-allow-headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key';
+  proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+}
+
+function onProxyError(err, req, res) {
+  console.error('Proxy Error:', err);
+  if (!res.headersSent) {
+    res.writeHead(502, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': '*',
+      'Content-Type': 'application/json'
+    });
+    res.end(JSON.stringify({ error: 'Bad Gateway', message: 'Target service unavailable' }));
+  }
+}
+
 // Proxy Valhalla routing calls
 app.use('/route', createProxyMiddleware({
   target: VALHALLA_HOST,
   changeOrigin: true,
   pathRewrite: { '^/route': '/route' },
-  onError: (err, req, res) => {
-    console.error('Valhalla Proxy Error:', err);
-    res.status(502).json({ error: 'Bad Gateway', message: 'Valhalla routing engine unavailable' });
-  }
+  onProxyRes: onProxyRes,
+  onError: onProxyError
 }));
 
 // Proxy TileServer vector tile calls
 app.use('/tiles', createProxyMiddleware({
   target: TILESERVER_HOST,
   changeOrigin: true,
-  onError: (err, req, res) => {
-    console.error('TileServer Proxy Error:', err);
-    res.status(502).json({ error: 'Bad Gateway', message: 'TileServer vector tiles unavailable' });
-  }
+  onProxyRes: onProxyRes,
+  onError: onProxyError
 }));
 
-// Fallback proxy for all other requests
+// Fallback proxy for all other requests (e.g. /data/v3/...)
 app.use('/', createProxyMiddleware({
   target: TILESERVER_HOST,
   changeOrigin: true,
-  onError: (err, req, res) => {
-    console.error('Fallback Proxy Error:', err);
-    res.status(502).json({ error: 'Bad Gateway' });
-  }
+  onProxyRes: onProxyRes,
+  onError: onProxyError
 }));
 
 app.listen(PORT, () => {
