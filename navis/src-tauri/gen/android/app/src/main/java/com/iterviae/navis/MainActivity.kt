@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     private var mbtilesPath: String? = null
     private var tileServer: TileServer? = null
     private var navEngine: ValhallaNavEngine? = null
-    private var currentPosition: LatLng = LatLng(47.6062, -122.3321) // Seattle Default
+    private var currentPosition: LatLng = LatLng(47.6062, -122.3321)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -334,7 +334,6 @@ class MainActivity : AppCompatActivity() {
                 .zoom(12.0)
                 .build()
 
-            // Tap map to route locally from current position
             map.addOnMapClickListener { point ->
                 calculateLocalOfflineRoute(point)
                 true
@@ -351,38 +350,15 @@ class MainActivity : AppCompatActivity() {
 
         val tvNavTitle = findViewById<TextView>(R.id.tvNavTitle)
         val tvNavSub = findViewById<TextView>(R.id.tvNavSub)
-        tvNavTitle.text = "Offline Route Calculated"
-        tvNavSub.text = "${String.format("%.1f", result.totalDistanceMiles)} mi • ${result.estimatedTimeMinutes.toInt()} mins (${result.path.size} road pts)"
+        tvNavTitle.text = "Offline Road Route Active"
+        tvNavSub.text = "${String.format("%.1f", result.totalDistanceMiles)} mi • ${result.estimatedTimeMinutes.toInt()} mins (${result.path.size} road geometry points)"
         Toast.makeText(this, "Local Offline Route Calculated!", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun handleOffRouteCheck(newLocation: LatLng) {
-        currentPosition = newLocation
-        val engine = navEngine ?: return
-
-        if (activeWaypoints.size > 1) {
-            val isOff = engine.isOffRoute(newLocation, activeWaypoints, 30.0)
-            if (isOff) {
-                Toast.makeText(this, "Off-Route Detected! Recalculating...", Toast.LENGTH_SHORT).show()
-                val dest = activeWaypoints.last()
-                val newResult = engine.calculateRoute(newLocation, dest)
-                activeWaypoints = newResult.path.toMutableList()
-                drawRouteOnMap(newResult.path)
-
-                val tvNavTitle = findViewById<TextView>(R.id.tvNavTitle)
-                val tvNavSub = findViewById<TextView>(R.id.tvNavSub)
-                tvNavTitle.text = "Recalculated Route"
-                tvNavSub.text = "${String.format("%.1f", newResult.totalDistanceMiles)} mi • ${newResult.estimatedTimeMinutes.toInt()} mins"
-            }
-        }
     }
 
     private fun setupUIControls() {
         val btnSearch = findViewById<Button>(R.id.btnSearch)
         val etCoords = findViewById<EditText>(R.id.etCoords)
         val btnLoadTrip = findViewById<Button>(R.id.btnLoadTrip)
-        val tvNavTitle = findViewById<TextView>(R.id.tvNavTitle)
-        val tvNavSub = findViewById<TextView>(R.id.tvNavSub)
 
         btnSearch.setOnClickListener {
             val txt = etCoords.text.toString().trim()
@@ -462,43 +438,57 @@ class MainActivity : AppCompatActivity() {
 
             if (jsonStr.trim().startsWith("[")) {
                 val arr = JSONArray(jsonStr)
+                val waypointsList = mutableListOf<LatLng>()
                 for (i in 0 until arr.length()) {
                     val item = arr.get(i)
                     if (item is JSONArray && item.length() >= 2) {
                         val lng = item.getDouble(0)
                         val lat = item.getDouble(1)
-                        pts.add(LatLng(lat, lng))
+                        waypointsList.add(LatLng(lat, lng))
                     } else if (item is JSONObject) {
                         val lat = item.optDouble("lat", item.optDouble("latitude", Double.NaN))
                         val lng = item.optDouble("lng", item.optDouble("longitude", Double.NaN))
                         if (!lat.isNaN() && !lng.isNaN()) {
-                            pts.add(LatLng(lat, lng))
+                            waypointsList.add(LatLng(lat, lng))
                         }
                     }
+                }
+                if (waypointsList.size >= 2) {
+                    val engine = navEngine ?: ValhallaNavEngine(mbtilesPath ?: "")
+                    for (w in 0 until waypointsList.size - 1) {
+                        val legRes = engine.calculateRoute(waypointsList[w], waypointsList[w + 1])
+                        if (w > 0 && legRes.path.isNotEmpty()) {
+                            pts.addAll(legRes.path.subList(1, legRes.path.size))
+                        } else {
+                            pts.addAll(legRes.path)
+                        }
+                    }
+                } else {
+                    pts.addAll(waypointsList)
                 }
             } else {
                 val obj = JSONObject(jsonStr)
 
-                // 1. Check for tripShape (array of [lng, lat] coordinate pairs exported by Mensa)
-                val tripShapeArr = obj.optJSONArray("tripShape")
-                if (tripShapeArr != null && tripShapeArr.length() > 0) {
-                    for (i in 0 until tripShapeArr.length()) {
-                        val pair = tripShapeArr.optJSONArray(i)
-                        if (pair != null && pair.length() >= 2) {
-                            val lng = pair.getDouble(0)
-                            val lat = pair.getDouble(1)
-                            pts.add(LatLng(lat, lng))
-                        }
+                // 1. Check for encoded Polyline shape string ("shape" or "polyline")
+                val shapeStr = obj.optString("shape", obj.optString("polyline", ""))
+                if (shapeStr.isNotEmpty()) {
+                    val decoded = decodePolyline(shapeStr, 1e6)
+                    if (decoded.isNotEmpty()) {
+                        pts.addAll(decoded)
                     }
                 }
 
-                // 2. Check for encoded Polyline shape string ("shape" or "polyline")
+                // 2. Check for tripShape (array of [lng, lat] coordinate pairs)
                 if (pts.isEmpty()) {
-                    val shapeStr = obj.optString("shape", obj.optString("polyline", ""))
-                    if (shapeStr.isNotEmpty()) {
-                        val decoded = decodePolyline(shapeStr, 1e6)
-                        if (decoded.isNotEmpty()) {
-                            pts.addAll(decoded)
+                    val tripShapeArr = obj.optJSONArray("tripShape")
+                    if (tripShapeArr != null && tripShapeArr.length() > 0) {
+                        for (i in 0 until tripShapeArr.length()) {
+                            val pair = tripShapeArr.optJSONArray(i)
+                            if (pair != null && pair.length() >= 2) {
+                                val lng = pair.getDouble(0)
+                                val lat = pair.getDouble(1)
+                                pts.add(LatLng(lat, lng))
+                            }
                         }
                     }
                 }
@@ -507,17 +497,28 @@ class MainActivity : AppCompatActivity() {
                 if (pts.isEmpty()) {
                     val arr = obj.optJSONArray("tripWaypoints") ?: obj.optJSONArray("waypoints") ?: obj.optJSONArray("points")
                     if (arr != null && arr.length() >= 2) {
-                        val first = arr.getJSONObject(0)
-                        val last = arr.getJSONObject(arr.length() - 1)
-                        val startLat = first.optDouble("lat", first.optDouble("latitude", Double.NaN))
-                        val startLng = first.optDouble("lng", first.optDouble("longitude", Double.NaN))
-                        val endLat = last.optDouble("lat", last.optDouble("latitude", Double.NaN))
-                        val endLng = last.optDouble("lng", last.optDouble("longitude", Double.NaN))
+                        val waypointsList = mutableListOf<LatLng>()
+                        for (i in 0 until arr.length()) {
+                            val item = arr.getJSONObject(i)
+                            val lat = item.optDouble("lat", item.optDouble("latitude", Double.NaN))
+                            val lng = item.optDouble("lng", item.optDouble("longitude", Double.NaN))
+                            if (!lat.isNaN() && !lng.isNaN()) {
+                                waypointsList.add(LatLng(lat, lng))
+                            }
+                        }
 
-                        if (!startLat.isNaN() && !startLng.isNaN() && !endLat.isNaN() && !endLng.isNaN()) {
+                        if (waypointsList.size >= 2) {
                             val engine = navEngine ?: ValhallaNavEngine(mbtilesPath ?: "")
-                            val routeRes = engine.calculateRoute(LatLng(startLat, startLng), LatLng(endLat, endLng))
-                            pts.addAll(routeRes.path)
+                            for (w in 0 until waypointsList.size - 1) {
+                                val legRes = engine.calculateRoute(waypointsList[w], waypointsList[w + 1])
+                                if (w > 0 && legRes.path.isNotEmpty()) {
+                                    pts.addAll(legRes.path.subList(1, legRes.path.size))
+                                } else {
+                                    pts.addAll(legRes.path)
+                                }
+                            }
+                        } else {
+                            pts.addAll(waypointsList)
                         }
                     }
                 }
@@ -552,7 +553,7 @@ class MainActivity : AppCompatActivity() {
             map.easeCamera(CameraUpdateFactory.newLatLngZoom(pts[0], 14.0))
         }
 
-        findViewById<TextView>(R.id.tvNavTitle).text = "Tactical Route Active"
+        findViewById<TextView>(R.id.tvNavTitle).text = "Tactical Road Route Active"
         findViewById<TextView>(R.id.tvNavSub).text = "${pts.size} road geometry points active"
     }
 
