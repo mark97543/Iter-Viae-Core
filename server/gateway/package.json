@@ -1,0 +1,14 @@
+{
+  "name": "iterviae-gateway",
+  "version": "1.0.0",
+  "description": "High Performance API Key Validation & Proxy Gateway for Iter Viae Server",
+  "main": "gateway.js",
+  "scripts": {
+    "start": "node gateway.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.1.2",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.0"
+  }
+}
