@@ -2,7 +2,7 @@ import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { PocketBaseAuth } from "./pocketbase";
 
-console.log("Iter Viae Tactical Surface initialized with Route Command & Context Menu Engine.");
+console.log("Iter Viae Tactical Surface initialized with Route Command & Coordinate Copy Engine.");
 
 // DOM View Containers
 const guestView = document.getElementById("guest-view");
@@ -38,8 +38,6 @@ const coordSearchInput = document.getElementById("coord-search-input") as HTMLIn
 const contextMenu = document.getElementById("context-menu");
 const contextCoordsText = document.getElementById("context-coords-text");
 const contextCoordsItem = document.getElementById("context-coords-item");
-const contextCopyBtn = document.getElementById("context-copy-btn");
-const contextPinBtn = document.getElementById("context-pin-btn");
 const toastFeedback = document.getElementById("toast-feedback");
 
 // Global Map & Search Marker References
@@ -195,7 +193,7 @@ function initializeMapSurface() {
   }, 400);
 }
 
-// Context Menu Button Event Listeners
+// Context Menu Copy Event Listener
 function copyCoordinatesToClipboard() {
   if (!lastRightClickLngLat) return;
   const coordString = `${lastRightClickLngLat.lat.toFixed(6)}, ${lastRightClickLngLat.lng.toFixed(6)}`;
@@ -205,15 +203,6 @@ function copyCoordinatesToClipboard() {
 }
 
 if (contextCoordsItem) contextCoordsItem.addEventListener("click", copyCoordinatesToClipboard);
-if (contextCopyBtn) contextCopyBtn.addEventListener("click", copyCoordinatesToClipboard);
-
-if (contextPinBtn) {
-  contextPinBtn.addEventListener("click", () => {
-    if (!lastRightClickLngLat) return;
-    addPinAtLocation(lastRightClickLngLat.lat, lastRightClickLngLat.lng);
-    hideContextMenu();
-  });
-}
 
 // Select-all UX enhancement on search input focus/click
 if (coordSearchInput) {
