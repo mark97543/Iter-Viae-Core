@@ -8,6 +8,8 @@
   
   --border-card: rgba(56, 189, 248, 0.2);
   --border-card-hover: rgba(56, 189, 248, 0.4);
+  --border-warning: rgba(245, 158, 11, 0.4);
+  --border-success: rgba(16, 185, 129, 0.4);
   
   --accent-cyan: #38bdf8;
   --accent-amber: #f59e0b;
@@ -245,7 +247,7 @@ html, body {
   transform: translateX(4px);
 }
 
-/* Hero Section */
+/* Hero Section & Card Views */
 .hero-container {
   position: relative;
   z-index: 5;
@@ -269,8 +271,12 @@ html, body {
   transition: border-color 0.3s ease;
 }
 
-.hero-card:hover {
-  border-color: var(--border-card-hover);
+.hero-card.border-warning {
+  border-color: var(--border-warning);
+}
+
+.hero-card.border-success {
+  border-color: var(--border-success);
 }
 
 .card-tag {
@@ -282,6 +288,14 @@ html, body {
   color: var(--accent-cyan);
   margin-bottom: 1.25rem;
   text-transform: uppercase;
+}
+
+.card-tag.tag-warning {
+  color: var(--accent-amber);
+}
+
+.card-tag.tag-success {
+  color: var(--accent-emerald);
 }
 
 .hero-title {
@@ -368,6 +382,12 @@ html, body {
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+.badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
 .badge-primary {
   background: rgba(56, 189, 248, 0.15);
   color: var(--accent-cyan);
@@ -400,6 +420,66 @@ html, body {
   justify-content: center;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+/* Unverified Account View Elements */
+.unverified-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.unverified-box {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 620px;
+  margin: 0 auto;
+
+  p {
+    font-size: 0.95rem;
+    color: #fde68a;
+    line-height: 1.5;
+  }
+}
+
+.link-cyan {
+  color: var(--accent-cyan);
+  text-decoration: underline;
+
+  &:hover {
+    color: #7dd3fc;
+  }
+}
+
+/* Verified Workspace Placeholder Canvas */
+.workspace-placeholder {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px dashed rgba(56, 189, 248, 0.25);
+  border-radius: 16px;
+  padding: 4rem 2rem;
+  margin-top: 1rem;
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  h3 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+}
+
+.placeholder-icon {
+  font-size: 3rem;
 }
 
 /* Auth Modal System */
@@ -542,6 +622,12 @@ html, body {
       border-color: var(--accent-cyan);
     }
   }
+}
+
+.reg-notice {
+  font-size: 0.78rem;
+  color: var(--accent-amber);
+  line-height: 1.4;
 }
 
 /* Footer */

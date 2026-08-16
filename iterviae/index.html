@@ -42,14 +42,15 @@
             <div id="user-session-pill" class="user-pill" style="display: none;">
               <span class="user-avatar">👤</span>
               <span id="user-display-name" class="user-name">User</span>
+              <span id="user-verification-badge" class="badge badge-warning">UNVERIFIED</span>
               <button id="logout-btn" class="btn-logout" title="Sign Out">✕</button>
             </div>
           </div>
         </div>
       </header>
 
-      <!-- Welcome Hero Section -->
-      <main class="hero-container">
+      <!-- View 1: Guest Landing / Welcome Hero Section -->
+      <main id="guest-view" class="hero-container">
         <div class="hero-card">
           <div class="card-tag">NEXT-GEN TACTICAL PLATFORM</div>
           <h1 class="hero-title">Welcome to <span class="gradient-text">Iter Viae</span> Web</h1>
@@ -105,13 +106,53 @@
 
           <!-- Action Buttons -->
           <div class="hero-actions">
-            <button id="launch-app-btn" class="btn btn-primary btn-lg">
-              <span>Launch Tactical Map Surface</span>
+            <button id="hero-auth-btn" class="btn btn-primary btn-lg">
+              <span>Sign In / Register Account</span>
               <span class="btn-arrow">→</span>
             </button>
-            <a href="https://github.com/mark97543/Iter-Viae-Core" target="_blank" rel="noopener" class="btn btn-outline btn-lg">
-              <span>View Repository</span>
-            </a>
+          </div>
+        </div>
+      </main>
+
+      <!-- View 2: Unverified User Screen -->
+      <main id="unverified-view" class="hero-container" style="display: none;">
+        <div class="hero-card border-warning">
+          <div class="card-tag tag-warning">ACCOUNT PENDING VERIFICATION</div>
+          <div class="unverified-icon">⚠️</div>
+          <h1 class="hero-title">Unverified Account Access</h1>
+          <p class="hero-subtitle">
+            Welcome, <strong id="unverified-user-email">user@domain.com</strong>. Your account is currently unverified.
+          </p>
+
+          <div class="unverified-box">
+            <p class="unverified-message">
+              🔒 <strong>Action Required:</strong> Please contact the platform administrator (<a href="mailto:mark@wade-usa.com" class="link-cyan">mark@wade-usa.com</a>) to verify and activate your user account permissions.
+            </p>
+          </div>
+
+          <div class="hero-actions" style="margin-top: 2rem;">
+            <button id="unverified-logout-btn" class="btn btn-outline btn-lg">
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- View 3: Verified User Blank Workspace Canvas -->
+      <main id="verified-view" class="hero-container" style="display: none;">
+        <div class="hero-card border-success">
+          <div class="card-tag tag-success">VERIFIED USER WORKSPACE</div>
+          <h1 class="hero-title">Welcome, <span id="verified-user-name" class="gradient-text">User</span></h1>
+          <p class="hero-subtitle">
+            Your account is verified and active. Welcome workspace ready for feature construction.
+          </p>
+
+          <div class="workspace-placeholder">
+            <div class="placeholder-content">
+              <span class="placeholder-icon">🗺️</span>
+              <h3>Tactical Workspace Canvas</h3>
+              <p>Ready to build tactical map surfaces, waypoint managers, and trip logbooks.</p>
+            </div>
           </div>
         </div>
       </main>
@@ -147,7 +188,7 @@
               <input type="password" id="login-password" placeholder="••••••••••••" required />
             </div>
             <button type="submit" class="btn btn-primary btn-block btn-lg">
-              <span>Authenticate & Launch</span>
+              <span>Authenticate & Enter</span>
             </button>
           </form>
 
@@ -165,6 +206,7 @@
               <label for="reg-password">Password</label>
               <input type="password" id="reg-password" placeholder="Min. 8 characters" required />
             </div>
+            <p class="reg-notice">⚠️ Note: New user accounts default to Unverified status and require administrator verification.</p>
             <button type="submit" class="btn btn-primary btn-block btn-lg">
               <span>Register Account</span>
             </button>
