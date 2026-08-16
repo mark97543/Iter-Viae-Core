@@ -38,7 +38,7 @@ const mapZoomDisplay = document.getElementById("map-zoom-display");
 const recenterMapBtn = document.getElementById("recenter-map-btn");
 const toggleStyleBtn = document.getElementById("toggle-style-btn");
 
-// Global Map Instance
+// Global Map Instance & Endpoints
 let map: maplibregl.Map | null = null;
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
 const VECTOR_TILESERVER_STYLE = "https://tiles.wade-usa.com/styles/basic-preview/style.json";
@@ -60,12 +60,20 @@ function initializeMapSurface() {
     attributionControl: false
   });
 
-  // Handle TileServer error fallback gracefully
+  // Handle TileServer GL CORS/Network error fallback gracefully
+  let fallbackAttempted = false;
   map.on("error", (e) => {
-    console.warn("TileServer GL style loading fallback event:", e);
+    if (!fallbackAttempted && (e.error?.message?.includes("CORS") || e.error?.message?.includes("Failed to fetch") || e.error?.message?.includes("style"))) {
+      fallbackAttempted = true;
+      console.warn("TileServer GL CORS or style network fetch blocked. Switching to resilient vector map fallback...", e);
+      if (map) {
+        map.setStyle(FALLBACK_DEMO_STYLE);
+        if (toggleStyleBtn) toggleStyleBtn.textContent = "🗺️ Tile Source: Resilient Fallback";
+      }
+    }
   });
 
-  // Add Navigation Controls
+  // Add Navigation & Fullscreen Controls
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
   map.addControl(new maplibregl.FullscreenControl(), "bottom-right");
 

@@ -131,7 +131,7 @@
           <div class="hud-left">
             <span class="hud-tag">ROAD COMMAND</span>
             <span id="map-coords-display" class="hud-coords">LAT: 39.7392 | LON: -104.9903</span>
-            <span id="map-zoom-display" class="hud-zoom">ZOOM: 12.0</span>
+            <span id="map-zoom-display" class="hud-zoom">ZOOM: 11.0</span>
           </div>
 
           <div class="hud-right">
@@ -169,11 +169,11 @@
           <form id="login-form" class="auth-form">
             <div class="form-group">
               <label for="login-email">Email or Username</label>
-              <input type="text" id="login-email" placeholder="user@domain.com" required />
+              <input type="text" id="login-email" placeholder="user@domain.com" autocomplete="username" required />
             </div>
             <div class="form-group">
               <label for="login-password">Password</label>
-              <input type="password" id="login-password" placeholder="••••••••••••" required />
+              <input type="password" id="login-password" placeholder="••••••••••••" autocomplete="current-password" required />
             </div>
             <button type="submit" class="btn btn-primary btn-block btn-lg">
               Sign In
@@ -183,15 +183,15 @@
           <form id="register-form" class="auth-form" style="display: none;">
             <div class="form-group">
               <label for="reg-name">Full Name</label>
-              <input type="text" id="reg-name" placeholder="User Name" required />
+              <input type="text" id="reg-name" placeholder="User Name" autocomplete="name" required />
             </div>
             <div class="form-group">
               <label for="reg-email">Email Address</label>
-              <input type="email" id="reg-email" placeholder="user@domain.com" required />
+              <input type="email" id="reg-email" placeholder="user@domain.com" autocomplete="email" required />
             </div>
             <div class="form-group">
               <label for="reg-password">Password</label>
-              <input type="password" id="reg-password" placeholder="Min. 8 characters" required />
+              <input type="password" id="reg-password" placeholder="Min. 8 characters" autocomplete="new-password" required />
             </div>
             <p class="reg-notice">Note: New accounts start as Unverified and require administrator clearance.</p>
             <button type="submit" class="btn btn-primary btn-block btn-lg">

@@ -22,8 +22,6 @@ EasyPanel automatically handles domain routing, SSL certificates (Let's Encrypt)
 └─────────────────────┘   └─────────────────────┘   └─────────────────────┘
 ```
 
-> ⚡ **No Custom Gateway Needed**: EasyPanel terminates SSL and routes domains (`https://tiles.wade-usa.com`, `https://valhalla.wade-usa.com`, `https://api.wade-usa.com`) natively without extra proxy bottlenecks!
-
 ---
 
 ## 🛠️ Step 1: Deploy PocketBase (Auth & Data Storage)
@@ -36,12 +34,19 @@ EasyPanel automatically handles domain routing, SSL certificates (Let's Encrypt)
 
 ---
 
-## 🗺️ Step 2: Deploy Vector TileServer GL
+## 🗺️ Step 2: Deploy Vector TileServer GL (Enable CORS)
 
 - **Domain**: `tiles.wade-usa.com`
 - **Docker Image**: `maptiler/tileserver-gl:latest`
 - **Container Port**: `8080`
 - **Volume Mapping**: `/data` (containing `config.json` and MBTiles files).
+- **CORS Configuration (Fixes Browser CORS Errors)**:
+  In EasyPanel under Service Settings -> **CMD / Command**:
+  Add `--cors` to the command line arguments:
+  ```bash
+  tileserver-gl --cors -p 8080
+  ```
+  > 💡 **Result**: Allows web applications on `localhost` or custom web domains to fetch vector tiles and style JSON files cleanly!
 
 ---
 
@@ -59,5 +64,5 @@ EasyPanel automatically handles domain routing, SSL certificates (Let's Encrypt)
 | Service | Public HTTPS Domain | Port | Function |
 | :--- | :--- | :--- | :--- |
 | **PocketBase** | `https://api.wade-usa.com` | `8090` | Auth, User Isolation, Trips Database |
-| **TileServer GL** | `https://tiles.wade-usa.com` | `8080` | OpenMapTiles Vector `.pbf` tiles |
+| **TileServer GL** | `https://tiles.wade-usa.com` | `8080` | OpenMapTiles Vector `.pbf` tiles (CORS Enabled) |
 | **Valhalla Engine** | `https://valhalla.wade-usa.com` | `8002` | Turn-by-Turn Route Calculations |
