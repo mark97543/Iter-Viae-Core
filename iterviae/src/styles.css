@@ -477,7 +477,11 @@ html, body {
   }
 }
 
-/* Map Popup Customization */
+/* Map Popup Customization - Hide close button */
+.maplibregl-popup-close-button {
+  display: none !important;
+}
+
 .maplibregl-popup-content {
   background: #1e293b !important;
   color: #f8fafc !important;

@@ -67,6 +67,13 @@ const BRIGHT_VOYAGER_MAP_STYLE = {
   ]
 };
 
+function clearSearchMarker() {
+  if (searchMarker) {
+    searchMarker.remove();
+    searchMarker = null;
+  }
+}
+
 function initializeMapSurface() {
   const container = document.getElementById("map-container");
   if (!container) return;
@@ -94,6 +101,11 @@ function initializeMapSurface() {
   // Add Navigation & Fullscreen Controls
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
   map.addControl(new maplibregl.FullscreenControl(), "bottom-right");
+
+  // Dismiss marker & popup when user clicks anywhere else on the map canvas
+  map.on("click", () => {
+    clearSearchMarker();
+  });
 
   map.on("load", () => {
     map?.resize();
@@ -148,23 +160,23 @@ if (coordSearchForm && coordSearchInput) {
       essential: true
     });
 
-    // Remove existing search marker if any
-    if (searchMarker) {
-      searchMarker.remove();
-    }
+    // Remove existing search marker & popup when placing a new pin
+    clearSearchMarker();
 
-    // Add sleek Red Location Pin at searched location
+    // Add sleek Red Location Pin at searched location (No close button on popup)
     const popupHtml = `
       <div style="font-family: Inter, sans-serif; padding: 4px;">
-        <h4 style="color:#ef4444; margin-bottom:4px; font-size:0.95rem;">📍 Searched Waypoint</h4>
+        <h4 style="color:#ef4444; margin-bottom:4px; font-size:0.95rem;">📍 Target Waypoint</h4>
         <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Latitude: ${lat.toFixed(6)}</p>
         <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Longitude: ${lon.toFixed(6)}</p>
       </div>
     `;
 
+    const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml);
+
     searchMarker = new maplibregl.Marker({ color: "#ef4444" })
       .setLngLat([lon, lat])
-      .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml))
+      .setPopup(popup)
       .addTo(map);
 
     searchMarker.togglePopup();
@@ -303,10 +315,7 @@ if (registerForm) {
 // Logout Handlers
 function performLogout() {
   PocketBaseAuth.logout();
-  if (searchMarker) {
-    searchMarker.remove();
-    searchMarker = null;
-  }
+  clearSearchMarker();
   if (map) {
     map.remove();
     map = null;
