@@ -47,6 +47,7 @@ const BRIGHT_VOYAGER_MAP_STYLE = {
         "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
       ],
       tileSize: 256,
+      maxzoom: 19,
       attribution: "© OpenStreetMap contributors, © CARTO"
     }
   },
@@ -56,7 +57,7 @@ const BRIGHT_VOYAGER_MAP_STYLE = {
       type: "raster" as const,
       source: "carto-voyager",
       minzoom: 0,
-      maxzoom: 20
+      maxzoom: 19
     }
   ]
 };
@@ -77,6 +78,8 @@ function initializeMapSurface() {
     style: BRIGHT_VOYAGER_MAP_STYLE,
     center: DEFAULT_CENTER,
     zoom: 11,
+    minZoom: 3,   // Prevent zooming out into empty space
+    maxZoom: 18,  // Lock max zoom level to prevent tiles disappearing
     pitch: 0,
     bearing: 0,
     attributionControl: false
@@ -132,7 +135,7 @@ function updateAuthStateUI() {
       if (guestView) guestView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "flex";
-      if (appFooter) appFooter.style.display = "none"; // Hide footer for full viewport map
+      if (appFooter) appFooter.style.display = "none";
 
       setTimeout(() => {
         initializeMapSurface();
