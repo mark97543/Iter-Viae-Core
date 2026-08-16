@@ -2,7 +2,7 @@ import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { PocketBaseAuth } from "./pocketbase";
 
-console.log("Iter Viae Tactical Surface initialized with MapLibre GL Vector Engine.");
+console.log("Iter Viae Tactical Surface initialized with POI Query Engine & MapLibre GL.");
 
 // DOM View Containers
 const guestView = document.getElementById("guest-view");
@@ -31,8 +31,12 @@ const logoutBtn = document.getElementById("logout-btn");
 const unverifiedUserEmail = document.getElementById("unverified-user-email");
 const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
 
-// Global Map Instance & Style Configuration
+const clearPoisBtn = document.getElementById("clear-pois-btn");
+
+// Global Map Instance & Active Markers
 let map: maplibregl.Map | null = null;
+let activePoiMarkers: maplibregl.Marker[] = [];
+
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
 
 // High-Contrast Bright Voyager Map Style (Clear, vibrant roads and easy on eyes)
@@ -62,6 +66,99 @@ const BRIGHT_VOYAGER_MAP_STYLE = {
   ]
 };
 
+function clearPoiMarkers() {
+  activePoiMarkers.forEach((m) => m.remove());
+  activePoiMarkers = [];
+
+  document.querySelectorAll(".poi-btn").forEach((btn) => btn.classList.remove("active"));
+  if (clearPoisBtn) clearPoisBtn.style.display = "none";
+}
+
+// Fetch POIs dynamically from OpenStreetMap Overpass API
+async function fetchPoisForCategory(category: string) {
+  if (!map) return;
+
+  clearPoiMarkers();
+
+  const bounds = map.getBounds();
+  const south = bounds.getSouth();
+  const west = bounds.getWest();
+  const north = bounds.getNorth();
+  const east = bounds.getEast();
+
+  let queryFilter = "";
+  let iconEmoji = "📍";
+  let markerColor = "#ef4444";
+
+  switch (category) {
+    case "fuel":
+      queryFilter = 'node["amenity"="fuel"]';
+      iconEmoji = "⛽";
+      markerColor = "#f97316";
+      break;
+    case "food":
+      queryFilter = 'node["amenity"~"restaurant|fast_food|cafe"]';
+      iconEmoji = "🍔";
+      markerColor = "#38bdf8";
+      break;
+    case "lodging":
+      queryFilter = 'node["tourism"~"hotel|motel|guest_house"]';
+      iconEmoji = "🏨";
+      markerColor = "#a855f7";
+      break;
+    case "camping":
+      queryFilter = 'node["tourism"~"camp_site|caravan_site"]';
+      iconEmoji = "⛺";
+      markerColor = "#10b981";
+      break;
+    case "repair":
+      queryFilter = 'node["shop"~"car_repair|motorcycle"]';
+      iconEmoji = "🔧";
+      markerColor = "#eab308";
+      break;
+  }
+
+  const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json][timeout:15];(${queryFilter}(${south},${west},${north},${east}););out body 50;`;
+
+  try {
+    const response = await fetch(overpassUrl);
+    const data = await response.json();
+
+    if (!data.elements || data.elements.length === 0) {
+      alert(`No ${category} POIs found in the current map view area. Try panning or zooming out.`);
+      return;
+    }
+
+    data.elements.forEach((element: any) => {
+      if (!element.lat || !element.lon) return;
+
+      const name = element.tags?.name || element.tags?.brand || `${category.toUpperCase()} Station`;
+      const brand = element.tags?.brand ? `<p style='color:#94a3b8; font-size:0.75rem;'>Brand: ${element.tags.brand}</p>` : "";
+      const street = element.tags?.["addr:street"] ? `<p style='color:#64748b; font-size:0.75rem;'>${element.tags["addr:street"]}</p>` : "";
+
+      const popupHtml = `
+        <div style="font-family: Inter, sans-serif;">
+          <h4 style="color:#ef4444; margin-bottom:4px; font-size:0.95rem;">${iconEmoji} ${name}</h4>
+          ${brand}
+          ${street}
+          <p style="color:#10b981; font-weight:600; font-size:0.75rem; margin-top:4px;">Lat: ${element.lat.toFixed(4)}, Lon: ${element.lon.toFixed(4)}</p>
+        </div>
+      `;
+
+      const marker = new maplibregl.Marker({ color: markerColor })
+        .setLngLat([element.lon, element.lat])
+        .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml))
+        .addTo(map!);
+
+      activePoiMarkers.push(marker);
+    });
+
+    if (clearPoisBtn) clearPoisBtn.style.display = "inline-flex";
+  } catch (err) {
+    console.error("Failed to fetch POIs:", err);
+  }
+}
+
 function initializeMapSurface() {
   const container = document.getElementById("map-container");
   if (!container) return;
@@ -78,8 +175,8 @@ function initializeMapSurface() {
     style: BRIGHT_VOYAGER_MAP_STYLE,
     center: DEFAULT_CENTER,
     zoom: 11,
-    minZoom: 3,   // Prevent zooming out into empty space
-    maxZoom: 18,  // Lock max zoom level to prevent tiles disappearing
+    minZoom: 3,
+    maxZoom: 18,
     pitch: 0,
     bearing: 0,
     attributionControl: false
@@ -106,6 +203,21 @@ function initializeMapSurface() {
   setTimeout(() => {
     map?.resize();
   }, 400);
+}
+
+// POI Bar Event Listeners
+document.addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  if (target && target.classList.contains("poi-btn") && target.dataset.category) {
+    const category = target.dataset.category;
+    document.querySelectorAll(".poi-btn").forEach((b) => b.classList.remove("active"));
+    target.classList.add("active");
+    fetchPoisForCategory(category);
+  }
+});
+
+if (clearPoisBtn) {
+  clearPoisBtn.addEventListener("click", clearPoiMarkers);
 }
 
 // View Switcher & Auth UI State Management
@@ -240,6 +352,7 @@ if (registerForm) {
 // Logout Handlers
 function performLogout() {
   PocketBaseAuth.logout();
+  clearPoiMarkers();
   if (map) {
     map.remove();
     map = null;

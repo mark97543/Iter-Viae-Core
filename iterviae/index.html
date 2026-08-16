@@ -116,8 +116,19 @@
         </div>
       </main>
 
-      <!-- View 3: Verified User Workspace (Full 100vh Viewport Map Canvas) -->
+      <!-- View 3: Verified User Workspace (Full 100vh Viewport Map Canvas + POI Toolbar) -->
       <main id="verified-view" class="map-view-container" style="display: none;">
+        <!-- POI Category Filter Bar -->
+        <div class="poi-bar">
+          <span class="poi-bar-title">EXPLORE POIS:</span>
+          <button class="poi-btn" data-category="fuel">⛽ Fuel & Gas</button>
+          <button class="poi-btn" data-category="food">🍔 Food & Dining</button>
+          <button class="poi-btn" data-category="lodging">🏨 Hotels & Lodging</button>
+          <button class="poi-btn" data-category="camping">⛺ Camping & RV</button>
+          <button class="poi-btn" data-category="repair">🔧 Mechanic & Repair</button>
+          <button id="clear-pois-btn" class="poi-btn poi-btn-clear" style="display: none;">✕ Clear POIs</button>
+        </div>
+
         <div id="map-container" class="map-surface"></div>
       </main>
 
