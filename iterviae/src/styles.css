@@ -427,12 +427,13 @@ html, body {
   background: #1e293b;
 }
 
-/* LEFT TACTICAL TRIP PLANNER DRAWER SIDEPANEL */
+/* LEFT TACTICAL TRIP PLANNER DRAWER SIDEPANEL (STRICT FIT NO SCROLL OVERFLOW) */
 .planner-panel {
   position: relative;
   z-index: 30;
   width: 350px;
   min-width: 350px;
+  max-width: 350px;
   height: 100%;
   background: rgba(15, 23, 42, 0.96);
   backdrop-filter: blur(20px);
@@ -441,6 +442,7 @@ html, body {
   flex-direction: column;
   box-shadow: 10px 0 30px rgba(0, 0, 0, 0.4);
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
 }
 
 .planner-panel.collapsed {
@@ -448,22 +450,23 @@ html, body {
 }
 
 .planner-header {
-  padding: 1.25rem;
+  padding: 1rem 1.1rem;
   border-bottom: 1px solid var(--border-subtle);
+  width: 100%;
 
   .planner-title-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 }
 
 .planner-badge {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--accent-red-bright);
 }
 
@@ -471,9 +474,9 @@ html, body {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
-  padding: 4px;
+  padding: 2px 6px;
   border-radius: 4px;
 
   &:hover {
@@ -487,13 +490,15 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   background: rgba(30, 41, 59, 0.7);
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
+  overflow: hidden;
 
   &:hover {
     background: rgba(51, 65, 85, 0.9);
@@ -502,33 +507,36 @@ html, body {
 }
 
 .trip-title-heading {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
-/* Waypoints Section (Fills flexible middle height) */
+/* Waypoints Section (Fills flexible middle height, vertical scroll only) */
 .waypoints-section {
   flex: 1;
-  padding: 1.25rem;
+  padding: 1rem 1.1rem;
   border-bottom: 1px solid var(--border-subtle);
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
 
   .section-title-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 
     h3 {
       font-family: var(--font-mono);
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 800;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       color: var(--text-secondary);
     }
   }
@@ -537,20 +545,24 @@ html, body {
 .waypoints-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
+  width: 100%;
 }
 
 .waypoint-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 10px;
+  gap: 6px;
+  padding: 8px 8px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: grab;
   user-select: none;
   transition: all 0.2s ease;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 
   &:hover {
     border-color: rgba(239, 68, 68, 0.4);
@@ -566,15 +578,15 @@ html, body {
 
 .waypoint-item.drag-over {
   border: 2px dashed var(--accent-red-bright);
-  transform: scale(1.02);
 }
 
 .drag-handle {
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   cursor: grab;
-  padding: 0 4px;
+  padding: 0 2px;
   line-height: 1;
+  flex-shrink: 0;
 
   &:hover {
     color: var(--text-primary);
@@ -583,11 +595,12 @@ html, body {
 
 .waypoint-tag-badge {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
-  padding: 3px 6px;
+  padding: 2px 4px;
   border-radius: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tag-origin {
@@ -610,19 +623,25 @@ html, body {
 
 .waypoint-inputs {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  overflow: hidden;
 }
 
 .waypoint-name-input {
+  width: 100%;
   background: transparent;
   border: none;
   color: var(--text-primary);
   font-family: var(--font-family);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
   outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &::placeholder {
     color: var(--text-muted);
@@ -630,12 +649,16 @@ html, body {
 }
 
 .waypoint-coords-input {
+  width: 100%;
   background: transparent;
   border: none;
   color: var(--accent-emerald);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &::placeholder {
     color: var(--text-muted);
@@ -646,65 +669,102 @@ html, body {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 2px;
+  flex-shrink: 0;
 
   &:hover {
     color: var(--accent-rose);
   }
 }
 
+/* INTER-WAYPOINT LEG METRICS BADGE CONNECTOR */
+.leg-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 2px 0;
+  width: 100%;
+}
+
+.leg-line {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.leg-badge {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  background: #0f172a;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
 /* ROUTE METRICS SECTION (POSITIONED AT BOTTOM ABOVE SAVE BUTTON) */
 .metrics-section {
-  padding: 1.1rem 1.25rem;
-  background: rgba(15, 23, 42, 0.8);
+  padding: 1rem 1.1rem;
+  background: rgba(15, 23, 42, 0.85);
   border-top: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
+  width: 100%;
 }
 
 .metrics-title-badge {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   color: var(--text-muted);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .metrics-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .metric-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
+  gap: 2px;
+  padding: 6px 8px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .metric-key {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--text-muted);
 }
 
 .metric-value {
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 800;
   color: var(--accent-red-bright);
 }
 
 .planner-actions {
-  padding: 1.25rem;
+  padding: 1rem 1.1rem;
+  width: 100%;
 }
 
 .expand-planner-pill {

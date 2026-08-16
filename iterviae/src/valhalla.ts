@@ -5,10 +5,16 @@ export interface RouteLocation {
   lon: number;
 }
 
+export interface LegMetric {
+  distanceMi: number;
+  durationSec: number;
+}
+
 export interface RouteResult {
   coordinates: [number, number][];
   distanceMi: number;
   durationSec: number;
+  legs: LegMetric[];
 }
 
 /**
@@ -31,6 +37,7 @@ export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2
 function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
   const coordinates: [number, number][] = [];
   let totalDistanceMi = 0;
+  const legs: LegMetric[] = [];
 
   for (let i = 0; i < locations.length - 1; i++) {
     const start = locations[i];
@@ -38,6 +45,9 @@ function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
 
     const dist = haversineDistance(start.lat, start.lon, end.lat, end.lon);
     totalDistanceMi += dist;
+
+    const legDuration = (dist / 50) * 3600;
+    legs.push({ distanceMi: dist, durationSec: legDuration });
 
     // Subdivide into 15 intermediate points per leg for smooth curve rendering
     const steps = 15;
@@ -49,13 +59,13 @@ function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
     }
   }
 
-  // Estimate duration assuming 50 mph avg speed
   const durationSec = (totalDistanceMi / 50) * 3600;
 
   return {
     coordinates,
     distanceMi: totalDistanceMi,
-    durationSec
+    durationSec,
+    legs
   };
 }
 
@@ -65,7 +75,7 @@ function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
  */
 export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<RouteResult> {
   if (locations.length < 2) {
-    return { coordinates: [], distanceMi: 0, durationSec: 0 };
+    return { coordinates: [], distanceMi: 0, durationSec: 0, legs: [] };
   }
 
   // 1. Try OSRM Routing Engine (CORS enabled: *)
@@ -84,7 +94,12 @@ export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<
         const distanceMi = route.distance * 0.000621371; // meters to miles
         const durationSec = route.duration; // seconds
 
-        return { coordinates, distanceMi, durationSec };
+        const legs: LegMetric[] = (route.legs || []).map((leg: any) => ({
+          distanceMi: leg.distance * 0.000621371,
+          durationSec: leg.duration
+        }));
+
+        return { coordinates, distanceMi, durationSec, legs };
       }
     }
   } catch (err) {

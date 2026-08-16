@@ -1,9 +1,9 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
-import { fetchExpeditionRoute } from "./valhalla";
+import { fetchExpeditionRoute, LegMetric } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Waypoint Drag-Reorder Engine.");
+console.log("Iter Viae Tactical Surface initialized with Inter-Waypoint Leg Metrics Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -77,6 +77,7 @@ let waypointMapMarkers: maplibregl.Marker[] = [];
 let lastRightClickLngLat: { lat: number; lng: number } | null = null;
 let toastTimeout: any = null;
 let draggedWaypointIndex: number | null = null;
+let currentLegMetrics: LegMetric[] = [];
 
 // Expedition State
 let currentTripTitle = "ROCKY MOUNTAIN EXPEDITION";
@@ -138,6 +139,14 @@ function showToast(message: string) {
   }, 2500);
 }
 
+// Format duration helper
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  if (h > 0) return `${h}H ${m}M`;
+  return `${m}M`;
+}
+
 // Fetch turn-by-turn route line geometry & update metrics
 async function updateExpeditionRoute() {
   if (!map) return;
@@ -155,18 +164,20 @@ async function updateExpeditionRoute() {
     }
     if (metricDistance) metricDistance.textContent = "0.0 MI";
     if (metricDuration) metricDuration.textContent = "0H 0M";
+    currentLegMetrics = [];
     return;
   }
 
   try {
-    const { coordinates, distanceMi, durationSec } = await fetchExpeditionRoute(validLocations);
+    const { coordinates, distanceMi, durationSec, legs } = await fetchExpeditionRoute(validLocations);
+    currentLegMetrics = legs;
 
-    // Format metrics
-    const hours = Math.floor(durationSec / 3600);
-    const mins = Math.round((durationSec % 3600) / 60);
-
+    // Update main bottom metrics
     if (metricDistance) metricDistance.textContent = `${distanceMi.toFixed(1)} MI`;
-    if (metricDuration) metricDuration.textContent = `${hours}H ${mins}M`;
+    if (metricDuration) metricDuration.textContent = formatDuration(durationSec);
+
+    // Update Leg Badges UI in left panel list
+    updateLegBadgesUI();
 
     // Create GeoJSON Feature
     const routeGeoJSON: GeoJSON.FeatureCollection = {
@@ -209,6 +220,16 @@ async function updateExpeditionRoute() {
   } catch (err) {
     console.error("Expedition Route calculation error:", err);
   }
+}
+
+// Update inter-waypoint leg distance & time badges UI
+function updateLegBadgesUI() {
+  currentLegMetrics.forEach((leg, idx) => {
+    const badgeEl = document.getElementById(`leg-badge-${idx}`);
+    if (badgeEl) {
+      badgeEl.textContent = `↓ ${leg.distanceMi.toFixed(1)} MI • ${formatDuration(leg.durationSec)}`;
+    }
+  });
 }
 
 // Sync Map Markers with Active Waypoints List (DRAGGABLE = TRUE)
@@ -281,7 +302,7 @@ function renderWaypointMapMarkers() {
   updateExpeditionRoute();
 }
 
-// Render Left Panel Waypoints List UI with HTML5 Drag-and-Drop Reordering
+// Render Left Panel Waypoints List UI with Inter-Waypoint Leg Metrics & HTML5 Drag-and-Drop Reordering
 function renderWaypointsUI() {
   if (!waypointsContainer) return;
 
@@ -295,6 +316,24 @@ function renderWaypointsUI() {
   });
 
   waypoints.forEach((wp, idx) => {
+    // 1. Render Inter-Waypoint Leg Connector Badge (between adjacent waypoints)
+    if (idx > 0) {
+      const legIndex = idx - 1;
+      const legMetric = currentLegMetrics[legIndex];
+      const legText = legMetric 
+        ? `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`
+        : `↓ CALCULATING...`;
+
+      const legEl = document.createElement("div");
+      legEl.className = "leg-connector";
+      legEl.innerHTML = `
+        <span class="leg-line"></span>
+        <span id="leg-badge-${legIndex}" class="leg-badge">${legText}</span>
+      `;
+      waypointsContainer.appendChild(legEl);
+    }
+
+    // 2. Render Waypoint Item Card
     const itemEl = document.createElement("div");
     itemEl.className = "waypoint-item";
     itemEl.setAttribute("draggable", "true");
