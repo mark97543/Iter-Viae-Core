@@ -16,6 +16,7 @@
     "@turf/turf": "^7.1.0",
     "flatpickr": "^4.6.13",
     "maplibre-gl": "^4.7.1",
+    "pocketbase": "^0.27.3",
     "qrcode": "^1.5.4"
   }
 }

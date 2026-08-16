@@ -1,7 +1,7 @@
 import "./styles.css";
-import { AuthService } from "./auth";
+import { PocketBaseAuth } from "./pocketbase";
 
-console.log("Iter Viae Web App initialized with Directus Auth Service.");
+console.log("Iter Viae Web App initialized with PocketBase Auth Service.");
 
 // DOM Element References
 const launchBtn = document.getElementById("launch-app-btn");
@@ -23,12 +23,12 @@ const logoutBtn = document.getElementById("logout-btn");
 
 // UI State Updates
 function updateAuthStateUI() {
-  const user = AuthService.getUser();
-  if (user) {
+  if (PocketBaseAuth.isAuthenticated()) {
+    const user = PocketBaseAuth.getUser();
     if (openAuthBtn) openAuthBtn.style.display = "none";
     if (userSessionPill) userSessionPill.style.display = "flex";
     if (userDisplayName) {
-      userDisplayName.textContent = user.first_name || user.email;
+      userDisplayName.textContent = (user as any)?.name || (user as any)?.email || "Authenticated User";
     }
   } else {
     if (openAuthBtn) openAuthBtn.style.display = "inline-flex";
@@ -72,18 +72,18 @@ if (tabLoginBtn && tabRegisterBtn && loginForm && registerForm) {
 if (loginForm) {
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const emailInput = document.getElementById("login-email") as HTMLInputElement;
+    const identityInput = document.getElementById("login-email") as HTMLInputElement;
     const passwordInput = document.getElementById("login-password") as HTMLInputElement;
 
     try {
       if (authErrorBanner) authErrorBanner.style.display = "none";
-      const user = await AuthService.login(emailInput.value, passwordInput.value);
+      const authData = await PocketBaseAuth.login(identityInput.value, passwordInput.value);
       updateAuthStateUI();
       closeModal();
-      alert(`Welcome back, ${user.first_name || user.email}! Authenticated via Directus.`);
+      alert(`Welcome back, ${(authData.record as any)?.name || authData.record.email}! Authenticated via PocketBase.`);
     } catch (err: any) {
       if (authErrorBanner) {
-        authErrorBanner.textContent = err.message || "Authentication failed.";
+        authErrorBanner.textContent = err.message || "Invalid email or password.";
         authErrorBanner.style.display = "block";
       }
     }
@@ -100,9 +100,11 @@ if (registerForm) {
 
     try {
       if (authErrorBanner) authErrorBanner.style.display = "none";
-      await AuthService.register(emailInput.value, passwordInput.value, nameInput.value);
-      alert("Registration submitted successfully! You may now sign in.");
-      tabLoginBtn?.click();
+      await PocketBaseAuth.register(emailInput.value, passwordInput.value, nameInput.value);
+      alert("Account created successfully! Logging you in...");
+      await PocketBaseAuth.login(emailInput.value, passwordInput.value);
+      updateAuthStateUI();
+      closeModal();
     } catch (err: any) {
       if (authErrorBanner) {
         authErrorBanner.textContent = err.message || "Registration failed.";
@@ -115,7 +117,7 @@ if (registerForm) {
 // Logout Handler
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
-    AuthService.logout();
+    PocketBaseAuth.logout();
     updateAuthStateUI();
     alert("Signed out successfully.");
   });
@@ -126,18 +128,18 @@ updateAuthStateUI();
 
 if (launchBtn) {
   launchBtn.addEventListener("click", () => {
-    if (!AuthService.isAuthenticated()) {
+    if (!PocketBaseAuth.isAuthenticated()) {
       alert("Please sign in or register to access cloud-synced trip itineraries.");
       openModal();
       return;
     }
-    const user = AuthService.getUser();
-    alert(`Launching Iter Viae Tactical Map Surface for ${user?.email}...\n\nMap Server: https://tiles.wade-usa.com\nValhalla Engine: https://valhalla.wade-usa.com\nDirectus Cloud API: https://api.wade-usa.com`);
+    const user = PocketBaseAuth.getUser();
+    alert(`Launching Iter Viae Tactical Map Surface for ${(user as any)?.email}...\n\nMap Server: https://tiles.wade-usa.com\nValhalla Engine: https://valhalla.wade-usa.com\nPocketBase Cloud API: https://api.wade-usa.com`);
   });
 }
 
 if (serverStatusBtn) {
   serverStatusBtn.addEventListener("click", () => {
-    alert("Active API Infrastructure Nodes:\n\n1. Vector Tile Server: ONLINE (https://tiles.wade-usa.com)\n2. Valhalla Routing Engine: ONLINE (https://valhalla.wade-usa.com)\n3. Directus Cloud Backend: READY (https://api.wade-usa.com)");
+    alert("Active API Infrastructure Nodes:\n\n1. Vector Tile Server: ONLINE (https://tiles.wade-usa.com)\n2. Valhalla Routing Engine: ONLINE (https://valhalla.wade-usa.com)\n3. PocketBase Cloud Backend: READY (https://api.wade-usa.com)");
   });
 }
