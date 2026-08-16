@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchExpeditionRoute, haversineDistance, LegMetric } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Spatial Right-Click Waypoint Engine.");
+console.log("Iter Viae Tactical Surface initialized for Production Route Command with User Geolocation.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -79,16 +79,16 @@ let toastTimeout: any = null;
 let draggedWaypointIndex: number | null = null;
 let currentLegMetrics: LegMetric[] = [];
 
-// Expedition State
-let currentTripTitle = "ROCKY MOUNTAIN EXPEDITION";
-let currentTripSummary = "Tactical overland route across Colorado mountain passes and high-altitude highway corridors.";
+// Clean Production Expedition State (No Dummy Locations)
+let currentTripTitle = "MY EXPEDITION ROUTE";
+let currentTripSummary = "Route log for long-range motorcycle trek.";
 
 let waypoints: Waypoint[] = [
-  { id: "wp-origin", title: "Denver Command Base", lat: 39.7392, lon: -104.9903, type: "origin" },
-  { id: "wp-dest", title: "Boulder Outpost", lat: 40.0150, lon: -105.2705, type: "destination" }
+  { id: "wp-origin", title: "Current Position", lat: null, lon: null, type: "origin" },
+  { id: "wp-dest", title: "Final Destination", lat: null, lon: null, type: "destination" }
 ];
 
-const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
+const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Fallback center
 
 // High-Contrast Bright Voyager Map Style
 const BRIGHT_VOYAGER_MAP_STYLE = {
@@ -147,9 +147,10 @@ function formatDuration(seconds: number): string {
   return `${m}M`;
 }
 
-// Spatial algorithm to find the most logical leg segment to insert a new right-clicked stop
+// Spatial algorithm to find optimal insertion index for right-click stop
 function findOptimalInsertionIndex(lat: number, lon: number): number {
-  if (waypoints.length < 2) return waypoints.length;
+  const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
+  if (validWaypoints.length < 2) return waypoints.length - 1;
 
   let bestIndex = 1;
   let minDetour = Infinity;
@@ -191,6 +192,7 @@ async function updateExpeditionRoute() {
     if (metricDistance) metricDistance.textContent = "0.0 MI";
     if (metricDuration) metricDuration.textContent = "0H 0M";
     currentLegMetrics = [];
+    updateLegBadgesUI();
     return;
   }
 
@@ -348,7 +350,7 @@ function renderWaypointsUI() {
       const legMetric = currentLegMetrics[legIndex];
       const legText = legMetric 
         ? `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`
-        : `↓ CALCULATING...`;
+        : `↓ ENTER LOCATION...`;
 
       const legEl = document.createElement("div");
       legEl.className = "leg-connector";
@@ -401,7 +403,7 @@ function renderWaypointsUI() {
           data-id="${wp.id}" 
           data-field="coords"
           value="${coordsString}" 
-          placeholder="Lat, Lon coordinates" 
+          placeholder="Enter Lat, Lon coordinates" 
         />
       </div>
       ${waypoints.length > 2 ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop">✕</button>` : ""}
@@ -464,8 +466,8 @@ function renderWaypointsUI() {
 
 // Helper to insert a new stop at a specific index
 function insertNewStopAt(insertIndex: number, lat?: number, lon?: number) {
-  const targetLat = lat !== undefined ? lat : 39.8000 + (Math.random() * 0.1);
-  const targetLon = lon !== undefined ? lon : -105.1000 - (Math.random() * 0.1);
+  let targetLat: number | null = lat !== undefined ? lat : null;
+  let targetLon: number | null = lon !== undefined ? lon : null;
 
   const newStop: Waypoint = {
     id: `wp-stop-${Date.now()}`,
@@ -541,7 +543,13 @@ if (waypointsContainer) {
         if (!isNaN(lat) && !isNaN(lon)) {
           wp.lat = lat;
           wp.lon = lon;
+        } else {
+          wp.lat = null;
+          wp.lon = null;
         }
+      } else {
+        wp.lat = null;
+        wp.lon = null;
       }
     }
 
@@ -666,13 +674,13 @@ function initializeMapSurface() {
     return;
   }
 
-  console.log("Initializing MapLibre GL Map Surface...");
+  console.log("Initializing MapLibre GL Map Surface with Geolocation...");
 
   map = new maplibregl.Map({
     container: "map-container",
     style: BRIGHT_VOYAGER_MAP_STYLE,
     center: DEFAULT_CENTER,
-    zoom: 10,
+    zoom: 13,
     minZoom: 3,
     maxZoom: 18,
     pitch: 0,
@@ -713,7 +721,41 @@ function initializeMapSurface() {
 
   map.on("load", () => {
     map?.resize();
-    renderWaypointMapMarkers();
+
+    // Trigger Browser Geolocation to center map close to user position
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude;
+          const userLon = position.coords.longitude;
+
+          console.log(`User Geolocation acquired: ${userLat}, ${userLon}`);
+
+          // Fly map close to user location
+          map?.flyTo({
+            center: [userLon, userLat],
+            zoom: 14,
+            speed: 1.5,
+            essential: true
+          });
+
+          // Set Origin Waypoint to User's Current Location
+          if (waypoints.length > 0 && waypoints[0].type === "origin") {
+            waypoints[0].lat = userLat;
+            waypoints[0].lon = userLon;
+            waypoints[0].title = "Current Position";
+            renderWaypointsUI();
+          }
+        },
+        (error) => {
+          console.warn("Geolocation positioning error or permission denied:", error.message);
+          renderWaypointMapMarkers();
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      renderWaypointMapMarkers();
+    }
   });
 
   setTimeout(() => {
