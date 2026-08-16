@@ -49,12 +49,14 @@ You will configure 3 user tiers in the Directus Admin Console:
    - **Primary Key Type**: `UUID`
    - **System Fields**: Check the boxes for **`User Created`**, **`User Updated`**, **`Date Created`**, and **`Date Updated`**.
 3. Add the following fields to the `trips` collection:
-   - **`title`**: Type `String` (Input UI)
-   - **`status`**: Type `String` (Dropdown: `draft`, `active`, `archived`)
-   - **`waypoints`**: Type `JSON` (JSON code editor UI)
-   - **`route_geometry`**: Type `JSON` (GeoJSON line string)
-   - **`metrics`**: Type `JSON` (Distance, duration, budget metrics)
+   - **`title`**: Type `String` (Interface: `Input`)
+   - **`status`**: Type `String` (Interface: `Dropdown` with options: `draft`, `active`, `archived`)
+   - **`waypoints`**: Select Type **`JSON`** (or **`Text` / `Long Text`**). Under Interface, select **`Code`** (Language: `JSON`).
+   - **`route_geometry`**: Select Type **`JSON`** (or **`Text` / `Long Text`**). Under Interface, select **`Code`** (Language: `JSON`).
+   - **`metrics`**: Select Type **`JSON`** (or **`Text` / `Long Text`**). Under Interface, select **`Code`** (Language: `JSON`).
 4. Click **Save**.
+
+> 💡 **Directus UI Note**: If `JSON` does not appear in your specific database driver list, choose **`Text`** (Long Text). Under **Interface**, select **`Code`** with syntax highlighting set to `JSON`. Directus and Vite will parse it seamlessly!
 
 ---
 
