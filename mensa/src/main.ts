@@ -129,7 +129,7 @@ function initMap() {
 
   const map = new maplibregl.Map({
     container: "map",
-    transformRequest: (url, resourceType) => {
+    transformRequest: (url, _resourceType) => {
       const apiKey = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
       if (url.includes("tiles.wade-usa.com") && apiKey) {
         const separator = url.includes("?") ? "&" : "?";
@@ -964,6 +964,8 @@ function initMap() {
     timeOffsetSeconds?: number;
     calculatedArrivalString?: string;
     calculatedDepartureString?: string;
+    legDistanceMiles?: number;
+    legDurationSeconds?: number;
   }
 
   function getWaypointColor(type: string): string {
@@ -1608,8 +1610,12 @@ function initMap() {
           sEstEnd.textContent = "--";
         }
 
-        // Populate Distance & Time in Sidebar (Legs)
+        // Populate Distance & Time in Sidebar and Waypoint Legs
         legs.forEach((leg: any, i: number) => {
+          if (tripWaypoints[i + 1] && leg.summary) {
+            tripWaypoints[i + 1].legDistanceMiles = leg.summary.length;
+            tripWaypoints[i + 1].legDurationSeconds = leg.summary.time;
+          }
           const legInfo = document.getElementById(`leg-info-${i}`);
           if (legInfo && leg.summary) {
             const dist = leg.summary.length.toFixed(1);
@@ -1989,139 +1995,212 @@ function initMap() {
   });
 
   async function generatePrintLayoutHTML(): Promise<string> {
-    const size = printSizeSelect.value;
-    
     // Generate Google Maps QR Code Data URLs for all waypoints in parallel
     const qrDataUrls = await Promise.all(
       tripWaypoints.map(wp => {
         const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${wp.lat},${wp.lng}&travelmode=driving`;
-        return QRCode.toDataURL(mapsUrl, { width: 140, margin: 1 });
+        return QRCode.toDataURL(mapsUrl, { width: 160, margin: 1 });
       })
     );
 
-    // Chunking settings based on size
-    let firstPageCapacity = 0;
-    let subsequentPageCapacity = 0;
-    
-    if (size === 'letter') {
-       firstPageCapacity = 7;
-       subsequentPageCapacity = 9;
-    } else if (size === 'a5') {
-       firstPageCapacity = 3;
-       subsequentPageCapacity = 5;
-    } else if (size === 'field-notes') {
-       firstPageCapacity = 1; // 1 under header
-       subsequentPageCapacity = 2; // 2 per tiny page max
-    }
 
-    // Build Waypoint Cards with embedded Google Maps QR Code
-    const cards = tripWaypoints.map((wp, index) => {
+
+    // Build Waypoint Cards & Leg Connectors
+    const cardElements: string[] = [];
+    let lastDateHeader = "";
+
+    tripWaypoints.forEach((wp, index) => {
       let arrTime = wp.calculatedArrivalString || "N/A";
       let depTime = wp.calculatedDepartureString || "N/A";
       let qrImg = qrDataUrls[index] || "";
       
-      let card = `<div class="print-wp-log" style="display: flex; justify-content: space-between; align-items: center;">`;
-      card += `<div style="flex: 1; min-width: 0;">`;
-      card += `<div class="print-wp-header">
-                 <div class="print-wp-title">[${index + 1}] ${wp.name} ${wp.isOvernight ? '<span class="print-tag-overnight">OVERNIGHT</span>' : ''}</div>
-                 <div class="print-wp-type">${wp.type || "WP"}</div>
+      let itemHtml = "";
+
+      // 1. Day Banner (if day changes or first waypoint)
+      let dayHeader = "";
+      if (arrTime.includes("Day")) {
+        const dayMatch = arrTime.match(/Day \d+/);
+        dayHeader = dayMatch ? dayMatch[0].toUpperCase() : "";
+      } else if (arrTime !== "N/A") {
+        dayHeader = arrTime.split(',')[0].toUpperCase();
+      }
+
+      if (dayHeader && dayHeader !== lastDateHeader) {
+        lastDateHeader = dayHeader;
+        itemHtml += `
+          <div class="print-day-banner">
+            <span class="print-day-title">${dayHeader}</span>
+            <span class="print-day-date">${tripHasSpecificDate ? arrTime : ''}</span>
+          </div>
+        `;
+      }
+
+      // 2. Leg Transit Indicator (if not first waypoint)
+      if (index > 0) {
+        const legDist = (wp.legDistanceMiles !== undefined) ? wp.legDistanceMiles.toFixed(1) : undefined;
+        const durSec = wp.legDurationSeconds || 0;
+        const hrs = Math.floor(durSec / 3600);
+        const mins = Math.floor((durSec % 3600) / 60);
+        const legTimeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
+
+        itemHtml += `
+          <div class="print-leg-connector">
+            <div class="print-leg-line"></div>
+            <div class="print-leg-badge">
+              <span class="print-leg-icon">↓</span>
+              ${legDist ? `<span>${legDist} mi</span><span style="opacity: 0.5;">•</span>` : ''}
+              <span>${legTimeStr} drive</span>
+            </div>
+            <div class="print-leg-line"></div>
+          </div>
+        `;
+      }
+
+      // 3. Waypoint Card (High-Contrast B&W)
+      const wpNum = String(index + 1).padStart(2, '0');
+      const typeLabel = (wp.type || "WP").toUpperCase();
+      
+      let card = `<div class="print-wp-log">`;
+      
+      // Header
+      card += `
+        <div class="print-wp-header">
+          <div class="print-wp-title-group">
+            <span class="print-wp-index">#${wpNum}</span>
+            <span class="print-wp-name">${wp.name}</span>
+            ${wp.isOvernight ? '<span class="print-tag-overnight">[OVERNIGHT]</span>' : ''}
+          </div>
+          <span class="print-wp-type-badge">[${typeLabel}]</span>
+        </div>
+      `;
+      
+      // Body Grid
+      card += `<div class="print-wp-body">`;
+      card += `<div class="print-wp-grid">`;
+      card += `<div class="print-wp-row">
+                 <div class="print-wp-cell"><div class="print-wp-label">ARRIVAL</div><div class="print-wp-val">${arrTime}</div></div>
+                 <div class="print-wp-cell"><div class="print-wp-label">DEPARTURE</div><div class="print-wp-val">${depTime}</div></div>
+                 <div class="print-wp-cell"><div class="print-wp-label">STAY DURATION</div><div class="print-wp-val">${wp.stayDurationMinutes || 0} min</div></div>
                </div>`;
-               
-      if (size === 'field-notes') {
-         // Dense vertical stacking for narrow widths
-         card += `<div class="print-wp-row">
-                    <div class="print-wp-cell"><div class="print-wp-label">Arr</div><div class="print-wp-val">${arrTime}</div></div>
-                    <div class="print-wp-cell"><div class="print-wp-label">Dep</div><div class="print-wp-val">${depTime}</div></div>
-                  </div>`;
-         card += `<div class="print-wp-row">
-                    <div class="print-wp-cell"><div class="print-wp-label">Lat / Lng</div><div class="print-wp-val">${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)}</div></div>
-                  </div>`;
-         card += `<div class="print-wp-row">
-                    <div class="print-wp-cell"><div class="print-wp-label">Stay</div><div class="print-wp-val">${wp.stayDurationMinutes || 0}m</div></div>
-                    <div class="print-wp-cell"><div class="print-wp-label">Budget</div><div class="print-wp-val">$${wp.budget || 0}</div></div>
-                  </div>`;
-      } else {
-         // Wider horizontal layout for A5 and Letter
-         card += `<div class="print-wp-row">
-                    <div class="print-wp-cell"><div class="print-wp-label">Arr</div><div class="print-wp-val">${arrTime}</div></div>
-                    <div class="print-wp-cell"><div class="print-wp-label">Dep</div><div class="print-wp-val">${depTime}</div></div>
-                    <div class="print-wp-cell"><div class="print-wp-label">Stay</div><div class="print-wp-val">${wp.stayDurationMinutes || 0}m</div></div>
-                  </div>`;
-         card += `<div class="print-wp-row">
-                    <div class="print-wp-cell"><div class="print-wp-label">Lat</div><div class="print-wp-val">${wp.lat.toFixed(5)}</div></div>
-                    <div class="print-wp-cell"><div class="print-wp-label">Lng</div><div class="print-wp-val">${wp.lng.toFixed(5)}</div></div>
-                    <div class="print-wp-cell"><div class="print-wp-label">Budget</div><div class="print-wp-val">$${wp.budget || 0}</div></div>
-                  </div>`;
+      card += `<div class="print-wp-row">
+                 <div class="print-wp-cell"><div class="print-wp-label">LATITUDE</div><div class="print-wp-val">${wp.lat.toFixed(5)}</div></div>
+                 <div class="print-wp-cell"><div class="print-wp-label">LONGITUDE</div><div class="print-wp-val">${wp.lng.toFixed(5)}</div></div>
+                 <div class="print-wp-cell"><div class="print-wp-label">EST EXPENSE</div><div class="print-wp-val">$${(wp.budget || 0).toFixed(2)}</div></div>
+               </div>`;
+
+      if (wp.notes) {
+        card += `<div class="print-wp-notes"><strong>Notes:</strong> ${wp.notes}</div>`;
       }
       
-      if (wp.notes) {
-        card += `<div class="print-wp-notes">${wp.notes}</div>`;
-      }
-      card += `</div>`; // End text details container
+      card += `</div>`; // End print-wp-grid
 
-      // Right-side QR Code Container
+      // High-Contrast Black & White QR Code Block
       if (qrImg) {
-        card += `<div class="print-wp-qr" style="margin-left: 12px; text-align: center; flex-shrink: 0;">
-                   <img src="${qrImg}" alt="Google Maps QR" style="width: 70px; height: 70px; border-radius: 4px; border: 1px solid #cbd5e1; display: block; margin: 0 auto;" />
-                   <div style="font-size: 0.58rem; color: #475569; font-weight: 700; margin-top: 3px; letter-spacing: 0.5px;">SCAN FOR GPS</div>
-                 </div>`;
+        card += `
+          <div class="print-wp-qr-card">
+            <div class="print-qr-frame">
+              <img src="${qrImg}" alt="Google Maps QR" class="print-qr-img" />
+            </div>
+            <div class="print-qr-label">SCAN GPS NAV</div>
+          </div>
+        `;
       }
 
-      card += `</div>`;
-      return card;
+      card += `</div>`; // End print-wp-body
+      card += `</div>`; // End print-wp-log
+
+      itemHtml += card;
+      cardElements.push(itemHtml);
     });
 
+    // Executive Dashboard Cover Header (Page 1)
     const totalBudget = tripWaypoints.reduce((acc, wp) => acc + (wp.budget || 0), 0);
-    let headerHTML = `
-      <div class="print-header-brand">Iter Viae : Tactical Itinerary</div>
-      <h1 class="print-header-title">${tripTitle}</h1>
-      <div class="print-header-meta">TOTAL BUDGET: $${totalBudget} &nbsp;&nbsp;|&nbsp;&nbsp; WAYPOINTS: ${tripWaypoints.length}</div>
-      ${tripNotes ? `<div class="print-header-notes">${tripNotes}</div>` : ''}
+    const totalDistStr = distEl.textContent || "0 mi";
+    const totalTimeStr = timeEl.textContent || "0 hrs";
+    
+    let page1Content = `
+      <div class="print-sheet-content">
+        <div class="print-header-container">
+          <div class="print-brand-bar">
+            <div class="print-brand-name">🧭 ITER VIAE</div>
+            <div class="print-brand-tag">TRIP BRIEFING & COVER SHEET</div>
+          </div>
+          <h1 class="print-trip-title">${tripTitle}</h1>
+          <div class="print-metrics-grid">
+            <div class="print-metric-card">
+              <div class="print-metric-label">TOTAL ROUTE DISTANCE</div>
+              <div class="print-metric-val">${totalDistStr}</div>
+            </div>
+            <div class="print-metric-card">
+              <div class="print-metric-label">EST TRANSIT DURATION</div>
+              <div class="print-metric-val">${totalTimeStr}</div>
+            </div>
+            <div class="print-metric-card">
+              <div class="print-metric-label">TOTAL BUDGET</div>
+              <div class="print-metric-val">$${totalBudget.toFixed(2)}</div>
+            </div>
+            <div class="print-metric-card">
+              <div class="print-metric-label">WAYPOINTS</div>
+              <div class="print-metric-val">${tripWaypoints.length} STOPS</div>
+            </div>
+          </div>
+          ${tripNotes ? `<div class="print-header-notes"><strong>OPERATIONAL NOTES:</strong> ${tripNotes}</div>` : ''}
+        </div>
+
+        <div class="print-blank-notes-section">
+          <div class="print-blank-notes-label">NOTES:</div>
+        </div>
+      </div>
     `;
 
-    let logicalPages: string[] = [];
+    // Assembly: Page 1 = Cover Sheet, Page 2+ = Waypoint Logbook
+    const waypointsPerPage = 5;
+    let waypointsPages: string[] = [];
     let currentWpIndex = 0;
-    let logicalPageNum = 1;
 
-    while (currentWpIndex < cards.length || logicalPageNum === 1) {
-      let pageCapacity = (logicalPageNum === 1) ? firstPageCapacity : subsequentPageCapacity;
-      let pageCards = cards.slice(currentWpIndex, currentWpIndex + pageCapacity);
-      
-      let pageHtml = '';
-      if (logicalPageNum === 1) pageHtml += headerHTML;
+    while (currentWpIndex < cardElements.length) {
+      let pageCards = cardElements.slice(currentWpIndex, currentWpIndex + waypointsPerPage);
+      let pageHtml = '<div class="print-sheet-content">';
       pageHtml += pageCards.join('');
-      
-      logicalPages.push(pageHtml);
-      currentWpIndex += pageCapacity;
-      logicalPageNum++;
-      if (currentWpIndex >= cards.length) break;
+      pageHtml += '</div>';
+      waypointsPages.push(pageHtml);
+      currentWpIndex += waypointsPerPage;
     }
 
+    if (waypointsPages.length === 0) {
+      waypointsPages.push('<div class="print-sheet-content"><div style="padding: 2rem; text-align: center; font-weight: 700; font-size: 0.9rem;">No waypoints added to this itinerary.</div></div>');
+    }
+
+    const totalPages = 1 + waypointsPages.length;
+    const dateStamp = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
     let html = '';
-    
-    if (size === 'field-notes') {
-       // Pack 2 logical pages per physical 8.5x11 sheet
-       for (let i = 0; i < logicalPages.length; i += 2) {
-          html += `<div class="print-sheet size-field-notes">`;
-          html += `<div class="print-bounds">${logicalPages[i]}</div>`;
-          if (i + 1 < logicalPages.length) {
-              html += `<div class="print-bounds">${logicalPages[i+1]}</div>`;
-          }
-          html += `</div>`;
-       }
-    } else if (size === 'a5') {
-       // Pack 1 logical page per physical sheet
-       for (let i = 0; i < logicalPages.length; i++) {
-          html += `<div class="print-sheet size-a5">`;
-          html += `<div class="print-bounds">${logicalPages[i]}</div>`;
-          html += `</div>`;
-       }
-    } else if (size === 'letter') {
-       for (let i = 0; i < logicalPages.length; i++) {
-          html += `<div class="print-sheet size-letter">`;
-          html += logicalPages[i];
-          html += `</div>`;
-       }
+
+    // Page 1: Dedicated Cover & Briefing Sheet
+    html += `<div class="print-sheet size-letter">`;
+    html += page1Content;
+    html += `
+      <div class="print-sheet-footer">
+        <span>ITER VIAE CORE · TRIP BRIEFING & COVER</span>
+        <span>PAGE 1 OF ${totalPages}</span>
+        <span>PRINTED: ${dateStamp}</span>
+      </div>
+    `;
+    html += `</div>`;
+
+    // Page 2+: Waypoints Logbook Sheets
+    for (let i = 0; i < waypointsPages.length; i++) {
+       const pNum = i + 2;
+       html += `<div class="print-sheet size-letter">`;
+       html += waypointsPages[i];
+       html += `
+         <div class="print-sheet-footer">
+           <span>ITER VIAE CORE · TACTICAL NAVIGATION LOG</span>
+           <span>PAGE ${pNum} OF ${totalPages}</span>
+           <span>PRINTED: ${dateStamp}</span>
+         </div>
+       `;
+       html += `</div>`;
     }
 
     return html;
