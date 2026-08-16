@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchExpeditionRoute, haversineDistance, LegMetric } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized - Blank Canvas Mode.");
+console.log("Iter Viae Tactical Surface initialized - Click-to-Focus Waypoint Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -73,7 +73,7 @@ const toastFeedback = document.getElementById("toast-feedback");
 // Global State References
 let map: maplibregl.Map | null = null;
 let searchMarker: maplibregl.Marker | null = null;
-let waypointMapMarkers: maplibregl.Marker[] = [];
+let waypointMapMarkers: { id: string; marker: maplibregl.Marker }[] = [];
 let lastRightClickLngLat: { lat: number; lng: number } | null = null;
 let toastTimeout: any = null;
 let draggedWaypointIndex: number | null = null;
@@ -147,13 +147,33 @@ function formatDuration(seconds: number): string {
   return `${m}M`;
 }
 
+// Center and zoom map to a specific waypoint
+function focusOnWaypoint(wpId: string) {
+  const wp = waypoints.find((w) => w.id === wpId);
+  if (!wp || wp.lat === null || wp.lon === null || !map) return;
+
+  // Fly and zoom map to waypoint location
+  map.flyTo({
+    center: [wp.lon, wp.lat],
+    zoom: 15,
+    speed: 1.4,
+    essential: true
+  });
+
+  // Toggle map popup for this marker
+  const markerObj = waypointMapMarkers.find((m) => m.id === wpId);
+  if (markerObj && markerObj.marker.getPopup()) {
+    if (!markerObj.marker.getPopup().isOpen()) {
+      markerObj.marker.togglePopup();
+    }
+  }
+}
+
 // Spatial algorithm to find optimal insertion index for right-click stop
 function findOptimalInsertionIndex(lat: number, lon: number): number {
   const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
   if (validWaypoints.length < 2) {
-    // If origin is not set, set origin
     if (waypoints[0].lat === null) return 0;
-    // If destination is not set, set destination
     if (waypoints[waypoints.length - 1].lat === null) return waypoints.length - 1;
     return waypoints.length - 1;
   }
@@ -271,7 +291,7 @@ function renderWaypointMapMarkers() {
   if (!map) return;
 
   // Clear existing waypoint markers
-  waypointMapMarkers.forEach((m) => m.remove());
+  waypointMapMarkers.forEach((item) => item.marker.remove());
   waypointMapMarkers = [];
 
   waypoints.forEach((wp, idx) => {
@@ -332,7 +352,7 @@ function renderWaypointMapMarkers() {
       updateExpeditionRoute();
     });
 
-    waypointMapMarkers.push(marker);
+    waypointMapMarkers.push({ id: wp.id, marker });
   });
 
   updateExpeditionRoute();
@@ -375,6 +395,7 @@ function renderWaypointsUI() {
     itemEl.className = "waypoint-item";
     itemEl.setAttribute("draggable", "true");
     itemEl.setAttribute("data-index", idx.toString());
+    itemEl.setAttribute("data-wp-id", wp.id);
 
     let tagLabel = "STOP";
     let tagClass = "tag-stop";
@@ -419,6 +440,16 @@ function renderWaypointsUI() {
       </div>
       ${waypoints.length > 2 ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop">✕</button>` : ""}
     `;
+
+    // Click on Waypoint Card -> Center & Zoom Map to it!
+    itemEl.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      // Do not trigger zoom if clicking remove button or inline add button
+      if (target.classList.contains("btn-remove-waypoint") || target.classList.contains("btn-add-inline-leg")) {
+        return;
+      }
+      focusOnWaypoint(wp.id);
+    });
 
     // HTML5 Drag and Drop Event Listeners for Reordering List Items
     itemEl.addEventListener("dragstart", (e) => {
@@ -490,6 +521,10 @@ function insertNewStopAt(insertIndex: number, lat?: number, lon?: number) {
 
   waypoints.splice(insertIndex, 0, newStop);
   renderWaypointsUI();
+
+  if (targetLat !== null && targetLon !== null) {
+    focusOnWaypoint(newStop.id);
+  }
 }
 
 // Handlers for Waypoints UI Inputs, Remove, Auto-Select text, and Inline/End Add Buttons
@@ -554,6 +589,7 @@ if (waypointsContainer) {
         if (!isNaN(lat) && !isNaN(lon)) {
           wp.lat = lat;
           wp.lon = lon;
+          focusOnWaypoint(wp.id);
         } else {
           wp.lat = null;
           wp.lon = null;
@@ -790,6 +826,7 @@ if (contextAddStopBtn) {
       waypoints[0].lon = lng;
       waypoints[0].title = "Origin Point";
       renderWaypointsUI();
+      focusOnWaypoint(waypoints[0].id);
       hideContextMenu();
       showToast(`Set Origin at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
       return;
@@ -802,6 +839,7 @@ if (contextAddStopBtn) {
       waypoints[destIndex].lon = lng;
       waypoints[destIndex].title = "Destination Point";
       renderWaypointsUI();
+      focusOnWaypoint(waypoints[destIndex].id);
       hideContextMenu();
       showToast(`Set Destination at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
       return;
