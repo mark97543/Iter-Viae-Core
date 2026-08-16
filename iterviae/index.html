@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iter Viae — Modern Route & Navigation Platform</title>
-    <meta name="description" content="Iter Viae is a sleek, modern trip planning platform for overland route optimization, fuel budgeting, and logbook generation." />
+    <title>Iter Viae — The Way of the Journey</title>
+    <meta name="description" content="Iter Viae (The Way of the Journey) is a precision route planning and navigation platform built for long-range expedition autonomy, custom vector map rendering, and instant logbook generation." />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,13 +13,13 @@
   </head>
   <body>
     <div id="app">
-      <!-- Minimal Radial Ambient Glow -->
+      <!-- Ambient Radial Background Glow -->
       <div class="glow-bg"></div>
 
       <!-- Header Navigation -->
       <header class="navbar">
         <div class="nav-brand">
-          <span class="brand-logo">🧭</span>
+          <img src="/logo.png" alt="Iter Viae Logo" class="brand-logo-img" />
           <div class="brand-text">
             <span class="brand-name">Iter Viae</span>
             <span class="brand-version">v1.0</span>
@@ -48,17 +49,22 @@
         </div>
       </header>
 
-      <!-- View 1: Guest Landing -->
+      <!-- View 1: Guest Landing Page -->
       <main id="guest-view" class="main-container">
         <div class="card glass-card">
-          <div class="pill-badge">NEXT-GEN TACTICAL PLATFORM</div>
+          <div class="brand-badge-pill">ITER VIAE • THE WAY OF THE JOURNEY</div>
           
-          <h1 class="hero-title">Precision Route Planning <br/><span class="cyan-gradient">Built for the Open Road</span></h1>
-          <p class="hero-desc">
-            Universal cloud-connected route optimization, high-contrast vector map surfaces, Valhalla trip planning, and instant logbook generation.
+          <h1 class="hero-title">Master the Open Road with <br/><span class="red-gradient">Precision Route Command</span></h1>
+          
+          <p class="meaning-tagline">
+            Derived from Latin, <em>"Iter Viae"</em> means <strong>The Way of the Journey</strong>. Built for long-range overland expeditions, tactical navigation, and complete data autonomy.
           </p>
 
-          <!-- Status Grid -->
+          <p class="hero-desc">
+            Iter Viae connects high-contrast vector map surfaces, Valhalla turn-by-turn routing, fuel budget estimation, and cloud trip synchronization into a single unified workspace.
+          </p>
+
+          <!-- System Infrastructure Status Grid -->
           <div class="status-grid">
             <div class="status-item">
               <div class="status-header">
@@ -85,10 +91,10 @@
             </div>
           </div>
 
-          <!-- Action Button -->
+          <!-- Primary Action Button -->
           <div class="hero-actions">
             <button id="hero-auth-btn" class="btn btn-primary btn-lg">
-              Get Started →
+              Sign In & Launch Workspace →
             </button>
           </div>
         </div>
@@ -98,14 +104,14 @@
       <main id="unverified-view" class="main-container" style="display: none;">
         <div class="card glass-card border-warning">
           <div class="pill-badge badge-warning">ACCOUNT PENDING VERIFICATION</div>
-          <h1 class="hero-title">Account Verification Required</h1>
+          <h1 class="hero-title">Account Clearance Required</h1>
           <p class="hero-desc">
             Welcome, <strong id="unverified-user-email">user@domain.com</strong>. Your account is currently pending administrator verification.
           </p>
 
           <div class="notice-box">
             <p>
-              Please contact the platform administrator (<a href="mailto:mark@wade-usa.com" class="link-cyan">mark@wade-usa.com</a>) to activate your account permissions.
+              Please contact the platform administrator (<a href="mailto:mark@wade-usa.com" class="link-cyan">mark@wade-usa.com</a>) to activate your road command permissions.
             </p>
           </div>
 
@@ -120,15 +126,15 @@
       <!-- View 3: Verified User Workspace -->
       <main id="verified-view" class="main-container" style="display: none;">
         <div class="card glass-card border-success">
-          <div class="pill-badge badge-success">VERIFIED WORKSPACE</div>
-          <h1 class="hero-title">Welcome, <span id="verified-user-name" class="cyan-gradient">User</span></h1>
+          <div class="pill-badge badge-success">VERIFIED ROAD COMMAND WORKSPACE</div>
+          <h1 class="hero-title">Welcome, <span id="verified-user-name" class="red-gradient">User</span></h1>
           <p class="hero-desc">
-            Your account is verified and ready. Welcome workspace active.
+            Your account is verified and active. Welcome to the Iter Viae tactical workspace.
           </p>
 
           <div class="workspace-box">
             <h3>Tactical Workspace Canvas</h3>
-            <p>Ready for map surface integration, waypoint management, and trip logbooks.</p>
+            <p>Ready for vector map surfaces, waypoint managers, and trip logbooks.</p>
           </div>
         </div>
       </main>
@@ -139,6 +145,7 @@
           <button id="auth-modal-close" class="modal-close-btn">&times;</button>
           
           <div class="modal-header">
+            <img src="/logo.png" alt="Iter Viae" class="modal-logo-img" />
             <h2 class="modal-title">Sign In to Iter Viae</h2>
             <p class="modal-subtitle">PocketBase Cloud Portal (https://api.wade-usa.com)</p>
           </div>
@@ -177,7 +184,7 @@
               <label for="reg-password">Password</label>
               <input type="password" id="reg-password" placeholder="Min. 8 characters" required />
             </div>
-            <p class="reg-notice">New accounts start as Unverified and require administrator clearance.</p>
+            <p class="reg-notice">Note: New accounts start as Unverified and require administrator clearance.</p>
             <button type="submit" class="btn btn-primary btn-block btn-lg">
               Create Account
             </button>
@@ -187,7 +194,7 @@
 
       <!-- Footer -->
       <footer class="footer">
-        <p>© 2026 Iter Viae • Route & Navigation Platform</p>
+        <p>© 2026 Iter Viae • The Way of the Journey</p>
       </footer>
     </div>
 
