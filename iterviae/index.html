@@ -116,7 +116,7 @@
         </div>
       </main>
 
-      <!-- View 3: Verified User Workspace (Full Viewport Map + Streamlined Search Bar) -->
+      <!-- View 3: Verified User Workspace (Full Viewport Map + Context Menu) -->
       <main id="verified-view" class="map-view-container" style="display: none;">
         <!-- Top Coordinate Search Bar Overlay -->
         <div class="search-overlay">
@@ -134,7 +134,32 @@
           </form>
         </div>
 
+        <!-- Map Surface Canvas -->
         <div id="map-container" class="map-surface"></div>
+
+        <!-- Right-Click Tactical Context Menu -->
+        <div id="context-menu" class="context-menu" style="display: none;">
+          <div class="context-menu-header">
+            <span class="context-title">COORDINATE TOOLS</span>
+          </div>
+          <div id="context-coords-item" class="context-menu-item">
+            <span class="context-icon">📍</span>
+            <span id="context-coords-text" class="context-coords-code">0.000000, 0.000000</span>
+          </div>
+          <div id="context-copy-btn" class="context-menu-item">
+            <span class="context-icon">📋</span>
+            <span>Copy Coordinates</span>
+          </div>
+          <div id="context-pin-btn" class="context-menu-item">
+            <span class="context-icon">📌</span>
+            <span>Pin Location Here</span>
+          </div>
+        </div>
+
+        <!-- Toast Notification Feedback -->
+        <div id="toast-feedback" class="toast-notification" style="display: none;">
+          Coordinates copied to clipboard!
+        </div>
       </main>
 
       <!-- Auth Modal -->

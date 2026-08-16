@@ -2,7 +2,7 @@ import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { PocketBaseAuth } from "./pocketbase";
 
-console.log("Iter Viae Tactical Surface initialized with Route Command & Coordinate Search Engine.");
+console.log("Iter Viae Tactical Surface initialized with Route Command & Context Menu Engine.");
 
 // DOM View Containers
 const guestView = document.getElementById("guest-view");
@@ -34,9 +34,19 @@ const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
 const coordSearchForm = document.getElementById("coord-search-form") as HTMLFormElement;
 const coordSearchInput = document.getElementById("coord-search-input") as HTMLInputElement;
 
+// DOM Context Menu & Toast References
+const contextMenu = document.getElementById("context-menu");
+const contextCoordsText = document.getElementById("context-coords-text");
+const contextCoordsItem = document.getElementById("context-coords-item");
+const contextCopyBtn = document.getElementById("context-copy-btn");
+const contextPinBtn = document.getElementById("context-pin-btn");
+const toastFeedback = document.getElementById("toast-feedback");
+
 // Global Map & Search Marker References
 let map: maplibregl.Map | null = null;
 let searchMarker: maplibregl.Marker | null = null;
+let lastRightClickLngLat: { lat: number; lng: number } | null = null;
+let toastTimeout: any = null;
 
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
 
@@ -74,6 +84,49 @@ function clearSearchMarker() {
   }
 }
 
+function hideContextMenu() {
+  if (contextMenu) contextMenu.style.display = "none";
+}
+
+function showToast(message: string) {
+  if (!toastFeedback) return;
+  toastFeedback.textContent = message;
+  toastFeedback.style.display = "block";
+
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    toastFeedback.style.display = "none";
+  }, 2500);
+}
+
+function addPinAtLocation(lat: number, lon: number) {
+  if (!map) return;
+
+  clearSearchMarker();
+
+  // Update Search Input to reflect coordinates
+  if (coordSearchInput) {
+    coordSearchInput.value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+  }
+
+  const popupHtml = `
+    <div style="font-family: Inter, sans-serif; padding: 4px;">
+      <h4 style="color:#ef4444; margin-bottom:4px; font-size:0.95rem;">📍 Target Waypoint</h4>
+      <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Latitude: ${lat.toFixed(6)}</p>
+      <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Longitude: ${lon.toFixed(6)}</p>
+    </div>
+  `;
+
+  const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml);
+
+  searchMarker = new maplibregl.Marker({ color: "#ef4444" })
+    .setLngLat([lon, lat])
+    .setPopup(popup)
+    .addTo(map);
+
+  searchMarker.togglePopup();
+}
+
 function initializeMapSurface() {
   const container = document.getElementById("map-container");
   if (!container) return;
@@ -102,9 +155,31 @@ function initializeMapSurface() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
   map.addControl(new maplibregl.FullscreenControl(), "bottom-right");
 
-  // Dismiss marker & popup when user clicks anywhere else on the map canvas
+  // Dismiss marker, popup & context menu when user left clicks anywhere on the map canvas
   map.on("click", () => {
     clearSearchMarker();
+    hideContextMenu();
+  });
+
+  // Dismiss context menu on map drag
+  map.on("dragstart", () => {
+    hideContextMenu();
+  });
+
+  // Right-Click Context Menu Handler
+  map.on("contextmenu", (e) => {
+    e.preventDefault();
+    if (!contextMenu || !contextCoordsText) return;
+
+    lastRightClickLngLat = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+    const formattedCoords = `${e.lngLat.lat.toFixed(6)}, ${e.lngLat.lng.toFixed(6)}`;
+
+    contextCoordsText.textContent = formattedCoords;
+
+    // Position context menu at right-click cursor position
+    contextMenu.style.left = `${e.point.x}px`;
+    contextMenu.style.top = `${e.point.y}px`;
+    contextMenu.style.display = "flex";
   });
 
   map.on("load", () => {
@@ -118,6 +193,26 @@ function initializeMapSurface() {
   setTimeout(() => {
     map?.resize();
   }, 400);
+}
+
+// Context Menu Button Event Listeners
+function copyCoordinatesToClipboard() {
+  if (!lastRightClickLngLat) return;
+  const coordString = `${lastRightClickLngLat.lat.toFixed(6)}, ${lastRightClickLngLat.lng.toFixed(6)}`;
+  navigator.clipboard.writeText(coordString);
+  showToast(`Copied ${coordString} to clipboard!`);
+  hideContextMenu();
+}
+
+if (contextCoordsItem) contextCoordsItem.addEventListener("click", copyCoordinatesToClipboard);
+if (contextCopyBtn) contextCopyBtn.addEventListener("click", copyCoordinatesToClipboard);
+
+if (contextPinBtn) {
+  contextPinBtn.addEventListener("click", () => {
+    if (!lastRightClickLngLat) return;
+    addPinAtLocation(lastRightClickLngLat.lat, lastRightClickLngLat.lng);
+    hideContextMenu();
+  });
 }
 
 // Select-all UX enhancement on search input focus/click
@@ -134,6 +229,7 @@ if (coordSearchInput) {
 if (coordSearchForm && coordSearchInput) {
   coordSearchForm.addEventListener("submit", (e) => {
     e.preventDefault();
+    hideContextMenu();
     const query = coordSearchInput.value.trim();
     if (!query || !map) return;
 
@@ -160,26 +256,7 @@ if (coordSearchForm && coordSearchInput) {
       essential: true
     });
 
-    // Remove existing search marker & popup when placing a new pin
-    clearSearchMarker();
-
-    // Add sleek Red Location Pin at searched location (No close button on popup)
-    const popupHtml = `
-      <div style="font-family: Inter, sans-serif; padding: 4px;">
-        <h4 style="color:#ef4444; margin-bottom:4px; font-size:0.95rem;">📍 Target Waypoint</h4>
-        <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Latitude: ${lat.toFixed(6)}</p>
-        <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Longitude: ${lon.toFixed(6)}</p>
-      </div>
-    `;
-
-    const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml);
-
-    searchMarker = new maplibregl.Marker({ color: "#ef4444" })
-      .setLngLat([lon, lat])
-      .setPopup(popup)
-      .addTo(map);
-
-    searchMarker.togglePopup();
+    addPinAtLocation(lat, lon);
   });
 }
 
@@ -316,6 +393,7 @@ if (registerForm) {
 function performLogout() {
   PocketBaseAuth.logout();
   clearSearchMarker();
+  hideContextMenu();
   if (map) {
     map.remove();
     map = null;
