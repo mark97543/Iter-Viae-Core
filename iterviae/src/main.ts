@@ -1,9 +1,9 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
-import { fetchExpeditionRoute, LegMetric } from "./valhalla";
+import { fetchExpeditionRoute, haversineDistance, LegMetric } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Auto-Select Waypoint Input Engine.");
+console.log("Iter Viae Tactical Surface initialized with Spatial Right-Click Waypoint Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -67,6 +67,7 @@ const modalTripSummary = document.getElementById("modal-trip-summary") as HTMLTe
 const contextMenu = document.getElementById("context-menu");
 const contextCoordsText = document.getElementById("context-coords-text");
 const contextCoordsItem = document.getElementById("context-coords-item");
+const contextAddStopBtn = document.getElementById("context-add-stop-btn");
 const toastFeedback = document.getElementById("toast-feedback");
 
 // Global State References
@@ -144,6 +145,32 @@ function formatDuration(seconds: number): string {
   const m = Math.round((seconds % 3600) / 60);
   if (h > 0) return `${h}H ${m}M`;
   return `${m}M`;
+}
+
+// Spatial algorithm to find the most logical leg segment to insert a new right-clicked stop
+function findOptimalInsertionIndex(lat: number, lon: number): number {
+  if (waypoints.length < 2) return waypoints.length;
+
+  let bestIndex = 1;
+  let minDetour = Infinity;
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const w1 = waypoints[i];
+    const w2 = waypoints[i + 1];
+    if (w1.lat === null || w1.lon === null || w2.lat === null || w2.lon === null) continue;
+
+    const d1 = haversineDistance(w1.lat, w1.lon, lat, lon);
+    const d2 = haversineDistance(lat, lon, w2.lat, w2.lon);
+    const originalDist = haversineDistance(w1.lat, w1.lon, w2.lat, w2.lon);
+
+    const detour = (d1 + d2) - originalDist;
+    if (detour < minDetour) {
+      minDetour = detour;
+      bestIndex = i + 1;
+    }
+  }
+
+  return bestIndex;
 }
 
 // Fetch turn-by-turn route line geometry & update metrics
@@ -436,12 +463,15 @@ function renderWaypointsUI() {
 }
 
 // Helper to insert a new stop at a specific index
-function insertNewStopAt(insertIndex: number) {
+function insertNewStopAt(insertIndex: number, lat?: number, lon?: number) {
+  const targetLat = lat !== undefined ? lat : 39.8000 + (Math.random() * 0.1);
+  const targetLon = lon !== undefined ? lon : -105.1000 - (Math.random() * 0.1);
+
   const newStop: Waypoint = {
     id: `wp-stop-${Date.now()}`,
     title: `Waystop #${insertIndex}`,
-    lat: 39.8000 + (Math.random() * 0.1),
-    lon: -105.1000 - (Math.random() * 0.1),
+    lat: targetLat,
+    lon: targetLon,
     type: "stop"
   };
 
@@ -695,7 +725,7 @@ function initializeMapSurface() {
   }, 400);
 }
 
-// Context Menu Copy Event Listener
+// Context Menu Handlers
 function copyCoordinatesToClipboard() {
   if (!lastRightClickLngLat) return;
   const coordString = `${lastRightClickLngLat.lat.toFixed(6)}, ${lastRightClickLngLat.lng.toFixed(6)}`;
@@ -705,6 +735,20 @@ function copyCoordinatesToClipboard() {
 }
 
 if (contextCoordsItem) contextCoordsItem.addEventListener("click", copyCoordinatesToClipboard);
+
+if (contextAddStopBtn) {
+  contextAddStopBtn.addEventListener("click", () => {
+    if (!lastRightClickLngLat) return;
+    const { lat, lng } = lastRightClickLngLat;
+
+    // Calculate optimal logical sequence position based on detour distance
+    const insertIndex = findOptimalInsertionIndex(lat, lng);
+    insertNewStopAt(insertIndex, lat, lng);
+
+    hideContextMenu();
+    showToast(`Added Waystop at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+  });
+}
 
 // Select-all UX enhancement on search input focus/click
 if (coordSearchInput) {
