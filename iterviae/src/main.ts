@@ -14,7 +14,11 @@ const heroAuthBtn = document.getElementById("hero-auth-btn");
 const openAuthBtn = document.getElementById("open-auth-btn");
 const authModal = document.getElementById("auth-modal");
 const authModalClose = document.getElementById("auth-modal-close");
+
 const serverStatusBtn = document.getElementById("server-status-btn");
+const statusIndicatorPill = document.getElementById("status-indicator-btn");
+const nodesModal = document.getElementById("nodes-modal");
+const nodesModalClose = document.getElementById("nodes-modal-close");
 
 const tabLoginBtn = document.getElementById("tab-login-btn");
 const tabRegisterBtn = document.getElementById("tab-register-btn");
@@ -139,19 +143,32 @@ function updateAuthStateUI() {
   }
 }
 
-// Modal Handlers
-function openModal() {
+// Auth Modal Handlers
+function openAuthModal() {
   if (authModal) authModal.style.display = "flex";
   if (authErrorBanner) authErrorBanner.style.display = "none";
 }
 
-function closeModal() {
+function closeAuthModal() {
   if (authModal) authModal.style.display = "none";
 }
 
-if (openAuthBtn) openAuthBtn.addEventListener("click", openModal);
-if (heroAuthBtn) heroAuthBtn.addEventListener("click", openModal);
-if (authModalClose) authModalClose.addEventListener("click", closeModal);
+if (openAuthBtn) openAuthBtn.addEventListener("click", openAuthModal);
+if (heroAuthBtn) heroAuthBtn.addEventListener("click", openAuthModal);
+if (authModalClose) authModalClose.addEventListener("click", closeAuthModal);
+
+// System Nodes Infrastructure Modal Handlers
+function openNodesModal() {
+  if (nodesModal) nodesModal.style.display = "flex";
+}
+
+function closeNodesModal() {
+  if (nodesModal) nodesModal.style.display = "none";
+}
+
+if (serverStatusBtn) serverStatusBtn.addEventListener("click", openNodesModal);
+if (statusIndicatorPill) statusIndicatorPill.addEventListener("click", openNodesModal);
+if (nodesModalClose) nodesModalClose.addEventListener("click", closeNodesModal);
 
 // Tab Switching Handlers
 if (tabLoginBtn && tabRegisterBtn && loginForm && registerForm) {
@@ -183,7 +200,7 @@ if (loginForm) {
       if (authErrorBanner) authErrorBanner.style.display = "none";
       await PocketBaseAuth.login(identityInput.value, passwordInput.value);
       updateAuthStateUI();
-      closeModal();
+      closeAuthModal();
     } catch (err: any) {
       if (authErrorBanner) {
         authErrorBanner.textContent = err.message || "Invalid email or password.";
@@ -206,7 +223,7 @@ if (registerForm) {
       await PocketBaseAuth.register(emailInput.value, passwordInput.value, nameInput.value);
       await PocketBaseAuth.login(emailInput.value, passwordInput.value);
       updateAuthStateUI();
-      closeModal();
+      closeAuthModal();
     } catch (err: any) {
       if (authErrorBanner) {
         authErrorBanner.textContent = err.message || "Registration failed.";
@@ -228,12 +245,6 @@ function performLogout() {
 
 if (logoutBtn) logoutBtn.addEventListener("click", performLogout);
 if (unverifiedLogoutBtn) unverifiedLogoutBtn.addEventListener("click", performLogout);
-
-if (serverStatusBtn) {
-  serverStatusBtn.addEventListener("click", () => {
-    alert("Active API Infrastructure Nodes:\n\n1. Vector Tile Server: ONLINE (https://tiles.wade-usa.com)\n2. Valhalla Routing Engine: ONLINE (https://valhalla.wade-usa.com)\n3. PocketBase Cloud Backend: READY (https://api.wade-usa.com)");
-  });
-}
 
 // Initial UI & View Setup
 updateAuthStateUI();

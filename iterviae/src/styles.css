@@ -119,12 +119,24 @@ html, body {
   gap: 16px;
 }
 
-.status-indicator {
+.status-indicator-pill {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 0.82rem;
   color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(51, 65, 85, 0.8);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: var(--text-primary);
+  }
 }
 
 .status-dot {
@@ -425,6 +437,45 @@ html, body {
   background: #1e293b;
 }
 
+/* System Nodes Modal Cards */
+.nodes-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .node-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 1rem 1.25rem;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    text-align: left;
+  }
+
+  .node-icon {
+    font-size: 1.5rem;
+  }
+
+  .node-details {
+    flex: 1;
+
+    h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    p {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+  }
+}
+
 /* MapLibre Controls Customization */
 .maplibregl-ctrl-group {
   background: rgba(30, 41, 59, 0.95) !important;
@@ -442,7 +493,7 @@ html, body {
   }
 }
 
-/* Auth Modal */
+/* Auth & System Modals */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -461,7 +512,7 @@ html, body {
 .modal-card {
   position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   background: #1e293b;
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
