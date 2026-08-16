@@ -30,13 +30,6 @@ const logoutBtn = document.getElementById("logout-btn");
 
 const unverifiedUserEmail = document.getElementById("unverified-user-email");
 const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
-const verifiedUserName = document.getElementById("verified-user-name");
-
-// HUD Controls
-const mapCoordsDisplay = document.getElementById("map-coords-display");
-const mapZoomDisplay = document.getElementById("map-zoom-display");
-const recenterMapBtn = document.getElementById("recenter-map-btn");
-const toggleStyleBtn = document.getElementById("toggle-style-btn");
 
 // Global Map Instance & Endpoints
 let map: maplibregl.Map | null = null;
@@ -68,7 +61,6 @@ function initializeMapSurface() {
       console.warn("TileServer GL CORS or style network fetch blocked. Switching to resilient vector map fallback...", e);
       if (map) {
         map.setStyle(FALLBACK_DEMO_STYLE);
-        if (toggleStyleBtn) toggleStyleBtn.textContent = "🗺️ Tile Source: Resilient Fallback";
       }
     }
   });
@@ -76,19 +68,6 @@ function initializeMapSurface() {
   // Add Navigation & Fullscreen Controls
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
   map.addControl(new maplibregl.FullscreenControl(), "bottom-right");
-
-  // Track coordinates & zoom in HUD
-  map.on("mousemove", (e) => {
-    if (mapCoordsDisplay) {
-      mapCoordsDisplay.textContent = `LAT: ${e.lngLat.lat.toFixed(4)} | LON: ${e.lngLat.lng.toFixed(4)}`;
-    }
-  });
-
-  map.on("zoom", () => {
-    if (mapZoomDisplay && map) {
-      mapZoomDisplay.textContent = `ZOOM: ${map.getZoom().toFixed(1)}`;
-    }
-  });
 
   // Add default tactical location marker
   new maplibregl.Marker({ color: "#ef4444" })
@@ -99,27 +78,6 @@ function initializeMapSurface() {
   setTimeout(() => {
     map?.resize();
   }, 300);
-}
-
-// Recenter Map Handler
-if (recenterMapBtn) {
-  recenterMapBtn.addEventListener("click", () => {
-    if (map) {
-      map.flyTo({ center: DEFAULT_CENTER, zoom: 11, pitch: 35, bearing: -10, speed: 1.2 });
-    }
-  });
-}
-
-// Style Source Toggle Handler
-let currentStyleIsCustom = true;
-if (toggleStyleBtn) {
-  toggleStyleBtn.addEventListener("click", () => {
-    if (!map) return;
-    currentStyleIsCustom = !currentStyleIsCustom;
-    const targetStyle = currentStyleIsCustom ? VECTOR_TILESERVER_STYLE : FALLBACK_DEMO_STYLE;
-    map.setStyle(targetStyle);
-    toggleStyleBtn.textContent = currentStyleIsCustom ? "🗺️ Tile Source: Wade-USA" : "🗺️ Tile Source: OpenMap";
-  });
 }
 
 // View Switcher & Auth UI State Management
@@ -145,11 +103,10 @@ function updateAuthStateUI() {
 
     // Router: Switch between Unverified Screen vs Verified Map Surface Workspace
     if (isVerified) {
-      // Verified User View -> Render Map Surface
+      // Verified User View -> Render Clean Map Surface
       if (guestView) guestView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "flex";
-      if (verifiedUserName) verifiedUserName.textContent = user?.name || user?.email || "Verified User";
 
       initializeMapSurface();
     } else {
