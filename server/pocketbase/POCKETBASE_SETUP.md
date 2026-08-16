@@ -4,36 +4,38 @@ PocketBase is an ultra-fast, 100% open-source backend with zero paywalls on auth
 
 ---
 
-## 🛠️ Step 1: Deploy PocketBase (EasyPanel / Docker)
+## 🛠️ Step 1: Deploy PocketBase on EasyPanel
 
-### Option A: Deployment on EasyPanel
-1. Log in to your **EasyPanel** dashboard.
-2. Click **`+ Project`** -> Name it `iter-viae-backend`.
-3. Click **`+ Service`** -> Select **Docker Image**:
-   - **Service Name**: `pocketbase`
-   - **Docker Image**: `ghcr.io/muchweb/pocketbase:latest`
-   - **Port**: Set Container Port to `8090` -> Map to Domain `api.wade-usa.com` (with HTTPS SSL enabled).
-   - **Volume**: Add a Persistent Volume mapped to `/pb_data`.
-4. Click **Deploy**.
+### Method 1: Deploy Directly from GitHub Repository (Recommended)
+1. Log in to **EasyPanel** (`https://easypanel.wade-usa.com`).
+2. Open project `iter-viae` -> Click **`+ Service`** -> Select **App (GitHub Repository)**.
+3. Connect your GitHub account and select repository:
+   - **Repository**: `mark97543/Iter-Viae-Core`
+   - **Branch**: `main`
+   - **Build Path / Root Directory**: `server/pocketbase`
+4. EasyPanel will automatically detect `server/pocketbase/Dockerfile`.
+5. Under **Domains**:
+   - Add Domain: `api.wade-usa.com` (Container Port `8090`, HTTPS Enabled).
+6. Under **Mounts / Volumes**:
+   - Add Volume: `/pb_data` -> Mount Path `/pb_data`.
+7. Click **Deploy**.
 
 ---
 
-### Option B: Deployment via Docker Compose
-Run PocketBase on your Linux server using Docker Compose:
-
-```bash
-cd server/pocketbase
-docker compose up -d
-```
-
-PocketBase will start on port `8090`.
+### Method 2: Deploy Using Docker Image (Fastest)
+1. In EasyPanel, click **`+ Service`** -> Select **Docker Image**.
+   - **Service Name**: `pocketbase`
+   - **Docker Image**: `ghcr.io/muchweb/pocketbase:latest`
+   - **Port**: Set Container Port to `8090` -> Map to `api.wade-usa.com` (HTTPS SSL enabled).
+   - **Volume**: Mount Volume to `/pb_data`.
+2. Click **Deploy**.
 
 ---
 
 ## 🔑 Step 2: Create Admin Account
 
 1. Open your browser and navigate to:
-   **`https://api.wade-usa.com/_/`** (or `http://localhost:8090/_/` for local testing).
+   **`https://api.wade-usa.com/_/`**
 2. PocketBase will prompt you to create your **Super Admin Account**:
    - **Email**: `mark@wade-usa.com` (Your Admin email)
    - **Password**: Set your secure Admin password.
@@ -48,7 +50,7 @@ PocketBase will start on port `8090`.
    - **Type**: Base collection
 
 2. Add Fields to `trips`:
-   - **`user`**: Type `Relation` -> Target Collection `users` -> Max Select `1` (Cascade Delete: Optional).
+   - **`user`**: Type `Relation` -> Target Collection `users` -> Max Select `1`.
    - **`title`**: Type `Text` -> Required: `Yes`.
    - **`status`**: Type `Select` -> Values: `draft`, `active`, `archived` -> Default: `active`.
    - **`waypoints`**: Type `JSON` -> Stores array of waypoint objects.
@@ -59,7 +61,7 @@ PocketBase will start on port `8090`.
 
 ## 🔒 Step 4: Configure 100% Free User Isolation API Rules
 
-PocketBase uses clean, powerful API Rule expressions. In the collection settings for `trips`, click **API Rules**:
+In the collection settings for `trips`, click **API Rules**:
 
 | Action | API Rule Filter Expression | Description |
 | :--- | :--- | :--- |
@@ -78,9 +80,7 @@ Click **Save changes**.
 To suspend an abusive or disabled user account:
 1. Open PocketBase Admin UI (`/_/`) -> Click **`users`** collection.
 2. Select the user's record.
-3. Toggle **`Verified`** to `No` OR set **`tokenKey`** / clear their auth record.
-4. Or add a custom `is_suspended` boolean field to `users` and update the API Rules:
-   > `@request.auth.id != "" && @request.auth.is_suspended != true`
+3. Uncheck **`Verified`** OR set **`tokenKey`** to invalidate their active sessions.
 
 ---
 
