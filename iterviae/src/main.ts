@@ -1,8 +1,17 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
-import { PocketBaseAuth } from "./pocketbase";
+import { pb, PocketBaseAuth } from "./pocketbase";
 
-console.log("Iter Viae Tactical Surface initialized with Route Command & Coordinate Copy Engine.");
+console.log("Iter Viae Tactical Surface initialized with Expedition Trip Planner Engine.");
+
+// Waypoint Data Interface
+interface Waypoint {
+  id: string;
+  title: string;
+  lat: number | null;
+  lon: number | null;
+  type: "origin" | "stop" | "destination";
+}
 
 // DOM View Containers
 const guestView = document.getElementById("guest-view");
@@ -34,17 +43,33 @@ const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
 const coordSearchForm = document.getElementById("coord-search-form") as HTMLFormElement;
 const coordSearchInput = document.getElementById("coord-search-input") as HTMLInputElement;
 
+// DOM Trip Planner Panel References
+const plannerPanel = document.getElementById("planner-panel");
+const togglePlannerBtn = document.getElementById("toggle-planner-btn");
+const expandPlannerBtn = document.getElementById("expand-planner-btn");
+const tripTitleInput = document.getElementById("trip-title-input") as HTMLInputElement;
+const waypointsContainer = document.getElementById("waypoints-container");
+const addWaypointBtn = document.getElementById("add-waypoint-btn");
+const saveTripBtn = document.getElementById("save-trip-btn");
+
 // DOM Context Menu & Toast References
 const contextMenu = document.getElementById("context-menu");
 const contextCoordsText = document.getElementById("context-coords-text");
 const contextCoordsItem = document.getElementById("context-coords-item");
 const toastFeedback = document.getElementById("toast-feedback");
 
-// Global Map & Search Marker References
+// Global State References
 let map: maplibregl.Map | null = null;
 let searchMarker: maplibregl.Marker | null = null;
+let waypointMapMarkers: maplibregl.Marker[] = [];
 let lastRightClickLngLat: { lat: number; lng: number } | null = null;
 let toastTimeout: any = null;
+
+// Initial Expedition Waypoints State
+let waypoints: Waypoint[] = [
+  { id: "wp-origin", title: "Expedition Origin", lat: 39.7392, lon: -104.9903, type: "origin" },
+  { id: "wp-dest", title: "Destination Node", lat: 40.0150, lon: -105.2705, type: "destination" }
+];
 
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
 
@@ -97,12 +122,207 @@ function showToast(message: string) {
   }, 2500);
 }
 
+// Sync Map Markers with Active Waypoints List
+function renderWaypointMapMarkers() {
+  if (!map) return;
+
+  // Clear existing waypoint markers
+  waypointMapMarkers.forEach((m) => m.remove());
+  waypointMapMarkers = [];
+
+  waypoints.forEach((wp, idx) => {
+    if (wp.lat === null || wp.lon === null) return;
+
+    let markerColor = "#f59e0b"; // Orange for intermediate stops
+    let iconLabel = `Stop #${idx}`;
+
+    if (wp.type === "origin") {
+      markerColor = "#10b981"; // Emerald green for origin
+      iconLabel = "🏁 Expedition Origin";
+    } else if (wp.type === "destination") {
+      markerColor = "#ef4444"; // Crimson red for destination
+      iconLabel = "🏆 Final Destination";
+    }
+
+    const popupHtml = `
+      <div style="font-family: Inter, sans-serif; padding: 4px;">
+        <h4 style="color:${markerColor}; margin-bottom:4px; font-size:0.92rem;">${iconLabel}</h4>
+        <p style="font-weight:600; font-size:0.82rem; color:#f8fafc;">${wp.title}</p>
+        <p style="color:#94a3b8; font-size:0.75rem; font-family: monospace; margin-top:2px;">${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}</p>
+      </div>
+    `;
+
+    const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml);
+
+    const marker = new maplibregl.Marker({ color: markerColor })
+      .setLngLat([wp.lon, wp.lat])
+      .setPopup(popup)
+      .addTo(map!);
+
+    waypointMapMarkers.push(marker);
+  });
+}
+
+// Render Left Panel Waypoints List UI
+function renderWaypointsUI() {
+  if (!waypointsContainer) return;
+
+  waypointsContainer.innerHTML = "";
+
+  waypoints.forEach((wp) => {
+    const itemEl = document.createElement("div");
+    itemEl.className = "waypoint-item";
+
+    let iconEmoji = "📍";
+    if (wp.type === "origin") iconEmoji = "🏁";
+    else if (wp.type === "destination") iconEmoji = "🏆";
+
+    const coordsString = (wp.lat !== null && wp.lon !== null) 
+      ? `${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}` 
+      : "";
+
+    itemEl.innerHTML = `
+      <span class="waypoint-badge-icon">${iconEmoji}</span>
+      <div class="waypoint-inputs">
+        <input 
+          type="text" 
+          class="waypoint-name-input" 
+          data-id="${wp.id}" 
+          data-field="title"
+          value="${wp.title}" 
+          placeholder="Waypoint Title" 
+        />
+        <input 
+          type="text" 
+          class="waypoint-coords-input" 
+          data-id="${wp.id}" 
+          data-field="coords"
+          value="${coordsString}" 
+          placeholder="Lat, Lon coordinates" 
+        />
+      </div>
+      ${wp.type === "stop" ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop">✕</button>` : ""}
+    `;
+
+    waypointsContainer.appendChild(itemEl);
+  });
+
+  renderWaypointMapMarkers();
+}
+
+// Handlers for Waypoints UI Inputs & Add/Remove
+if (waypointsContainer) {
+  waypointsContainer.addEventListener("input", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target) return;
+
+    const id = target.dataset.id;
+    const field = target.dataset.field;
+    if (!id || !field) return;
+
+    const wp = waypoints.find((w) => w.id === id);
+    if (!wp) return;
+
+    if (field === "title") {
+      wp.title = target.value;
+    } else if (field === "coords") {
+      const parts = target.value.split(/[\s,]+/).filter(Boolean);
+      if (parts.length >= 2) {
+        const lat = parseFloat(parts[0]);
+        const lon = parseFloat(parts[1]);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          wp.lat = lat;
+          wp.lon = lon;
+        }
+      }
+    }
+
+    renderWaypointMapMarkers();
+  });
+
+  waypointsContainer.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (target && target.classList.contains("btn-remove-waypoint")) {
+      const id = target.dataset.id;
+      if (!id) return;
+      waypoints = waypoints.filter((w) => w.id !== id);
+      renderWaypointsUI();
+    }
+  });
+}
+
+// Add New Stop Button Event
+if (addWaypointBtn) {
+  addWaypointBtn.addEventListener("click", () => {
+    const newStop: Waypoint = {
+      id: `wp-stop-${Date.now()}`,
+      title: `Waystop #${waypoints.length - 1}`,
+      lat: 39.8000 + (Math.random() * 0.1),
+      lon: -105.1000 - (Math.random() * 0.1),
+      type: "stop"
+    };
+
+    // Insert stop before destination
+    waypoints.splice(waypoints.length - 1, 0, newStop);
+    renderWaypointsUI();
+  });
+}
+
+// Left Drawer Collapse / Expand Controls
+function collapsePlannerPanel() {
+  if (plannerPanel) plannerPanel.classList.add("collapsed");
+  if (expandPlannerBtn) expandPlannerBtn.style.display = "flex";
+  setTimeout(() => map?.resize(), 320);
+}
+
+function expandPlannerPanel() {
+  if (plannerPanel) plannerPanel.classList.remove("collapsed");
+  if (expandPlannerBtn) expandPlannerBtn.style.display = "none";
+  setTimeout(() => map?.resize(), 320);
+}
+
+if (togglePlannerBtn) togglePlannerBtn.addEventListener("click", collapsePlannerPanel);
+if (expandPlannerBtn) expandPlannerBtn.addEventListener("click", expandPlannerPanel);
+
+// Save Trip to Cloud Backend (PocketBase)
+if (saveTripBtn) {
+  saveTripBtn.addEventListener("click", async () => {
+    if (!PocketBaseAuth.isAuthenticated()) {
+      alert("Please sign in to save trips to your cloud logbook.");
+      return;
+    }
+
+    const title = tripTitleInput ? tripTitleInput.value.trim() : "New Expedition Trip";
+    const user = PocketBaseAuth.getUser() as any;
+
+    try {
+      saveTripBtn.textContent = "💾 Saving to Cloud...";
+      await pb.collection("trips").create({
+        user: user.id,
+        title: title,
+        status: "planned",
+        waypoints: waypoints,
+        metrics: {
+          distance: "42.5 mi",
+          duration: "1h 15m"
+        }
+      });
+
+      saveTripBtn.textContent = "💾 Save Trip to Cloud";
+      showToast("Expedition Trip saved to PocketBase Cloud!");
+    } catch (err: any) {
+      saveTripBtn.textContent = "💾 Save Trip to Cloud";
+      console.error("Failed to save trip:", err);
+      alert(err.message || "Failed to save trip. Check PocketBase collection permissions.");
+    }
+  });
+}
+
 function addPinAtLocation(lat: number, lon: number) {
   if (!map) return;
 
   clearSearchMarker();
 
-  // Update Search Input to reflect coordinates
   if (coordSearchInput) {
     coordSearchInput.value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
   }
@@ -131,12 +351,12 @@ function initializeMapSurface() {
 
   if (map) {
     map.resize();
+    renderWaypointMapMarkers();
     return;
   }
 
   console.log("Initializing MapLibre GL Map Surface...");
 
-  // Clean initial map load with NO default location marker
   map = new maplibregl.Map({
     container: "map-container",
     style: BRIGHT_VOYAGER_MAP_STYLE,
@@ -182,6 +402,7 @@ function initializeMapSurface() {
 
   map.on("load", () => {
     map?.resize();
+    renderWaypointMapMarkers();
   });
 
   setTimeout(() => {
@@ -222,7 +443,6 @@ if (coordSearchForm && coordSearchInput) {
     const query = coordSearchInput.value.trim();
     if (!query || !map) return;
 
-    // Split input by comma or space: e.g. "39.7392, -104.9903" or "39.7392 -104.9903"
     const parts = query.split(/[\s,]+/).filter(Boolean);
     if (parts.length < 2) {
       alert("Invalid format! Please enter valid coordinates in format: Lat, Lon (e.g. 39.7392, -104.9903)");
@@ -272,11 +492,13 @@ function updateAuthStateUI() {
 
     // Router: Switch between Unverified Screen vs Verified Map Surface Workspace
     if (isVerified) {
-      // Verified User View -> Render Full 100vh Viewport Map Surface
+      // Verified User View -> Render Full 100vh Viewport Map Surface + Left Planner
       if (guestView) guestView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "flex";
       if (appFooter) appFooter.style.display = "none";
+
+      renderWaypointsUI();
 
       setTimeout(() => {
         initializeMapSurface();

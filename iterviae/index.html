@@ -116,8 +116,71 @@
         </div>
       </main>
 
-      <!-- View 3: Verified User Workspace (Full Viewport Map + Context Menu) -->
+      <!-- View 3: Verified User Workspace (Full Viewport Map + Left Trip Planner Sidepanel) -->
       <main id="verified-view" class="map-view-container" style="display: none;">
+        <!-- Left Trip Planner Drawer Panel -->
+        <aside id="planner-panel" class="planner-panel">
+          <div class="planner-header">
+            <div class="planner-title-row">
+              <span class="planner-badge">TRIP PLANNER</span>
+              <button id="toggle-planner-btn" class="btn-icon-toggle" title="Collapse Panel">◀</button>
+            </div>
+            <input 
+              type="text" 
+              id="trip-title-input" 
+              class="trip-title-field" 
+              placeholder="Expedition Title (e.g. Rocky Mountain Overland Trek)" 
+              value="New Expedition Trip" 
+            />
+          </div>
+
+          <!-- Waypoints List Section -->
+          <div class="planner-section">
+            <div class="section-title-row">
+              <h3>Route Waypoints</h3>
+              <button id="add-waypoint-btn" class="btn-sm btn-ghost">+ Add Stop</button>
+            </div>
+
+            <div id="waypoints-container" class="waypoints-list">
+              <!-- Waypoints render dynamically via JS -->
+            </div>
+          </div>
+
+          <!-- Trip Route Metrics Summary -->
+          <div class="planner-section metrics-section">
+            <h3>Expedition Metrics</h3>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <span class="metric-icon">🚗</span>
+                <div class="metric-details">
+                  <span id="metric-distance" class="metric-value">0.0 mi</span>
+                  <span class="metric-label">Total Distance</span>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <span class="metric-icon">⏱️</span>
+                <div class="metric-details">
+                  <span id="metric-duration" class="metric-value">0h 0m</span>
+                  <span class="metric-label">Drive Time</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Trip Action Button -->
+          <div class="planner-actions">
+            <button id="save-trip-btn" class="btn btn-primary btn-block">
+              <span>💾 Save Trip to Cloud</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Toggle Drawer Pill (Visible when panel is collapsed) -->
+        <button id="expand-planner-btn" class="expand-planner-pill" style="display: none;" title="Open Trip Planner">
+          <span>🗺️ Trip Planner</span>
+        </button>
+
         <!-- Top Coordinate Search Bar Overlay -->
         <div class="search-overlay">
           <form id="coord-search-form" class="search-form">
