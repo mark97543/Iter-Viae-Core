@@ -108,6 +108,16 @@ function initializeMapSurface() {
   }, 400);
 }
 
+// Select-all UX enhancement on search input focus/click
+if (coordSearchInput) {
+  coordSearchInput.addEventListener("focus", () => {
+    coordSearchInput.select();
+  });
+  coordSearchInput.addEventListener("click", () => {
+    coordSearchInput.select();
+  });
+}
+
 // Coordinate Search Form Handler (Lat, Lon)
 if (coordSearchForm && coordSearchInput) {
   coordSearchForm.addEventListener("submit", (e) => {
