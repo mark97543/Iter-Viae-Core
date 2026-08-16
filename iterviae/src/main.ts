@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchExpeditionRoute, LegMetric } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Inline Inter-Leg Waypoint Controls.");
+console.log("Iter Viae Tactical Surface initialized with Auto-Select Waypoint Input Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -449,8 +449,47 @@ function insertNewStopAt(insertIndex: number) {
   renderWaypointsUI();
 }
 
-// Handlers for Waypoints UI Inputs, Remove, and Inline/End Add Buttons
+// Handlers for Waypoints UI Inputs, Remove, Auto-Select text, and Inline/End Add Buttons
 if (waypointsContainer) {
+  // Auto-Select All Text on Focus in Waypoint Title / Coordinates Input
+  waypointsContainer.addEventListener("focusin", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (target && (target.classList.contains("waypoint-name-input") || target.classList.contains("waypoint-coords-input"))) {
+      target.select();
+    }
+  });
+
+  // Auto-Select All Text on Click in Waypoint Title / Coordinates Input
+  waypointsContainer.addEventListener("click", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (target && (target.classList.contains("waypoint-name-input") || target.classList.contains("waypoint-coords-input"))) {
+      target.select();
+      return;
+    }
+
+    // Inline Add Button
+    if (target.classList.contains("btn-add-inline-leg")) {
+      const insertIndex = parseInt(target.dataset.insertIndex || "1", 10);
+      insertNewStopAt(insertIndex);
+      return;
+    }
+
+    // End Add Button
+    if (target.id === "add-end-stop-btn" || target.classList.contains("btn-add-end-stop")) {
+      insertNewStopAt(waypoints.length - 1);
+      return;
+    }
+
+    // Remove Stop Button
+    if (target.classList.contains("btn-remove-waypoint")) {
+      const id = target.dataset.id;
+      if (!id) return;
+      waypoints = waypoints.filter((w) => w.id !== id);
+      renderWaypointsUI();
+      return;
+    }
+  });
+
   waypointsContainer.addEventListener("input", (e) => {
     const target = e.target as HTMLInputElement;
     if (!target) return;
@@ -477,33 +516,6 @@ if (waypointsContainer) {
     }
 
     renderWaypointMapMarkers();
-  });
-
-  waypointsContainer.addEventListener("click", (e) => {
-    const target = e.target as HTMLElement;
-    if (!target) return;
-
-    // Inline Add Button
-    if (target.classList.contains("btn-add-inline-leg")) {
-      const insertIndex = parseInt(target.dataset.insertIndex || "1", 10);
-      insertNewStopAt(insertIndex);
-      return;
-    }
-
-    // End Add Button
-    if (target.id === "add-end-stop-btn" || target.classList.contains("btn-add-end-stop")) {
-      insertNewStopAt(waypoints.length - 1);
-      return;
-    }
-
-    // Remove Stop Button
-    if (target.classList.contains("btn-remove-waypoint")) {
-      const id = target.dataset.id;
-      if (!id) return;
-      waypoints = waypoints.filter((w) => w.id !== id);
-      renderWaypointsUI();
-      return;
-    }
   });
 }
 
