@@ -116,8 +116,27 @@
         </div>
       </main>
 
-      <!-- View 3: Verified User Workspace (Full Viewport Native Vector POI Map Canvas) -->
+      <!-- View 3: Verified User Workspace (Full Viewport Map + Top Coordinate Search Bar) -->
       <main id="verified-view" class="map-view-container" style="display: none;">
+        <!-- Top Coordinate Search Bar Overlay -->
+        <div class="search-overlay">
+          <form id="coord-search-form" class="search-form">
+            <div class="search-input-wrapper">
+              <span class="search-icon">🔍</span>
+              <input 
+                type="text" 
+                id="coord-search-input" 
+                class="search-input"
+                placeholder="Enter Lat, Lon (e.g. 39.7392, -104.9903 or 40.7128, -74.0060)" 
+                autocomplete="off" 
+              />
+            </div>
+            <button type="submit" class="btn btn-primary btn-search">
+              <span>Center & Pin</span>
+            </button>
+          </form>
+        </div>
+
         <div id="map-container" class="map-surface"></div>
       </main>
 
