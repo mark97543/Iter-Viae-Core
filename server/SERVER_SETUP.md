@@ -1,213 +1,63 @@
-# Iter Viae : Complete EasyPanel & Server Setup Guide 🚀
+# Iter Viae Streamlined Server Deployment Guide 🚀
 
-This is the ultimate, step-by-step guide for deploying the **Valhalla Routing Engine**, **TileServer GL**, and **Directus API Control Center** (`api.wade-usa.com`) on **EasyPanel** connected to your GitHub repository ([`https://github.com/mark97543/Iter-Viae-Core.git`](https://github.com/mark97543/Iter-Viae-Core.git)).
+This guide covers deploying the **Iter Viae 100% Open-Source Cloud Infrastructure** on **EasyPanel** or Docker.
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Architecture Overview
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             LOCAL WORKSTATION                               │
-│  Compiles map.mbtiles (Vector) & routing.tar (Valhalla)                     │
-│  Path: /home/mark/Documents/Iter Viae Core/data/maps/                      │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ Upload via ./upload_to_server.sh
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                       EASYPANEL SERVER (46.202.179.124)                     │
-│                                                                             │
-│  ┌────────────────────────┐  ┌──────────────────────┐  ┌─────────────────┐  │
-│  │ TileServer GL Service  │  │  Valhalla Service    │  │ Directus API    │  │
-│  │ tiles.wade-usa.com     │  │ valhalla.wade-usa.com│  │api.wade-usa.com │  │
-│  │ Port: 8080             │  │ Port: 8002           │  │ Port: 8055      │  │
-│  └───────────▲────────────┘  └──────────▲───────────┘  └────────▲────────┘  │
-└──────────────┼──────────────────────────┼───────────────────────┼───────────┘
-               │ Vector PBF Tiles         │ Turn-by-Turn          │ API Keys
-               └──────────────────────────┼───────────────────────┘
-                                          │
-                           ┌──────────────┴──────────────┐
-                           │     Mensa Desktop App       │
-                           │    (Saves trips locally)    │
-                           └─────────────────────────────┘
+EasyPanel automatically handles domain routing, SSL certificates (Let's Encrypt), and reverse proxying directly to your 3 core service containers:
+
+```
+                  ┌─────────────────────────────────────┐
+                  │          EasyPanel / SSL            │
+                  └──────────────────┬──────────────────┘
+                                     │
+           ┌─────────────────────────┼─────────────────────────┐
+           ▼                         ▼                         ▼
+┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
+│  Vector Tile Server │   │   Valhalla Engine   │   │  PocketBase Backend │
+│  tiles.wade-usa.com │   │ valhalla.wade-usa.com│   │   api.wade-usa.com  │
+│     (Port 8080)     │   │     (Port 8002)     │   │     (Port 8090)     │
+└─────────────────────┘   └─────────────────────┘   └─────────────────────┘
 ```
 
----
-
-## 📍 Phase 1: Local Map Data Build (Workstation)
-
-Faber compiles your map files locally on your computer to save server CPU and RAM:
-
-- **Local Compiled Output Directory**:  
-  `/home/mark/Documents/Iter Viae Core/data/maps/compiled/`
-
-- **Generated Files**:
-  - `map.mbtiles` (~12.15 GB Master OpenMapTiles Vector Map)
-  - `valhalla_tiles.tar` (~20.13 GB Valhalla Highway Routing Graph Tiles)
+> ⚡ **No Custom Gateway Needed**: EasyPanel terminates SSL and routes domains (`https://tiles.wade-usa.com`, `https://valhalla.wade-usa.com`, `https://api.wade-usa.com`) natively without extra proxy bottlenecks!
 
 ---
 
-## 🐧 Phase 2: Fresh Server Setup & EasyPanel Installation
+## 🛠️ Step 1: Deploy PocketBase (Auth & Data Storage)
 
-Connect to your server via SSH:
-
-```bash
-ssh root@46.202.179.124
-```
-
-### 1. Update Operating System
-```bash
-apt update && apt upgrade -y
-```
-
-### 2. Install EasyPanel
-Run the official 1-command installer:
-```bash
-curl -sSL https://get.easypanel.io | sh
-```
-
-### 3. Initialize EasyPanel Dashboard
-1. Open your browser to: `http://46.202.179.124:3000`
-2. Create your **Admin Account** (Email & Password).
-3. On the left sidebar, click **+ Project** and name it `iterviae`.
+- **Domain**: `api.wade-usa.com`
+- **Docker Image**: `ghcr.io/muchweb/pocketbase:latest`
+- **Container Port**: `8090`
+- **Volume Mapping**: `/pb_data`
+- **Setup Guide**: See [`server/pocketbase/POCKETBASE_SETUP.md`](pocketbase/POCKETBASE_SETUP.md) for collection and API Rule configuration.
 
 ---
 
-## 📤 Phase 3: Upload Local Maps & Routing Data to Server
+## 🗺️ Step 2: Deploy Vector TileServer GL
 
-> [!IMPORTANT]
-> **Run this command from a terminal on your LOCAL WORKSTATION (your computer).**  
-> Do **NOT** run it inside the server SSH session.
-
-Run the automated 1-command upload script from your laptop terminal:
-
-```bash
-cd "/home/mark/Documents/Iter Viae Core" && ./upload_to_server.sh
-```
-
-### What this script does automatically:
-- Connects to `root@46.202.179.124`.
-- Creates server target folders `/etc/easypanel/projects/iterviae/tiles` and `/etc/easypanel/projects/iterviae/valhalla`.
-- Transfers `map.mbtiles` and `routing.tar` with live progress bars.
+- **Domain**: `tiles.wade-usa.com`
+- **Docker Image**: `maptiler/tileserver-gl:latest`
+- **Container Port**: `8080`
+- **Volume Mapping**: `/data` (containing `config.json` and MBTiles files).
 
 ---
 
-## ⚙️ Phase 4: Detailed EasyPanel Git Service Setup (Click-by-Click) 🐙
+## ⚡ Step 3: Deploy Valhalla Routing Engine
 
-### Service 1: Deploy Valhalla (Routing Engine via Git)
-
-1. Open **EasyPanel** at `http://46.202.179.124:3000`.
-2. Click project **`iterviae`** on the left menu.
-3. Click **+ Service** $\rightarrow$ select **Git Repository**.
-4. **Source Settings**:
-   - **Service Name**: `valhalla`
-   - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
-   - **Branch**: `main`
-5. **Build Settings**:
-   - **Build Type**: Select `Dockerfile`
-   - **Build Context / Root**: Set to `.` (or leave empty)
-   - **Dockerfile Path**: `server/valhalla/Dockerfile`
-6. **Domains / Ports Settings (under "Domains" / "Ports" tab)**:
-   - *Option A (Direct IP & Port Access)*: Go to **Ports** $\rightarrow$ **+ Add Port** $\rightarrow$ Set Published Port `8002` $\rightarrow$ Target Port `8002` (`TCP`).
-   - *Option B (Custom Domain)*: Go to **Domains** $\rightarrow$ **+ Add Domain** $\rightarrow$ Enter `valhalla.yourdomain.com` $\rightarrow$ Set Container Port to `8002`.
-7. **Volume Mounts (under "Mounts" tab)**:
-   - Click **+ Add Mount**
-   - **Type**: `Bind`
-   - **Host Path**: `/etc/easypanel/projects/iterviae/valhalla`
-   - **Mount Path**: `/custom_files`
-8. Click **Deploy**. EasyPanel will pull `server/valhalla/Dockerfile` from GitHub and start Valhalla!
+- **Domain**: `valhalla.wade-usa.com`
+- **Docker Image**: `ghcr.io/gis-ops/valhalla:latest`
+- **Container Port**: `8002`
+- **Volume Mapping**: `/custom_files` (containing extracted routing graph files).
 
 ---
 
-### Service 2: Deploy TileServer GL (Vector Maps via Git)
+## 📄 Summary of Active Endpoints
 
-1. Inside project **`iterviae`**, click **+ Service** $\rightarrow$ select **Git Repository**.
-2. **Source Settings**:
-   - **Service Name**: `tileserver`
-   - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
-   - **Branch**: `main`
-3. **Build Settings**:
-   - **Build Type**: Select `Dockerfile`
-   - **Build Context / Root**: Set to `.` (or leave empty)
-   - **Dockerfile Path**: `server/tileserver/Dockerfile`
-4. **Domains / Ports Settings (under "Domains" / "Ports" tab)**:
-   - *Option A (Direct IP & Port Access)*: Go to **Ports** $\rightarrow$ **+ Add Port** $\rightarrow$ Set Published Port `8080` $\rightarrow$ Target Port `8080` (`TCP`).
-   - *Option B (Custom Domain)*: Go to **Domains** $\rightarrow$ **+ Add Domain** $\rightarrow$ Enter `tiles.yourdomain.com` $\rightarrow$ Set Container Port to `8080`.
-5. **Volume Mounts (under "Mounts" tab)**:
-   - Click **+ Add Mount**
-   - **Type**: `Bind`
-   - **Host Path**: `/etc/easypanel/projects/iterviae/tiles`
-   - **Mount Path**: `/data`
-6. Click **Deploy**. EasyPanel will pull `server/tileserver/Dockerfile` from GitHub and start TileServer!
-
----
-
-### Service 3: Deploy Directus API Control Center (`api.wade-usa.com` via Git) 🔑
-
-1. Inside project **`iterviae`**, click **+ Service** $\rightarrow$ select **Git Repository**.
-2. **Source Settings**:
-   - **Service Name**: `directus`
-   - **Repository URL**: `https://github.com/mark97543/Iter-Viae-Core.git`
-   - **Branch**: `main`
-3. **Build Settings**:
-   - **Build Type**: Select `Dockerfile`
-   - **Build Context / Root**: Set to `.` (or leave empty)
-   - **Dockerfile Path**: `server/directus/Dockerfile`
-4. **Domains Settings (under "Domains" tab)**:
-   - Click **+ Add Domain**
-   - **Domain**: `api.wade-usa.com`
-   - **Container Port**: `8055`
-   - **HTTPS**: Enabled (Checked)
-5. **Environment Variables (under "Environment" tab)**:
-   - `KEY`: `9b1deb4d-3b7d-4bad-9bdd-2b0d7b3d001a`
-   - `SECRET`: `5c9f9d2a-8c7a-4a2b-9e1d-3c7f9d1a2b3c`
-   - `ADMIN_EMAIL`: `admin@wade-usa.com`
-   - `ADMIN_PASSWORD`: `YOUR_SECURE_ADMIN_PASSWORD`
-   - `PUBLIC_URL`: `https://api.wade-usa.com`
-   - `DB_CLIENT`: `sqlite3`
-   - `DB_FILENAME`: `/directus/database/data.db`
-6. **Volume Mounts (under "Mounts" tab)**:
-   - **Mount A**: Host Path `/etc/easypanel/projects/iterviae/directus/database` $\rightarrow$ Mount Path `/directus/database`
-   - **Mount B**: Host Path `/etc/easypanel/projects/iterviae/directus/uploads` $\rightarrow$ Mount Path `/directus/uploads`
-7. Click **Deploy**. EasyPanel will pull `server/directus/Dockerfile` from GitHub, launch Directus, and provision `https://api.wade-usa.com`!
-
----
-
-## 🧪 Phase 5: Verification & Service Testing
-
-### 1. Test Valhalla Turn-by-Turn Routing Service
-Run this command from any terminal or paste the URL into your browser:
-
-```bash
-curl "http://46.202.179.124:8002/route?json={\"locations\":[{\"lat\":47.6062,\"lon\":-122.3321},{\"lat\":47.6101,\"lon\":-122.3421}],\"costing\":\"auto\"}"
-```
-- **Expected Result**: Returns JSON data with decoded polyline road geometry, maneuvers, and travel time.
-
-### 2. Test TileServer GL Vector Maps Service
-- Open `http://46.202.179.124:8080` in your web browser.
-- You will see the TileServer GL dashboard displaying your `map.mbtiles` vector map styles and live PBF tile preview!
-
----
-
-## 🔗 Phase 6: Connect Mensa Desktop App
-
-In Mensa Desktop settings (`mensa/src/main.ts`):
-- **Map Vector Tiles Endpoint**: `http://46.202.179.124:8080/tiles/{z}/{x}/{y}.pbf`
-- **Valhalla Routing Endpoint**: `http://46.202.179.124:8002/route`
-
----
-
-## 🔍 Helpful Commands & Logs
-
-- **View Live Valhalla Container Logs**:
-  ```bash
-  docker logs -f iterviae-valhalla
-  ```
-- **View Live TileServer Container Logs**:
-  ```bash
-  docker logs -f iterviae-tileserver
-  ```
-- **Restart All Services**:
-  ```bash
-  docker restart iterviae-valhalla iterviae-tileserver
-  ```
+| Service | Public HTTPS Domain | Port | Function |
+| :--- | :--- | :--- | :--- |
+| **PocketBase** | `https://api.wade-usa.com` | `8090` | Auth, User Isolation, Trips Database |
+| **TileServer GL** | `https://tiles.wade-usa.com` | `8080` | OpenMapTiles Vector `.pbf` tiles |
+| **Valhalla Engine** | `https://valhalla.wade-usa.com` | `8002` | Turn-by-Turn Route Calculations |
