@@ -1,8 +1,9 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
+import { fetchValhallaRoute } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Route Command & Expedition Logbook.");
+console.log("Iter Viae Tactical Surface initialized with Valhalla Route Command Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -52,6 +53,9 @@ const tripTitleText = document.getElementById("trip-title-text");
 const waypointsContainer = document.getElementById("waypoints-container");
 const addWaypointBtn = document.getElementById("add-waypoint-btn");
 const saveTripBtn = document.getElementById("save-trip-btn");
+
+const metricDistance = document.getElementById("metric-distance");
+const metricDuration = document.getElementById("metric-duration");
 
 // DOM Trip Modal References
 const tripModal = document.getElementById("trip-modal");
@@ -133,6 +137,89 @@ function showToast(message: string) {
   }, 2500);
 }
 
+// Fetch Valhalla turn-by-turn route line geometry & update metrics
+async function updateValhallaRoute() {
+  if (!map) return;
+
+  const validLocations = waypoints
+    .filter((w) => w.lat !== null && w.lon !== null)
+    .map((w) => ({ lat: w.lat!, lon: w.lon! }));
+
+  if (validLocations.length < 2) {
+    if (map.getSource("expedition-route-src")) {
+      (map.getSource("expedition-route-src") as maplibregl.GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: []
+      });
+    }
+    if (metricDistance) metricDistance.textContent = "0.0 MI";
+    if (metricDuration) metricDuration.textContent = "0H 0M";
+    return;
+  }
+
+  try {
+    console.log("Triggering Valhalla Route Calculation for locations:", validLocations);
+    const { coordinates, distanceMi, durationSec } = await fetchValhallaRoute(validLocations, "auto");
+
+    // Format metrics
+    const hours = Math.floor(durationSec / 3600);
+    const mins = Math.round((durationSec % 3600) / 60);
+
+    if (metricDistance) metricDistance.textContent = `${distanceMi.toFixed(1)} MI`;
+    if (metricDuration) metricDuration.textContent = `${hours}H ${mins}M`;
+
+    // Create GeoJSON Feature
+    const routeGeoJSON: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: coordinates
+          }
+        }
+      ]
+    };
+
+    if (map.getSource("expedition-route-src")) {
+      (map.getSource("expedition-route-src") as maplibregl.GeoJSONSource).setData(routeGeoJSON);
+    } else {
+      map.addSource("expedition-route-src", {
+        type: "geojson",
+        data: routeGeoJSON
+      });
+
+      map.addLayer({
+        id: "expedition-route-layer",
+        type: "line",
+        source: "expedition-route-src",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round"
+        },
+        paint: {
+          "line-color": "#ef4444",
+          "line-width": 5,
+          "line-opacity": 0.85
+        }
+      });
+    }
+
+    // Fit map bounds to encompass route coordinates
+    if (coordinates.length > 0) {
+      const bounds = coordinates.reduce(
+        (b, coord) => b.extend(coord as [number, number]),
+        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
+      );
+      map.fitBounds(bounds, { padding: 60, maxZoom: 15 });
+    }
+  } catch (err) {
+    console.error("Valhalla Route trigger failed:", err);
+  }
+}
+
 // Sync Map Markers with Active Waypoints List
 function renderWaypointMapMarkers() {
   if (!map) return;
@@ -172,6 +259,8 @@ function renderWaypointMapMarkers() {
 
     waypointMapMarkers.push(marker);
   });
+
+  updateValhallaRoute();
 }
 
 // Render Left Panel Waypoints List UI
@@ -352,8 +441,8 @@ if (saveTripBtn) {
         waypoints: waypoints,
         summary: currentTripSummary,
         metrics: {
-          distance: "42.5 mi",
-          duration: "1h 15m"
+          distance: metricDistance?.textContent || "0.0 MI",
+          duration: metricDuration?.textContent || "0H 0M"
         }
       });
 
