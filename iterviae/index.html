@@ -3,45 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ITER VIAE — Roman Legion x Heavy Metal Tactical Surface</title>
-    <meta name="description" content="Iter Viae is a Roman Legionnaire x Heavy Metal tactical trip planning platform for overland route optimization, fuel budgeting, and instant logbook generation." />
+    <title>ITER VIAE — Hardcore Iron & Asphalt Tactical Surface</title>
+    <meta name="description" content="Iter Viae is a professional iron and asphalt tactical route command platform for long-haul navigation, fuel budgeting, and instant logbook generation." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Cinzel+Decorative:wght@700;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <div id="app">
-      <!-- Background Ambient Glow Canvas -->
-      <div class="ambient-glow glow-crimson"></div>
-      <div class="ambient-glow glow-gold"></div>
+      <!-- Ambient Background Grid & Flame Overlay -->
+      <div class="asphalt-grid"></div>
+      <div class="flame-glow glow-orange"></div>
 
       <!-- Navigation Header -->
       <header class="navbar">
         <div class="nav-brand">
-          <span class="brand-icon">🦅</span>
           <div class="brand-text">
             <span class="brand-name">ITER VIAE</span>
-            <span class="brand-badge">LEGIO MMXXVI</span>
+            <span class="brand-badge">ROAD COMMAND</span>
           </div>
         </div>
         <div class="nav-actions">
           <span class="status-indicator">
             <span class="status-dot"></span>
-            <span class="status-label">IRON NODES ONLINE</span>
+            <span class="status-label">SERVERS ACTIVE</span>
           </span>
           <button id="server-status-btn" class="btn btn-secondary">
-            <span>⚡ SERVER NODES</span>
+            <span>NETWORK NODES</span>
           </button>
 
           <!-- User Auth Controls -->
           <div id="user-auth-controls">
             <button id="open-auth-btn" class="btn btn-primary">
-              <span>⚔️ ENTER PORTAL</span>
+              <span>SIGN IN / JOIN</span>
             </button>
             <div id="user-session-pill" class="user-pill" style="display: none;">
-              <span class="user-avatar">🦅</span>
-              <span id="user-display-name" class="user-name">Legionnaire</span>
+              <span id="user-display-name" class="user-name">RIDER</span>
               <span id="user-verification-badge" class="badge badge-warning">UNVERIFIED</span>
               <button id="logout-btn" class="btn-logout" title="Sign Out">✕</button>
             </div>
@@ -51,23 +49,18 @@
 
       <!-- View 1: Guest Landing / Welcome Hero Section -->
       <main id="guest-view" class="hero-container">
-        <div class="hero-card steel-panel">
-          <div class="roman-banner">
-            <span class="banner-eagle">🦅</span>
-            <span class="card-tag">VENI • VIDI • NAVIGAVI</span>
-            <span class="banner-eagle">🦅</span>
-          </div>
+        <div class="hero-card iron-card">
+          <div class="card-tag">HARDCORE TACTICAL ROUTE PLATFORM</div>
           
-          <h1 class="hero-title">ITER <span class="gold-gradient-text">VIAE</span></h1>
-          <p class="hero-motto">"THE IMPERIAL ROAD OF IRON AND THUNDER"</p>
+          <h1 class="hero-title">ITER <span class="orange-gradient-text">VIAE</span></h1>
+          <p class="hero-motto">HIT THE ROAD • OWN THE ASPHALT</p>
           <p class="hero-subtitle">
-            Universal cloud-connected tactical route optimization, high-contrast vector map surfaces, Valhalla engine routing, and heavy metal logbook generation.
+            Universal cloud-connected tactical route optimization, vector map surfaces, Valhalla engine trip planning, and instant logbook generation.
           </p>
 
           <!-- System Status Grid -->
           <div class="status-grid">
             <div class="status-card">
-              <div class="card-icon crimson">🛡️</div>
               <div class="card-info">
                 <h3>Vector Map Surface</h3>
                 <p>https://tiles.wade-usa.com</p>
@@ -76,7 +69,6 @@
             </div>
 
             <div class="status-card">
-              <div class="card-icon gold">⚡</div>
               <div class="card-info">
                 <h3>Valhalla Engine</h3>
                 <p>https://valhalla.wade-usa.com</p>
@@ -85,7 +77,6 @@
             </div>
 
             <div class="status-card">
-              <div class="card-icon purple">🔥</div>
               <div class="card-info">
                 <h3>PocketBase Cloud</h3>
                 <p>https://api.wade-usa.com</p>
@@ -97,23 +88,20 @@
           <!-- Feature Cards -->
           <div class="features-row">
             <div class="feature-pill">
-              <span class="pill-icon">⚔️</span>
               <span>Android PWA Ready</span>
             </div>
             <div class="feature-pill">
-              <span class="pill-icon">🦅</span>
-              <span>Imperial User Isolation</span>
+              <span>Cloud Data Sync</span>
             </div>
             <div class="feature-pill">
-              <span class="pill-icon">🖨️</span>
-              <span>B&W Letter Logbook Prints</span>
+              <span>Logbook Print Engine</span>
             </div>
           </div>
 
           <!-- Action Buttons -->
           <div class="hero-actions">
             <button id="hero-auth-btn" class="btn btn-primary btn-lg">
-              <span>⚔️ AUTHENTICATE LEGIONNAIRE</span>
+              <span>SIGN IN & HIT THE ROAD</span>
               <span class="btn-arrow">→</span>
             </button>
           </div>
@@ -122,25 +110,22 @@
 
       <!-- View 2: Unverified User Screen -->
       <main id="unverified-view" class="hero-container" style="display: none;">
-        <div class="hero-card steel-panel border-warning">
-          <div class="roman-banner">
-            <span class="card-tag tag-warning">⚔️ IMPERIAL STANDARDS PENDING VERIFICATION ⚔️</span>
-          </div>
-          <div class="unverified-icon">🛡️</div>
-          <h1 class="hero-title">UNVERIFIED LEGIONNAIRE</h1>
+        <div class="hero-card iron-card border-warning">
+          <div class="card-tag tag-warning">ACCOUNT PENDING COMMANDER CLEARANCE</div>
+          <h1 class="hero-title">UNVERIFIED ACCOUNT</h1>
           <p class="hero-subtitle">
-            Hail, <strong id="unverified-user-email">user@domain.com</strong>. Your imperial credentials require administrator verification.
+            Welcome, <strong id="unverified-user-email">user@domain.com</strong>. Your account is currently pending verification.
           </p>
 
           <div class="unverified-box">
             <p class="unverified-message">
-              🔥 <strong>ACTION REQUIRED:</strong> Contact the Imperial Commander (<a href="mailto:mark@wade-usa.com" class="link-gold">mark@wade-usa.com</a>) to verify and activate your tactical access.
+              <strong>ACTION REQUIRED:</strong> Contact administrator (<a href="mailto:mark@wade-usa.com" class="link-orange">mark@wade-usa.com</a>) to verify and activate your road command clearance.
             </p>
           </div>
 
           <div class="hero-actions" style="margin-top: 2rem;">
             <button id="unverified-logout-btn" class="btn btn-outline btn-lg">
-              <span>DISMOUNT / SIGN OUT</span>
+              <span>SIGN OUT</span>
             </button>
           </div>
         </div>
@@ -148,20 +133,17 @@
 
       <!-- View 3: Verified User Blank Workspace Canvas -->
       <main id="verified-view" class="hero-container" style="display: none;">
-        <div class="hero-card steel-panel border-success">
-          <div class="roman-banner">
-            <span class="card-tag tag-success">🦅 LEGIO MMXXVI • TACTICAL WORKSPACE 🦅</span>
-          </div>
-          <h1 class="hero-title">HAIL, <span id="verified-user-name" class="gold-gradient-text">LEGIONNAIRE</span></h1>
+        <div class="hero-card iron-card border-success">
+          <div class="card-tag tag-success">VERIFIED ROAD COMMAND WORKSPACE</div>
+          <h1 class="hero-title">WELCOME, <span id="verified-user-name" class="orange-gradient-text">RIDER</span></h1>
           <p class="hero-subtitle">
-            Your imperial clearance is verified. Welcome to the tactical map and route command surface.
+            Your clearance is verified. Welcome to the tactical map and route command workspace.
           </p>
 
           <div class="workspace-placeholder">
             <div class="placeholder-content">
-              <span class="placeholder-icon">⚔️</span>
-              <h3>IMPERIAL ROUTE COMMAND SURFACE</h3>
-              <p>Ready to construct vector map surfaces, waypoint legionnaires, and heavy metal logbooks.</p>
+              <h3>TACTICAL ROUTE COMMAND CANVAS</h3>
+              <p>Ready to build map surfaces, waypoint tools, and trip logbooks.</p>
             </div>
           </div>
         </div>
@@ -169,19 +151,18 @@
 
       <!-- Tactical PocketBase Auth Modal -->
       <div id="auth-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card steel-panel">
+        <div class="modal-card iron-card">
           <button id="auth-modal-close" class="modal-close-btn">&times;</button>
           
           <div class="modal-header">
-            <span class="modal-icon">🦅</span>
-            <h2 class="modal-title">IMPERIAL GATEWAY</h2>
+            <h2 class="modal-title">ROAD COMMAND PORTAL</h2>
             <p class="modal-subtitle">PocketBase Cloud Portal (https://api.wade-usa.com)</p>
           </div>
 
           <!-- Auth Tab Controls -->
           <div class="auth-tabs">
             <button id="tab-login-btn" class="auth-tab active">SIGN IN</button>
-            <button id="tab-register-btn" class="auth-tab">JOIN LEGION</button>
+            <button id="tab-register-btn" class="auth-tab">JOIN</button>
           </div>
 
           <!-- Error Alert Banner -->
@@ -191,34 +172,34 @@
           <form id="login-form" class="auth-form">
             <div class="form-group">
               <label for="login-email">EMAIL OR USERNAME</label>
-              <input type="text" id="login-email" placeholder="legionnaire@domain.com" required />
+              <input type="text" id="login-email" placeholder="rider@domain.com" required />
             </div>
             <div class="form-group">
               <label for="login-password">PASSWORD</label>
               <input type="password" id="login-password" placeholder="••••••••••••" required />
             </div>
             <button type="submit" class="btn btn-primary btn-block btn-lg">
-              <span>⚔️ AUTHENTICATE & ENTER</span>
+              <span>AUTHENTICATE & ENTER</span>
             </button>
           </form>
 
           <!-- Register Form -->
           <form id="register-form" class="auth-form" style="display: none;">
             <div class="form-group">
-              <label for="reg-name">LEGIONNAIRE NAME</label>
-              <input type="text" id="reg-name" placeholder="Centurion Mark" required />
+              <label for="reg-name">NAME</label>
+              <input type="text" id="reg-name" placeholder="Rider Mark" required />
             </div>
             <div class="form-group">
               <label for="reg-email">EMAIL ADDRESS</label>
-              <input type="email" id="reg-email" placeholder="legionnaire@domain.com" required />
+              <input type="email" id="reg-email" placeholder="rider@domain.com" required />
             </div>
             <div class="form-group">
               <label for="reg-password">PASSWORD</label>
               <input type="password" id="reg-password" placeholder="Min. 8 characters" required />
             </div>
-            <p class="reg-notice">🔥 Note: New legionnaires start as Unverified and require administrator verification.</p>
+            <p class="reg-notice">Note: New accounts start as Unverified and require administrator clearance.</p>
             <button type="submit" class="btn btn-primary btn-block btn-lg">
-              <span>⚔️ ENLIST IN LEGION</span>
+              <span>CREATE ACCOUNT</span>
             </button>
           </form>
         </div>
@@ -226,7 +207,7 @@
 
       <!-- Footer -->
       <footer class="footer">
-        <p>© MMXXVI ITER VIAE CORE • IMPERIAL THUNDER & ROAD SURFACES</p>
+        <p>© 2026 ITER VIAE CORE • IRON & ASPHALT ROAD COMMAND</p>
       </footer>
     </div>
 
