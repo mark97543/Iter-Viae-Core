@@ -1,31 +1,31 @@
 # Iter Viae Core 🧭
 
-**Iter Viae** is a modern, high-contrast tactical trip planning platform designed for precise itinerary management, fuel budgeting, and printable navigation assets.
+**Iter Viae** is a modern, high-contrast tactical trip planning platform designed for precise itinerary management, online vector map surfaces, fuel budgeting, and printable navigation assets.
 
 ---
 
 ## 🛠️ Repository Components
 
-### 1. `mensa/` — Desktop Itinerary Planner
-- **Cross-Platform Desktop App**: Built with Tauri v2, TypeScript, and MapLibre GL.
-- **100% Local Trip File Storage**: Saves all itineraries, stops, and schedules locally (`~/Documents/IterViae/trips/*.viae`).
-- **Printable Itineraries with Google Maps QR Codes**: One-click printing (Letter, A5, Field Notes size) featuring scannable QR codes for every stop. Scanning a QR code on your phone opens **Google Maps Turn-by-Turn Navigation** directly from your current position!
-- **Fuel Budget Planner**: Automatic gas stop distance calculation and expense tracking.
+### 1. `iterviae/` — Cloud & Mobile Tactical Web Application
+- **Universal Web & Mobile App**: Built with Vite, TypeScript, and MapLibre GL.
+- **Online Infrastructure Integration**: Connects directly to production tile servers (`tiles.wade-usa.com`), Valhalla routing (`valhalla.wade-usa.com`), and Directus Cloud Data API (`api.wade-usa.com`).
+- **Android PWA & Mobile Ready**: Full support for touch gestures, responsive navigation, and progressive web installation.
+- **Printable Itineraries with Google Maps QR Codes**: High-contrast B&W Letter logbook prints featuring scannable QR codes for turn-by-turn navigation.
 
-### 2. `tools/faber/` — Map Forge & Tile Engine
-- OpenMapTiles vector tile compiler, PBF downloader, hillshade generator, and Valhalla graph extractor.
+### 2. `server/` — EasyPanel & Docker Deployment Guide
+- Step-by-step instructions for deploying **Valhalla Routing Engine**, **TileServer GL**, and **Directus CMS** on **EasyPanel** or Docker (`server/SERVER_SETUP.md`).
 
-### 3. `server/` — EasyPanel & Docker Deployment Guide
-- Step-by-step instructions for deploying **Valhalla Routing Engine** and **TileServer GL** on **EasyPanel** or Docker (`server/SERVER_SETUP.md`).
+### 3. `tools/` — Map Forge & Tile Engine Utilities
+- Vector tile utilities, PBF converters, and map processing scripts.
 
 ---
 
-## 🚀 Quick Start (Mensa Desktop)
+## 🚀 Quick Start (Iter Viae Web App)
 
 ```bash
-cd mensa
+cd iterviae
 npm install
-npm run tauri dev
+npm run dev
 ```
 
 ---

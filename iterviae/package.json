@@ -1,0 +1,21 @@
+{
+  "name": "iterviae",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3",
+    "vite": "^5.4.1"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.1.0",
+    "flatpickr": "^4.6.13",
+    "maplibre-gl": "^4.7.1",
+    "qrcode": "^1.5.4"
+  }
+}
