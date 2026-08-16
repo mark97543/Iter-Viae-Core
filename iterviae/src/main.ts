@@ -8,6 +8,7 @@ console.log("Iter Viae Tactical Surface initialized with MapLibre GL Vector Engi
 const guestView = document.getElementById("guest-view");
 const unverifiedView = document.getElementById("unverified-view");
 const verifiedView = document.getElementById("verified-view");
+const appFooter = document.getElementById("app-footer");
 
 // DOM Header & Button References
 const heroAuthBtn = document.getElementById("hero-auth-btn");
@@ -34,16 +35,16 @@ const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
 let map: maplibregl.Map | null = null;
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
 
-// Resilient default vector style (CARTO Dark Matter / OpenStreetMap)
-const DEFAULT_MAP_STYLE = {
+// High-Contrast Bright Voyager Map Style (Clear, vibrant roads and easy on eyes)
+const BRIGHT_VOYAGER_MAP_STYLE = {
   version: 8 as const,
   sources: {
-    "carto-dark": {
+    "carto-voyager": {
       type: "raster" as const,
       tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
       ],
       tileSize: 256,
       attribution: "© OpenStreetMap contributors, © CARTO"
@@ -51,9 +52,9 @@ const DEFAULT_MAP_STYLE = {
   },
   layers: [
     {
-      id: "carto-dark-layer",
+      id: "carto-voyager-layer",
       type: "raster" as const,
-      source: "carto-dark",
+      source: "carto-voyager",
       minzoom: 0,
       maxzoom: 20
     }
@@ -73,11 +74,11 @@ function initializeMapSurface() {
 
   map = new maplibregl.Map({
     container: "map-container",
-    style: DEFAULT_MAP_STYLE,
+    style: BRIGHT_VOYAGER_MAP_STYLE,
     center: DEFAULT_CENTER,
     zoom: 11,
-    pitch: 35,
-    bearing: -10,
+    pitch: 0,
+    bearing: 0,
     attributionControl: false
   });
 
@@ -97,7 +98,11 @@ function initializeMapSurface() {
 
   setTimeout(() => {
     map?.resize();
-  }, 200);
+  }, 100);
+
+  setTimeout(() => {
+    map?.resize();
+  }, 400);
 }
 
 // View Switcher & Auth UI State Management
@@ -123,10 +128,11 @@ function updateAuthStateUI() {
 
     // Router: Switch between Unverified Screen vs Verified Map Surface Workspace
     if (isVerified) {
-      // Verified User View -> Render Map Surface
+      // Verified User View -> Render Full 100vh Viewport Map Surface
       if (guestView) guestView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "flex";
+      if (appFooter) appFooter.style.display = "none"; // Hide footer for full viewport map
 
       setTimeout(() => {
         initializeMapSurface();
@@ -136,6 +142,7 @@ function updateAuthStateUI() {
       if (guestView) guestView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "flex";
+      if (appFooter) appFooter.style.display = "block";
       if (unverifiedUserEmail) unverifiedUserEmail.textContent = user?.email || "your account";
     }
   } else {
@@ -146,6 +153,7 @@ function updateAuthStateUI() {
     if (guestView) guestView.style.display = "flex";
     if (unverifiedView) unverifiedView.style.display = "none";
     if (verifiedView) verifiedView.style.display = "none";
+    if (appFooter) appFooter.style.display = "block";
   }
 }
 
