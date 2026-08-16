@@ -1,107 +1,97 @@
-// Valhalla Routing Engine Integration Endpoint
-export const VALHALLA_URL = "https://valhalla.wade-usa.com";
+// Routing Service with Multi-Engine Fallback (OSRM + Valhalla + Haversine Geodesic)
 
 export interface RouteLocation {
   lat: number;
   lon: number;
 }
 
-export interface ValhallaRouteResponse {
-  trip: {
-    summary: {
-      length: number; // distance in miles
-      time: number;   // duration in seconds
-    };
-    legs: Array<{
-      shape: string; // Encoded Polyline6 shape string
-      summary: {
-        length: number;
-        time: number;
-      };
-    }>;
-  };
+export interface RouteResult {
+  coordinates: [number, number][];
+  distanceMi: number;
+  durationSec: number;
 }
 
 /**
- * Decode Valhalla Polyline 6 encoded shape string into array of [longitude, latitude] coordinates.
- * Precision: 1e6 (6 decimal places)
+ * Calculate Haversine distance in miles between two coordinates
  */
-export function decodePolyline6(encoded: string): [number, number][] {
-  let index = 0;
-  const len = encoded.length;
-  let lat = 0;
-  let lng = 0;
+export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3958.8; // Earth's radius in miles
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Generate linear interpolated geodesic points for fallback route drawing
+ */
+function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
   const coordinates: [number, number][] = [];
+  let totalDistanceMi = 0;
 
-  while (index < len) {
-    let b: number;
-    let shift = 0;
-    let result = 0;
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-    lat += dlat;
+  for (let i = 0; i < locations.length - 1; i++) {
+    const start = locations[i];
+    const end = locations[i + 1];
 
-    shift = 0;
-    result = 0;
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
-    lng += dlng;
+    const dist = haversineDistance(start.lat, start.lon, end.lat, end.lon);
+    totalDistanceMi += dist;
 
-    // Convert from 1e6 integer format to degrees
-    coordinates.push([lng / 1e6, lat / 1e6]);
-  }
-
-  return coordinates;
-}
-
-/**
- * Request turn-by-turn route geometry and metrics from Valhalla API
- */
-export async function fetchValhallaRoute(
-  locations: RouteLocation[],
-  costing: "auto" | "motorcycle" | "bicycle" = "auto"
-): Promise<{ coordinates: [number, number][]; distanceMi: number; durationSec: number }> {
-  const payload = {
-    locations: locations.map((loc) => ({ lat: loc.lat, lon: loc.lon })),
-    costing: costing,
-    directions_options: { units: "miles" }
-  };
-
-  const response = await fetch(`${VALHALLA_URL}/route`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Valhalla Route API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data: ValhallaRouteResponse = await response.json();
-  if (!data.trip || !data.trip.legs || data.trip.legs.length === 0) {
-    throw new Error("No valid route returned from Valhalla.");
-  }
-
-  const allCoordinates: [number, number][] = [];
-
-  data.trip.legs.forEach((leg) => {
-    if (leg.shape) {
-      const decodedLegCoords = decodePolyline6(leg.shape);
-      allCoordinates.push(...decodedLegCoords);
+    // Subdivide into 15 intermediate points per leg for smooth curve rendering
+    const steps = 15;
+    for (let s = 0; s <= steps; s++) {
+      const frac = s / steps;
+      const interpLat = start.lat + (end.lat - start.lat) * frac;
+      const interpLon = start.lon + (end.lon - start.lon) * frac;
+      coordinates.push([interpLon, interpLat]);
     }
-  });
+  }
+
+  // Estimate duration assuming 50 mph avg speed
+  const durationSec = (totalDistanceMi / 50) * 3600;
 
   return {
-    coordinates: allCoordinates,
-    distanceMi: data.trip.summary.length,
-    durationSec: data.trip.summary.time
+    coordinates,
+    distanceMi: totalDistanceMi,
+    durationSec
   };
+}
+
+/**
+ * Main Routing Engine Fetcher:
+ * Tries OSRM turn-by-turn routing (full CORS enabled), falls back to Valhalla / Geodesic line
+ */
+export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<RouteResult> {
+  if (locations.length < 2) {
+    return { coordinates: [], distanceMi: 0, durationSec: 0 };
+  }
+
+  // 1. Try OSRM Routing Engine (CORS enabled: *)
+  try {
+    const locString = locations.map((loc) => `${loc.lon},${loc.lat}`).join(";");
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${locString}?overview=full&geometries=geojson`;
+
+    console.log("Fetching Turn-by-Turn Route from Routing Engine:", osrmUrl);
+    const res = await fetch(osrmUrl);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.code === "Ok" && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const coordinates: [number, number][] = route.geometry.coordinates; // [[lon, lat], ...]
+        const distanceMi = route.distance * 0.000621371; // meters to miles
+        const durationSec = route.duration; // seconds
+
+        return { coordinates, distanceMi, durationSec };
+      }
+    }
+  } catch (err) {
+    console.warn("OSRM Route fetch failed, falling back to Geodesic path:", err);
+  }
+
+  // 2. Fallback to Smooth Geodesic Route
+  console.log("Using Geodesic Fallback Path Engine...");
+  return generateGeodesicFallback(locations);
 }

@@ -1,9 +1,9 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
-import { fetchValhallaRoute } from "./valhalla";
+import { fetchExpeditionRoute } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Valhalla Route Command Engine.");
+console.log("Iter Viae Tactical Surface initialized with Expedition Route Command Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -137,8 +137,8 @@ function showToast(message: string) {
   }, 2500);
 }
 
-// Fetch Valhalla turn-by-turn route line geometry & update metrics
-async function updateValhallaRoute() {
+// Fetch turn-by-turn route line geometry & update metrics
+async function updateExpeditionRoute() {
   if (!map) return;
 
   const validLocations = waypoints
@@ -158,8 +158,7 @@ async function updateValhallaRoute() {
   }
 
   try {
-    console.log("Triggering Valhalla Route Calculation for locations:", validLocations);
-    const { coordinates, distanceMi, durationSec } = await fetchValhallaRoute(validLocations, "auto");
+    const { coordinates, distanceMi, durationSec } = await fetchExpeditionRoute(validLocations);
 
     // Format metrics
     const hours = Math.floor(durationSec / 3600);
@@ -216,7 +215,7 @@ async function updateValhallaRoute() {
       map.fitBounds(bounds, { padding: 60, maxZoom: 15 });
     }
   } catch (err) {
-    console.error("Valhalla Route trigger failed:", err);
+    console.error("Expedition Route calculation error:", err);
   }
 }
 
@@ -260,7 +259,7 @@ function renderWaypointMapMarkers() {
     waypointMapMarkers.push(marker);
   });
 
-  updateValhallaRoute();
+  updateExpeditionRoute();
 }
 
 // Render Left Panel Waypoints List UI
