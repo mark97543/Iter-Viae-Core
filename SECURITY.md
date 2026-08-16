@@ -51,12 +51,12 @@ You will configure 3 user tiers in the Directus Admin Console:
 3. Add the following fields to the `trips` collection:
    - **`title`**: Type `String` (Interface: `Input`)
    - **`status`**: Type `String` (Interface: `Dropdown` with options: `draft`, `active`, `archived`)
-   - **`waypoints`**: Select Type **`JSON`** (or **`Text` / `Long Text`**). Under Interface, select **`Code`** (Language: `JSON`).
-   - **`route_geometry`**: Select Type **`JSON`** (or **`Text` / `Long Text`**). Under Interface, select **`Code`** (Language: `JSON`).
-   - **`metrics`**: Select Type **`JSON`** (or **`Text` / `Long Text`**). Under Interface, select **`Code`** (Language: `JSON`).
+   - **`waypoints`**: Under Interface, select **`Code`**, then select **`JSON`**.
+   - **`route_geometry`**: Under Interface, select **`Code`**, then select **`JSON`**.
+   - **`metrics`**: Under Interface, select **`Code`**, then select **`JSON`**.
 4. Click **Save**.
 
-> 💡 **Directus UI Note**: If `JSON` does not appear in your specific database driver list, choose **`Text`** (Long Text). Under **Interface**, select **`Code`** with syntax highlighting set to `JSON`. Directus and Vite will parse it seamlessly!
+> 💡 **Directus UI Tip**: Under the Interface selection grid, choose **`Code`** and set the format to **`JSON`**. This creates an interactive JSON editor in Directus while keeping data 100% compatible with web & mobile APIs!
 
 ---
 
