@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchExpeditionRoute } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Expedition Route Command Engine.");
+console.log("Iter Viae Tactical Surface initialized with Interactive Draggable Waypoints & Route Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -205,21 +205,12 @@ async function updateExpeditionRoute() {
         }
       });
     }
-
-    // Fit map bounds to encompass route coordinates
-    if (coordinates.length > 0) {
-      const bounds = coordinates.reduce(
-        (b, coord) => b.extend(coord as [number, number]),
-        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
-      );
-      map.fitBounds(bounds, { padding: 60, maxZoom: 15 });
-    }
   } catch (err) {
     console.error("Expedition Route calculation error:", err);
   }
 }
 
-// Sync Map Markers with Active Waypoints List
+// Sync Map Markers with Active Waypoints List (DRAGGABLE = TRUE)
 function renderWaypointMapMarkers() {
   if (!map) return;
 
@@ -251,10 +242,37 @@ function renderWaypointMapMarkers() {
 
     const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml);
 
-    const marker = new maplibregl.Marker({ color: markerColor })
+    // Make Marker Draggable on Map Surface
+    const marker = new maplibregl.Marker({ color: markerColor, draggable: true })
       .setLngLat([wp.lon, wp.lat])
       .setPopup(popup)
       .addTo(map!);
+
+    // Handle Drag Events to recalculate route in real time
+    marker.on("dragend", () => {
+      const lngLat = marker.getLngLat();
+      wp.lat = lngLat.lat;
+      wp.lon = lngLat.lng;
+
+      // Update popup content with new drag position
+      const updatedPopupHtml = `
+        <div style="font-family: Inter, sans-serif; padding: 4px;">
+          <h4 style="color:${markerColor}; margin-bottom:4px; font-size:0.85rem; font-weight:800; font-family: 'JetBrains Mono', monospace;">[ ${iconLabel} ]</h4>
+          <p style="font-weight:700; font-size:0.85rem; color:#f8fafc;">${wp.title}</p>
+          <p style="color:#94a3b8; font-size:0.75rem; font-family: monospace; margin-top:2px;">${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}</p>
+        </div>
+      `;
+      marker.getPopup()?.setHTML(updatedPopupHtml);
+
+      // Update Left Panel input fields
+      const coordsInput = document.querySelector(`.waypoint-coords-input[data-id="${wp.id}"]`) as HTMLInputElement;
+      if (coordsInput) {
+        coordsInput.value = `${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}`;
+      }
+
+      // Re-trigger live route recalculation!
+      updateExpeditionRoute();
+    });
 
     waypointMapMarkers.push(marker);
   });
