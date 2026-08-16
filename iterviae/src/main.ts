@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchExpeditionRoute, LegMetric } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Inter-Waypoint Leg Metrics Engine.");
+console.log("Iter Viae Tactical Surface initialized with Inline Inter-Leg Waypoint Controls.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -51,7 +51,6 @@ const expandPlannerBtn = document.getElementById("expand-planner-btn");
 const tripTitleClickable = document.getElementById("trip-title-clickable");
 const tripTitleText = document.getElementById("trip-title-text");
 const waypointsContainer = document.getElementById("waypoints-container");
-const addWaypointBtn = document.getElementById("add-waypoint-btn");
 const saveTripBtn = document.getElementById("save-trip-btn");
 
 const metricDistance = document.getElementById("metric-distance");
@@ -302,7 +301,7 @@ function renderWaypointMapMarkers() {
   updateExpeditionRoute();
 }
 
-// Render Left Panel Waypoints List UI with Inter-Waypoint Leg Metrics & HTML5 Drag-and-Drop Reordering
+// Render Left Panel Waypoints List UI with Inter-Leg Inline Add Buttons & End Add Button
 function renderWaypointsUI() {
   if (!waypointsContainer) return;
 
@@ -316,7 +315,7 @@ function renderWaypointsUI() {
   });
 
   waypoints.forEach((wp, idx) => {
-    // 1. Render Inter-Waypoint Leg Connector Badge (between adjacent waypoints)
+    // 1. Render Inter-Waypoint Leg Connector with Inline Add Button
     if (idx > 0) {
       const legIndex = idx - 1;
       const legMetric = currentLegMetrics[legIndex];
@@ -329,6 +328,7 @@ function renderWaypointsUI() {
       legEl.innerHTML = `
         <span class="leg-line"></span>
         <span id="leg-badge-${legIndex}" class="leg-badge">${legText}</span>
+        <button class="btn-add-inline-leg" data-insert-index="${idx}" title="Insert Stop Here">+</button>
       `;
       waypointsContainer.appendChild(legEl);
     }
@@ -424,10 +424,32 @@ function renderWaypointsUI() {
     waypointsContainer.appendChild(itemEl);
   });
 
+  // 3. Render Add Stop at End Button Container
+  const addEndContainer = document.createElement("div");
+  addEndContainer.className = "add-end-stop-container";
+  addEndContainer.innerHTML = `
+    <button id="add-end-stop-btn" class="btn-add-end-stop">+ ADD STOP</button>
+  `;
+  waypointsContainer.appendChild(addEndContainer);
+
   renderWaypointMapMarkers();
 }
 
-// Handlers for Waypoints UI Inputs & Add/Remove
+// Helper to insert a new stop at a specific index
+function insertNewStopAt(insertIndex: number) {
+  const newStop: Waypoint = {
+    id: `wp-stop-${Date.now()}`,
+    title: `Waystop #${insertIndex}`,
+    lat: 39.8000 + (Math.random() * 0.1),
+    lon: -105.1000 - (Math.random() * 0.1),
+    type: "stop"
+  };
+
+  waypoints.splice(insertIndex, 0, newStop);
+  renderWaypointsUI();
+}
+
+// Handlers for Waypoints UI Inputs, Remove, and Inline/End Add Buttons
 if (waypointsContainer) {
   waypointsContainer.addEventListener("input", (e) => {
     const target = e.target as HTMLInputElement;
@@ -459,28 +481,29 @@ if (waypointsContainer) {
 
   waypointsContainer.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (target && target.classList.contains("btn-remove-waypoint")) {
+    if (!target) return;
+
+    // Inline Add Button
+    if (target.classList.contains("btn-add-inline-leg")) {
+      const insertIndex = parseInt(target.dataset.insertIndex || "1", 10);
+      insertNewStopAt(insertIndex);
+      return;
+    }
+
+    // End Add Button
+    if (target.id === "add-end-stop-btn" || target.classList.contains("btn-add-end-stop")) {
+      insertNewStopAt(waypoints.length - 1);
+      return;
+    }
+
+    // Remove Stop Button
+    if (target.classList.contains("btn-remove-waypoint")) {
       const id = target.dataset.id;
       if (!id) return;
       waypoints = waypoints.filter((w) => w.id !== id);
       renderWaypointsUI();
+      return;
     }
-  });
-}
-
-// Add New Stop Button Event
-if (addWaypointBtn) {
-  addWaypointBtn.addEventListener("click", () => {
-    const newStop: Waypoint = {
-      id: `wp-stop-${Date.now()}`,
-      title: `Waystop #${waypoints.length - 1}`,
-      lat: 39.8000 + (Math.random() * 0.1),
-      lon: -105.1000 - (Math.random() * 0.1),
-      type: "stop"
-    };
-
-    waypoints.splice(waypoints.length - 1, 0, newStop);
-    renderWaypointsUI();
   });
 }
 

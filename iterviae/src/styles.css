@@ -545,7 +545,7 @@ html, body {
 .waypoints-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
 }
 
@@ -679,24 +679,24 @@ html, body {
   }
 }
 
-/* INTER-WAYPOINT LEG METRICS BADGE CONNECTOR */
+/* INTER-WAYPOINT LEG METRICS & INLINE ADD STOP BUTTON */
 .leg-connector {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   position: relative;
-  padding: 2px 0;
+  padding: 2px 4px;
   width: 100%;
-}
 
-.leg-line {
-  position: absolute;
-  top: 50%;
-  left: 12px;
-  right: 12px;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-  z-index: 1;
+  .leg-line {
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    right: 8px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: 1;
+  }
 }
 
 .leg-badge {
@@ -711,6 +711,55 @@ html, body {
   padding: 2px 8px;
   border-radius: 10px;
   white-space: nowrap;
+}
+
+.btn-add-inline-leg {
+  position: relative;
+  z-index: 3;
+  background: #0f172a;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: var(--accent-red-bright);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ffffff;
+    border-color: var(--accent-red);
+  }
+}
+
+/* BOTTOM ADD STOP CONTAINER & BUTTON */
+.add-end-stop-container {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 2px 0;
+  width: 100%;
+}
+
+.btn-add-end-stop {
+  width: 100%;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px dashed rgba(239, 68, 68, 0.4);
+  color: var(--accent-red-bright);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ffffff;
+    border-color: var(--accent-red);
+  }
 }
 
 /* ROUTE METRICS SECTION (POSITIONED AT BOTTOM ABOVE SAVE BUTTON) */
