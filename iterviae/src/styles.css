@@ -3,7 +3,7 @@
   --font-mono: 'JetBrains Mono', monospace;
   
   --bg-dark: #030712;
-  --bg-card: rgba(15, 23, 42, 0.8);
+  --bg-card: rgba(15, 23, 42, 0.85);
   --bg-item: rgba(30, 41, 59, 0.4);
   
   --border-subtle: rgba(255, 255, 255, 0.08);
@@ -69,7 +69,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 1.1rem 3rem;
-  background: rgba(3, 7, 18, 0.85);
+  background: rgba(3, 7, 18, 0.9);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -407,49 +407,104 @@ html, body {
   justify-content: center;
 }
 
-/* Notice Box */
-.notice-box {
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  border-radius: 12px;
-  padding: 1.5rem;
-  max-width: 580px;
-  margin: 0 auto;
-
-  p {
-    font-size: 0.95rem;
-    color: #fde68a;
-    line-height: 1.5;
-  }
+/* Map Surface Layout for Verified Users */
+.map-view-container {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: calc(100vh - 70px - 50px);
+  display: flex;
+  flex-direction: column;
 }
 
-.link-cyan {
-  color: var(--accent-cyan);
-  text-decoration: underline;
+.map-surface {
+  width: 100%;
+  height: 100%;
+  background: #090d16;
+}
+
+/* Map HUD Overlay */
+.map-hud-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.hud-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hud-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.hud-coords, .hud-zoom {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-btn {
+  background: rgba(30, 41, 59, 0.6);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: var(--font-family);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: #7dd3fc;
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: var(--accent-cyan);
   }
 }
 
-/* Workspace Canvas */
-.workspace-box {
-  background: rgba(15, 23, 42, 0.5);
-  border: 2px dashed var(--border-subtle);
-  border-radius: 14px;
-  padding: 4rem 2rem;
-  margin-top: 1.5rem;
+/* MapLibre Controls Customization */
+.maplibregl-ctrl-group {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  overflow: hidden;
 
-  h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-  }
+  button {
+    border-bottom: 1px solid var(--border-subtle) !important;
 
-  p {
-    font-size: 0.9rem;
-    color: var(--text-muted);
+    &:hover {
+      background-color: rgba(56, 189, 248, 0.2) !important;
+    }
   }
 }
 
@@ -607,9 +662,9 @@ html, body {
   position: relative;
   z-index: 10;
   text-align: center;
-  padding: 1.5rem;
+  padding: 1rem;
   font-size: 0.8rem;
   color: var(--text-muted);
   border-top: 1px solid var(--border-subtle);
-  background: rgba(3, 7, 18, 0.8);
+  background: rgba(3, 7, 18, 0.9);
 }

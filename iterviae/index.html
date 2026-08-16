@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
@@ -123,20 +124,28 @@
         </div>
       </main>
 
-      <!-- View 3: Verified User Workspace -->
-      <main id="verified-view" class="main-container" style="display: none;">
-        <div class="card glass-card border-success">
-          <div class="pill-badge badge-success">VERIFIED ROAD COMMAND WORKSPACE</div>
-          <h1 class="hero-title">Welcome, <span id="verified-user-name" class="red-gradient">User</span></h1>
-          <p class="hero-desc">
-            Your account is verified and active. Welcome to the Iter Viae tactical workspace.
-          </p>
+      <!-- View 3: Verified User Workspace & Map Container -->
+      <main id="verified-view" class="map-view-container" style="display: none;">
+        <!-- Top Map HUD Status Overlay -->
+        <div id="map-controls-overlay" class="map-hud-overlay">
+          <div class="hud-left">
+            <span class="hud-tag">ROAD COMMAND</span>
+            <span id="map-coords-display" class="hud-coords">LAT: 39.7392 | LON: -104.9903</span>
+            <span id="map-zoom-display" class="hud-zoom">ZOOM: 12.0</span>
+          </div>
 
-          <div class="workspace-box">
-            <h3>Tactical Workspace Canvas</h3>
-            <p>Ready for vector map surfaces, waypoint managers, and trip logbooks.</p>
+          <div class="hud-right">
+            <button id="recenter-map-btn" class="hud-btn" title="Reset View & Recenter">
+              🎯 Recenter
+            </button>
+            <button id="toggle-style-btn" class="hud-btn" title="Toggle Vector Style Source">
+              🗺️ Tile Source: Wade-USA
+            </button>
           </div>
         </div>
+
+        <!-- Full-Screen Interactive Map Canvas -->
+        <div id="map-container" class="map-surface"></div>
       </main>
 
       <!-- Auth Modal -->
