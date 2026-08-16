@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchExpeditionRoute } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized with Interactive Draggable Waypoints & Route Engine.");
+console.log("Iter Viae Tactical Surface initialized with Waypoint Drag-Reorder Engine.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -76,6 +76,7 @@ let searchMarker: maplibregl.Marker | null = null;
 let waypointMapMarkers: maplibregl.Marker[] = [];
 let lastRightClickLngLat: { lat: number; lng: number } | null = null;
 let toastTimeout: any = null;
+let draggedWaypointIndex: number | null = null;
 
 // Expedition State
 let currentTripTitle = "ROCKY MOUNTAIN EXPEDITION";
@@ -280,15 +281,24 @@ function renderWaypointMapMarkers() {
   updateExpeditionRoute();
 }
 
-// Render Left Panel Waypoints List UI
+// Render Left Panel Waypoints List UI with HTML5 Drag-and-Drop Reordering
 function renderWaypointsUI() {
   if (!waypointsContainer) return;
 
   waypointsContainer.innerHTML = "";
 
+  // Ensure waypoint types are assigned correctly by array order
+  waypoints.forEach((w, i) => {
+    if (i === 0) w.type = "origin";
+    else if (i === waypoints.length - 1) w.type = "destination";
+    else w.type = "stop";
+  });
+
   waypoints.forEach((wp, idx) => {
     const itemEl = document.createElement("div");
     itemEl.className = "waypoint-item";
+    itemEl.setAttribute("draggable", "true");
+    itemEl.setAttribute("data-index", idx.toString());
 
     let tagLabel = "STOP";
     let tagClass = "tag-stop";
@@ -308,6 +318,7 @@ function renderWaypointsUI() {
       : "";
 
     itemEl.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder waypoint sequence">☰</span>
       <span class="waypoint-tag-badge ${tagClass}">[ ${tagLabel} ]</span>
       <div class="waypoint-inputs">
         <input 
@@ -327,8 +338,49 @@ function renderWaypointsUI() {
           placeholder="Lat, Lon coordinates" 
         />
       </div>
-      ${wp.type === "stop" ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop">✕</button>` : ""}
+      ${waypoints.length > 2 ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop">✕</button>` : ""}
     `;
+
+    // HTML5 Drag and Drop Event Listeners for Reordering List Items
+    itemEl.addEventListener("dragstart", (e) => {
+      draggedWaypointIndex = idx;
+      itemEl.classList.add("dragging");
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", idx.toString());
+      }
+    });
+
+    itemEl.addEventListener("dragend", () => {
+      draggedWaypointIndex = null;
+      itemEl.classList.remove("dragging");
+      document.querySelectorAll(".waypoint-item").forEach((el) => el.classList.remove("drag-over"));
+    });
+
+    itemEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      itemEl.classList.add("drag-over");
+    });
+
+    itemEl.addEventListener("dragleave", () => {
+      itemEl.classList.remove("drag-over");
+    });
+
+    itemEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      itemEl.classList.remove("drag-over");
+      const targetIndex = idx;
+
+      if (draggedWaypointIndex !== null && draggedWaypointIndex !== targetIndex) {
+        // Reorder waypoints array
+        const [movedWp] = waypoints.splice(draggedWaypointIndex, 1);
+        waypoints.splice(targetIndex, 0, movedWp);
+
+        // Re-render UI and redraw route
+        renderWaypointsUI();
+      }
+    });
 
     waypointsContainer.appendChild(itemEl);
   });
