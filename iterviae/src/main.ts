@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchExpeditionRoute, haversineDistance, LegMetric } from "./valhalla";
 
-console.log("Iter Viae Tactical Surface initialized for Production Route Command with User Geolocation.");
+console.log("Iter Viae Tactical Surface initialized - Blank Canvas Mode.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -79,16 +79,16 @@ let toastTimeout: any = null;
 let draggedWaypointIndex: number | null = null;
 let currentLegMetrics: LegMetric[] = [];
 
-// Clean Production Expedition State (No Dummy Locations)
+// Expedition State - Completely Blank Canvas
 let currentTripTitle = "MY EXPEDITION ROUTE";
-let currentTripSummary = "Route log for long-range motorcycle trek.";
+let currentTripSummary = "";
 
 let waypoints: Waypoint[] = [
-  { id: "wp-origin", title: "Current Position", lat: null, lon: null, type: "origin" },
-  { id: "wp-dest", title: "Final Destination", lat: null, lon: null, type: "destination" }
+  { id: "wp-origin", title: "", lat: null, lon: null, type: "origin" },
+  { id: "wp-dest", title: "", lat: null, lon: null, type: "destination" }
 ];
 
-const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Fallback center
+const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Fallback map center
 
 // High-Contrast Bright Voyager Map Style
 const BRIGHT_VOYAGER_MAP_STYLE = {
@@ -150,7 +150,13 @@ function formatDuration(seconds: number): string {
 // Spatial algorithm to find optimal insertion index for right-click stop
 function findOptimalInsertionIndex(lat: number, lon: number): number {
   const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
-  if (validWaypoints.length < 2) return waypoints.length - 1;
+  if (validWaypoints.length < 2) {
+    // If origin is not set, set origin
+    if (waypoints[0].lat === null) return 0;
+    // If destination is not set, set destination
+    if (waypoints[waypoints.length - 1].lat === null) return waypoints.length - 1;
+    return waypoints.length - 1;
+  }
 
   let bestIndex = 1;
   let minDetour = Infinity;
@@ -282,10 +288,12 @@ function renderWaypointMapMarkers() {
       iconLabel = "FINAL DESTINATION";
     }
 
+    const titleText = wp.title || (wp.type === "origin" ? "Origin" : wp.type === "destination" ? "Destination" : `Stop #${idx}`);
+
     const popupHtml = `
       <div style="font-family: Inter, sans-serif; padding: 4px;">
         <h4 style="color:${markerColor}; margin-bottom:4px; font-size:0.85rem; font-weight:800; font-family: 'JetBrains Mono', monospace;">[ ${iconLabel} ]</h4>
-        <p style="font-weight:700; font-size:0.85rem; color:#f8fafc;">${wp.title}</p>
+        <p style="font-weight:700; font-size:0.85rem; color:#f8fafc;">${titleText}</p>
         <p style="color:#94a3b8; font-size:0.75rem; font-family: monospace; margin-top:2px;">${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}</p>
       </div>
     `;
@@ -308,7 +316,7 @@ function renderWaypointMapMarkers() {
       const updatedPopupHtml = `
         <div style="font-family: Inter, sans-serif; padding: 4px;">
           <h4 style="color:${markerColor}; margin-bottom:4px; font-size:0.85rem; font-weight:800; font-family: 'JetBrains Mono', monospace;">[ ${iconLabel} ]</h4>
-          <p style="font-weight:700; font-size:0.85rem; color:#f8fafc;">${wp.title}</p>
+          <p style="font-weight:700; font-size:0.85rem; color:#f8fafc;">${titleText}</p>
           <p style="color:#94a3b8; font-size:0.75rem; font-family: monospace; margin-top:2px;">${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}</p>
         </div>
       `;
@@ -350,7 +358,7 @@ function renderWaypointsUI() {
       const legMetric = currentLegMetrics[legIndex];
       const legText = legMetric 
         ? `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`
-        : `↓ ENTER LOCATION...`;
+        : `↓ ENTER WAYPOINTS...`;
 
       const legEl = document.createElement("div");
       legEl.className = "leg-connector";
@@ -370,13 +378,16 @@ function renderWaypointsUI() {
 
     let tagLabel = "STOP";
     let tagClass = "tag-stop";
+    let titlePlaceholder = "Waystop Title";
 
     if (wp.type === "origin") {
       tagLabel = "ORIGIN";
       tagClass = "tag-origin";
+      titlePlaceholder = "Origin Location Title";
     } else if (wp.type === "destination") {
       tagLabel = "DEST";
       tagClass = "tag-dest";
+      titlePlaceholder = "Destination Location Title";
     } else {
       tagLabel = `#${idx}`;
     }
@@ -395,7 +406,7 @@ function renderWaypointsUI() {
           data-id="${wp.id}" 
           data-field="title"
           value="${wp.title}" 
-          placeholder="Waypoint Title" 
+          placeholder="${titlePlaceholder}" 
         />
         <input 
           type="text" 
@@ -471,7 +482,7 @@ function insertNewStopAt(insertIndex: number, lat?: number, lon?: number) {
 
   const newStop: Waypoint = {
     id: `wp-stop-${Date.now()}`,
-    title: `Waystop #${insertIndex}`,
+    title: "",
     lat: targetLat,
     lon: targetLon,
     type: "stop"
@@ -674,7 +685,7 @@ function initializeMapSurface() {
     return;
   }
 
-  console.log("Initializing MapLibre GL Map Surface with Geolocation...");
+  console.log("Initializing MapLibre GL Map Surface - Blank Canvas Mode...");
 
   map = new maplibregl.Map({
     container: "map-container",
@@ -722,40 +733,30 @@ function initializeMapSurface() {
   map.on("load", () => {
     map?.resize();
 
-    // Trigger Browser Geolocation to center map close to user position
+    // Trigger Browser Geolocation to center map close to user position (keep inputs blank)
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const userLat = position.coords.latitude;
           const userLon = position.coords.longitude;
 
-          console.log(`User Geolocation acquired: ${userLat}, ${userLon}`);
+          console.log(`User Geolocation centered map at: ${userLat}, ${userLon}`);
 
           // Fly map close to user location
           map?.flyTo({
             center: [userLon, userLat],
-            zoom: 14,
+            zoom: 13,
             speed: 1.5,
             essential: true
           });
-
-          // Set Origin Waypoint to User's Current Location
-          if (waypoints.length > 0 && waypoints[0].type === "origin") {
-            waypoints[0].lat = userLat;
-            waypoints[0].lon = userLon;
-            waypoints[0].title = "Current Position";
-            renderWaypointsUI();
-          }
         },
         (error) => {
           console.warn("Geolocation positioning error or permission denied:", error.message);
-          renderWaypointMapMarkers();
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
-    } else {
-      renderWaypointMapMarkers();
     }
+    renderWaypointMapMarkers();
   });
 
   setTimeout(() => {
@@ -782,6 +783,29 @@ if (contextAddStopBtn) {
   contextAddStopBtn.addEventListener("click", () => {
     if (!lastRightClickLngLat) return;
     const { lat, lng } = lastRightClickLngLat;
+
+    // If Origin is blank, populate Origin first
+    if (waypoints[0].lat === null) {
+      waypoints[0].lat = lat;
+      waypoints[0].lon = lng;
+      waypoints[0].title = "Origin Point";
+      renderWaypointsUI();
+      hideContextMenu();
+      showToast(`Set Origin at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      return;
+    }
+
+    // If Destination is blank, populate Destination next
+    if (waypoints[waypoints.length - 1].lat === null) {
+      const destIndex = waypoints.length - 1;
+      waypoints[destIndex].lat = lat;
+      waypoints[destIndex].lon = lng;
+      waypoints[destIndex].title = "Destination Point";
+      renderWaypointsUI();
+      hideContextMenu();
+      showToast(`Set Destination at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      return;
+    }
 
     // Calculate optimal logical sequence position based on detour distance
     const insertIndex = findOptimalInsertionIndex(lat, lng);
