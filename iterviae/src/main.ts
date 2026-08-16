@@ -2,7 +2,7 @@ import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 
-console.log("Iter Viae Tactical Surface initialized with Expedition Trip Planner Engine.");
+console.log("Iter Viae Tactical Surface initialized with Route Command & Expedition Logbook.");
 
 // Waypoint Data Interface
 interface Waypoint {
@@ -47,10 +47,18 @@ const coordSearchInput = document.getElementById("coord-search-input") as HTMLIn
 const plannerPanel = document.getElementById("planner-panel");
 const togglePlannerBtn = document.getElementById("toggle-planner-btn");
 const expandPlannerBtn = document.getElementById("expand-planner-btn");
-const tripTitleInput = document.getElementById("trip-title-input") as HTMLInputElement;
+const tripTitleClickable = document.getElementById("trip-title-clickable");
+const tripTitleText = document.getElementById("trip-title-text");
 const waypointsContainer = document.getElementById("waypoints-container");
 const addWaypointBtn = document.getElementById("add-waypoint-btn");
 const saveTripBtn = document.getElementById("save-trip-btn");
+
+// DOM Trip Modal References
+const tripModal = document.getElementById("trip-modal");
+const tripModalClose = document.getElementById("trip-modal-close");
+const tripSettingsForm = document.getElementById("trip-settings-form") as HTMLFormElement;
+const modalTripTitle = document.getElementById("modal-trip-title") as HTMLInputElement;
+const modalTripSummary = document.getElementById("modal-trip-summary") as HTMLTextAreaElement;
 
 // DOM Context Menu & Toast References
 const contextMenu = document.getElementById("context-menu");
@@ -65,10 +73,13 @@ let waypointMapMarkers: maplibregl.Marker[] = [];
 let lastRightClickLngLat: { lat: number; lng: number } | null = null;
 let toastTimeout: any = null;
 
-// Initial Expedition Waypoints State
+// Expedition State
+let currentTripTitle = "ROCKY MOUNTAIN EXPEDITION";
+let currentTripSummary = "Tactical overland route across Colorado mountain passes and high-altitude highway corridors.";
+
 let waypoints: Waypoint[] = [
-  { id: "wp-origin", title: "Expedition Origin", lat: 39.7392, lon: -104.9903, type: "origin" },
-  { id: "wp-dest", title: "Destination Node", lat: 40.0150, lon: -105.2705, type: "destination" }
+  { id: "wp-origin", title: "Denver Command Base", lat: 39.7392, lon: -104.9903, type: "origin" },
+  { id: "wp-dest", title: "Boulder Outpost", lat: 40.0150, lon: -105.2705, type: "destination" }
 ];
 
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
@@ -133,21 +144,21 @@ function renderWaypointMapMarkers() {
   waypoints.forEach((wp, idx) => {
     if (wp.lat === null || wp.lon === null) return;
 
-    let markerColor = "#f59e0b"; // Orange for intermediate stops
-    let iconLabel = `Stop #${idx}`;
+    let markerColor = "#f59e0b";
+    let iconLabel = `STOP #${idx}`;
 
     if (wp.type === "origin") {
-      markerColor = "#10b981"; // Emerald green for origin
-      iconLabel = "🏁 Expedition Origin";
+      markerColor = "#10b981";
+      iconLabel = "EXPEDITION ORIGIN";
     } else if (wp.type === "destination") {
-      markerColor = "#ef4444"; // Crimson red for destination
-      iconLabel = "🏆 Final Destination";
+      markerColor = "#ef4444";
+      iconLabel = "FINAL DESTINATION";
     }
 
     const popupHtml = `
       <div style="font-family: Inter, sans-serif; padding: 4px;">
-        <h4 style="color:${markerColor}; margin-bottom:4px; font-size:0.92rem;">${iconLabel}</h4>
-        <p style="font-weight:600; font-size:0.82rem; color:#f8fafc;">${wp.title}</p>
+        <h4 style="color:${markerColor}; margin-bottom:4px; font-size:0.85rem; font-weight:800; font-family: 'JetBrains Mono', monospace;">[ ${iconLabel} ]</h4>
+        <p style="font-weight:700; font-size:0.85rem; color:#f8fafc;">${wp.title}</p>
         <p style="color:#94a3b8; font-size:0.75rem; font-family: monospace; margin-top:2px;">${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}</p>
       </div>
     `;
@@ -169,20 +180,29 @@ function renderWaypointsUI() {
 
   waypointsContainer.innerHTML = "";
 
-  waypoints.forEach((wp) => {
+  waypoints.forEach((wp, idx) => {
     const itemEl = document.createElement("div");
     itemEl.className = "waypoint-item";
 
-    let iconEmoji = "📍";
-    if (wp.type === "origin") iconEmoji = "🏁";
-    else if (wp.type === "destination") iconEmoji = "🏆";
+    let tagLabel = "STOP";
+    let tagClass = "tag-stop";
+
+    if (wp.type === "origin") {
+      tagLabel = "ORIGIN";
+      tagClass = "tag-origin";
+    } else if (wp.type === "destination") {
+      tagLabel = "DEST";
+      tagClass = "tag-dest";
+    } else {
+      tagLabel = `#${idx}`;
+    }
 
     const coordsString = (wp.lat !== null && wp.lon !== null) 
       ? `${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}` 
       : "";
 
     itemEl.innerHTML = `
-      <span class="waypoint-badge-icon">${iconEmoji}</span>
+      <span class="waypoint-tag-badge ${tagClass}">[ ${tagLabel} ]</span>
       <div class="waypoint-inputs">
         <input 
           type="text" 
@@ -262,7 +282,6 @@ if (addWaypointBtn) {
       type: "stop"
     };
 
-    // Insert stop before destination
     waypoints.splice(waypoints.length - 1, 0, newStop);
     renderWaypointsUI();
   });
@@ -284,6 +303,36 @@ function expandPlannerPanel() {
 if (togglePlannerBtn) togglePlannerBtn.addEventListener("click", collapsePlannerPanel);
 if (expandPlannerBtn) expandPlannerBtn.addEventListener("click", expandPlannerPanel);
 
+// Trip Title Clickable -> Opens Trip Settings Modal
+function openTripModal() {
+  if (!tripModal) return;
+  if (modalTripTitle) modalTripTitle.value = currentTripTitle;
+  if (modalTripSummary) modalTripSummary.value = currentTripSummary;
+  tripModal.style.display = "flex";
+}
+
+function closeTripModal() {
+  if (tripModal) tripModal.style.display = "none";
+}
+
+if (tripTitleClickable) tripTitleClickable.addEventListener("click", openTripModal);
+if (tripModalClose) tripModalClose.addEventListener("click", closeTripModal);
+
+if (tripSettingsForm) {
+  tripSettingsForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (modalTripTitle && modalTripTitle.value.trim()) {
+      currentTripTitle = modalTripTitle.value.trim().toUpperCase();
+      if (tripTitleText) tripTitleText.textContent = currentTripTitle;
+    }
+    if (modalTripSummary) {
+      currentTripSummary = modalTripSummary.value.trim();
+    }
+    closeTripModal();
+    showToast("Expedition Details Updated!");
+  });
+}
+
 // Save Trip to Cloud Backend (PocketBase)
 if (saveTripBtn) {
   saveTripBtn.addEventListener("click", async () => {
@@ -292,26 +341,26 @@ if (saveTripBtn) {
       return;
     }
 
-    const title = tripTitleInput ? tripTitleInput.value.trim() : "New Expedition Trip";
     const user = PocketBaseAuth.getUser() as any;
 
     try {
-      saveTripBtn.textContent = "💾 Saving to Cloud...";
+      saveTripBtn.textContent = "Saving to Cloud...";
       await pb.collection("trips").create({
         user: user.id,
-        title: title,
+        title: currentTripTitle,
         status: "planned",
         waypoints: waypoints,
+        summary: currentTripSummary,
         metrics: {
           distance: "42.5 mi",
           duration: "1h 15m"
         }
       });
 
-      saveTripBtn.textContent = "💾 Save Trip to Cloud";
+      saveTripBtn.textContent = "Save Trip to Cloud";
       showToast("Expedition Trip saved to PocketBase Cloud!");
     } catch (err: any) {
-      saveTripBtn.textContent = "💾 Save Trip to Cloud";
+      saveTripBtn.textContent = "Save Trip to Cloud";
       console.error("Failed to save trip:", err);
       alert(err.message || "Failed to save trip. Check PocketBase collection permissions.");
     }
@@ -329,9 +378,9 @@ function addPinAtLocation(lat: number, lon: number) {
 
   const popupHtml = `
     <div style="font-family: Inter, sans-serif; padding: 4px;">
-      <h4 style="color:#ef4444; margin-bottom:4px; font-size:0.95rem;">📍 Target Waypoint</h4>
-      <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Latitude: ${lat.toFixed(6)}</p>
-      <p style="color:#10b981; font-weight:600; font-size:0.8rem; font-family: monospace;">Longitude: ${lon.toFixed(6)}</p>
+      <h4 style="color:#ef4444; margin-bottom:4px; font-size:0.85rem; font-weight:800; font-family: 'JetBrains Mono', monospace;">[ TARGET WAYPOINT ]</h4>
+      <p style="color:#10b981; font-weight:700; font-size:0.8rem; font-family: monospace;">Lat: ${lat.toFixed(6)}</p>
+      <p style="color:#10b981; font-weight:700; font-size:0.8rem; font-family: monospace;">Lon: ${lon.toFixed(6)}</p>
     </div>
   `;
 
@@ -498,6 +547,7 @@ function updateAuthStateUI() {
       if (verifiedView) verifiedView.style.display = "flex";
       if (appFooter) appFooter.style.display = "none";
 
+      if (tripTitleText) tripTitleText.textContent = currentTripTitle;
       renderWaypointsUI();
 
       setTimeout(() => {

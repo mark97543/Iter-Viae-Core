@@ -2,13 +2,13 @@
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   
-  /* Slate Dark Theme */
+  /* Hardcore Slate & Iron Dark Theme */
   --bg-dark: #0f172a;
-  --bg-card: rgba(30, 41, 59, 0.85);
+  --bg-card: rgba(30, 41, 59, 0.88);
   --bg-item: rgba(51, 65, 85, 0.5);
   
   --border-subtle: rgba(255, 255, 255, 0.12);
-  --border-hover: rgba(239, 68, 68, 0.4);
+  --border-hover: rgba(239, 68, 68, 0.5);
   --border-warning: rgba(245, 158, 11, 0.4);
   --border-success: rgba(16, 185, 129, 0.4);
   
@@ -198,6 +198,8 @@ html, body {
   background: transparent;
   color: var(--accent-red-bright);
   border: 1px solid rgba(239, 68, 68, 0.3);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
 
   &:hover {
     background: rgba(239, 68, 68, 0.15);
@@ -207,7 +209,8 @@ html, body {
 
 .btn-sm {
   padding: 4px 10px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   border-radius: 6px;
 }
 
@@ -424,7 +427,7 @@ html, body {
   background: #1e293b;
 }
 
-/* LEFT TRIP PLANNER DRAWER SIDEPANEL */
+/* LEFT TACTICAL TRIP PLANNER DRAWER SIDEPANEL */
 .planner-panel {
   position: relative;
   z-index: 30;
@@ -479,24 +482,49 @@ html, body {
   }
 }
 
-.trip-title-field {
-  width: 100%;
-  background: rgba(30, 41, 59, 0.6);
+/* Clickable Trip Title Card */
+.trip-title-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(30, 41, 59, 0.7);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 8px 12px;
-  color: var(--text-primary);
-  font-family: var(--font-family);
-  font-size: 0.95rem;
-  font-weight: 700;
-  outline: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
-  &:focus {
+  &:hover {
+    background: rgba(51, 65, 85, 0.9);
     border-color: var(--accent-red);
   }
 }
 
-.planner-section {
+.trip-title-heading {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-icon-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-red-bright);
+  background: rgba(239, 68, 68, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Waypoints Section (Fills flexible middle height) */
+.waypoints-section {
+  flex: 1;
   padding: 1.25rem;
   border-bottom: 1px solid var(--border-subtle);
   overflow-y: auto;
@@ -508,9 +536,11 @@ html, body {
     margin-bottom: 12px;
 
     h3 {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
     }
   }
 }
@@ -536,8 +566,31 @@ html, body {
   }
 }
 
-.waypoint-badge-icon {
-  font-size: 1.1rem;
+.waypoint-tag-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.tag-origin {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.tag-stop {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.tag-dest {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red-bright);
+  border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
 .waypoint-inputs {
@@ -587,14 +640,22 @@ html, body {
   }
 }
 
-/* Metrics Section */
+/* ROUTE METRICS SECTION (POSITIONED AT BOTTOM ABOVE SAVE BUTTON) */
 .metrics-section {
-  h3 {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 12px;
-  }
+  padding: 1.1rem 1.25rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.metrics-title-badge {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
 }
 
 .metrics-grid {
@@ -605,38 +666,30 @@ html, body {
 
 .metric-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  background: rgba(30, 41, 59, 0.5);
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgba(30, 41, 59, 0.6);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
 }
 
-.metric-icon {
-  font-size: 1.2rem;
-}
-
-.metric-details {
-  display: flex;
-  flex-direction: column;
+.metric-key {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
 }
 
 .metric-value {
   font-family: var(--font-mono);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 800;
   color: var(--accent-red-bright);
-}
-
-.metric-label {
-  font-size: 0.7rem;
-  color: var(--text-muted);
 }
 
 .planner-actions {
   padding: 1.25rem;
-  margin-top: auto;
 }
 
 .expand-planner-pill {
@@ -650,9 +703,10 @@ html, body {
   border-radius: 30px;
   padding: 8px 16px;
   color: var(--text-primary);
-  font-family: var(--font-family);
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   cursor: pointer;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   transition: all 0.2s ease;
@@ -713,6 +767,26 @@ html, body {
 
   &::placeholder {
     color: var(--text-muted);
+  }
+}
+
+/* FORM TEXTAREA FOR EXPEDITION SUMMARY NOTES */
+.form-textarea {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: var(--accent-red);
   }
 }
 
@@ -828,7 +902,7 @@ html, body {
 .modal-card {
   position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   background: #1e293b;
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
