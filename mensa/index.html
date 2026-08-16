@@ -6,6 +6,29 @@
     <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mensa — Tactical Map Surface</title>
+    <script>
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        var errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0f172a;color:#ef4444;padding:2rem;z-index:999999;font-family:monospace;font-size:14px;overflow:auto;box-sizing:border-box;';
+        errDiv.innerHTML = '<h2 style="color:#f8fafc;margin-top:0;">⚠️ Mensa Startup Error Catch</h2>' +
+          '<div style="background:#000;padding:1rem;border-radius:6px;border:1px solid #ef4444;">' +
+          '<strong>Error:</strong> ' + msg + '<br/><br/>' +
+          '<strong>Location:</strong> ' + url + ':' + lineNo + ':' + columnNo + '<br/><br/>' +
+          '<strong>Stack:</strong><pre style="white-space:pre-wrap;">' + (error && error.stack ? error.stack : 'N/A') + '</pre></div>';
+        if (document.body) { document.body.appendChild(errDiv); } else { window.addEventListener('DOMContentLoaded', function() { document.body.appendChild(errDiv); }); }
+        return false;
+      };
+      window.onunhandledrejection = function(event) {
+        var reason = event.reason || {};
+        var errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0f172a;color:#f59e0b;padding:2rem;z-index:999999;font-family:monospace;font-size:14px;overflow:auto;box-sizing:border-box;';
+        errDiv.innerHTML = '<h2 style="color:#f8fafc;margin-top:0;">⚠️ Mensa Promise Rejection Catch</h2>' +
+          '<div style="background:#000;padding:1rem;border-radius:6px;border:1px solid #f59e0b;">' +
+          '<strong>Reason:</strong> ' + (reason.message || reason) + '<br/><br/>' +
+          '<strong>Stack:</strong><pre style="white-space:pre-wrap;">' + (reason.stack || 'N/A') + '</pre></div>';
+        if (document.body) { document.body.appendChild(errDiv); } else { window.addEventListener('DOMContentLoaded', function() { document.body.appendChild(errDiv); }); }
+      };
+    </script>
     <script type="module" src="/src/main.ts" defer></script>
   </head>
   <body>

@@ -4,8 +4,6 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager, State};
-use tauri_plugin_shell::process::CommandEvent;
-use tauri_plugin_shell::ShellExt;
 
 pub struct MbtilesState {
     app_handle: tauri::AppHandle,
@@ -681,33 +679,26 @@ fn open_maps_folder(app_handle: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let maps_dir = get_os_app_maps_dir(app.handle());
-            let maps_dir_str = maps_dir.to_string_lossy().to_string();
 
-            let valhalla_sidecar = app.shell().sidecar("valhalla_service");
-            if let Ok(mut command) = valhalla_sidecar {
-                command = command.args([&maps_dir_str]);
-                tauri::async_runtime::spawn(async move {
-                    if let Ok((mut rx, _child)) = command.spawn() {
-                        while let Some(event) = rx.recv().await {
-                            if let CommandEvent::Stdout(line) = event {
-                                println!("Valhalla Sidecar: {}", String::from_utf8_lossy(&line));
-                            }
-                        }
-                    }
-                });
-            }
+
 
             app.manage(MbtilesState {
                 app_handle: app.handle().clone(),
                 geocoder_conn: std::sync::Arc::new(std::sync::Mutex::new(None)),
             });
+
+            // DevTools only available in dev builds
+            #[cfg(debug_assertions)]
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.open_devtools();
+            }
 
             let file_new_item = MenuItemBuilder::with_id("file-new", "New Trip")
                 .accelerator("CmdOrCtrl+N")

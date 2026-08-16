@@ -127,40 +127,51 @@ function initMap() {
   const mapContainer = document.getElementById("map");
   if (!mapContainer) return;
 
-  const map = new maplibregl.Map({
-    container: "map",
-    transformRequest: (url, _resourceType) => {
-      const apiKey = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
-      if (url.includes("tiles.wade-usa.com") && apiKey) {
-        const separator = url.includes("?") ? "&" : "?";
-        return { url: `${url}${separator}key=${encodeURIComponent(apiKey)}` };
-      }
-      return { url };
-    },
-    style: {
-      version: 8,
-      name: "Mensa 3D & 2D Tactical Engine",
-      sources: {
-        openmaptiles: {
-          type: "vector",
-          tiles: ["https://tiles.wade-usa.com/data/v3/{z}/{x}/{y}.pbf"],
-          minzoom: 0,
-          maxzoom: 14
-        },
-        terrain_dem: {
-          type: "raster-dem",
-          tiles: ["dem://{z}/{x}/{y}"],
-          tileSize: 256,
-          encoding: "terrarium",
-          maxzoom: 16
+  let map!: maplibregl.Map;
+  try {
+    const apiKey = localStorage.getItem("iterviae_api_key") || "iv_key_admin_mark_9981";
+    const tilesBaseUrl = (localStorage.getItem("iterviae_tiles_url") || "https://tiles.wade-usa.com").replace(/\/+$/, "");
+
+    map = new maplibregl.Map({
+      container: "map",
+      ...({ workerCount: 0 } as any),
+      transformRequest: (url, _resourceType) => {
+        console.log("MapLibre Requesting:", url);
+        if (url.includes("tiles.wade-usa.com") || url.includes(tilesBaseUrl)) {
+          if (apiKey && !url.includes("key=")) {
+            const separator = url.includes("?") ? "&" : "?";
+            return { url: `${url}${separator}key=${encodeURIComponent(apiKey)}` };
+          }
         }
+        return { url };
       },
-      layers: [
-        {
-          id: "background",
-          type: "background",
-          paint: { "background-color": "#090d16" }
+      style: {
+        version: 8,
+        name: "Mensa 3D & 2D Tactical Engine",
+        glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
+        sources: {
+          openmaptiles: {
+            type: "vector",
+            tiles: [
+              `${tilesBaseUrl}/data/v3/{z}/{x}/{y}.pbf?key=${encodeURIComponent(apiKey)}`
+            ],
+            minzoom: 0,
+            maxzoom: 14
+          },
+          terrain_dem: {
+            type: "raster-dem",
+            tiles: ["dem://{z}/{x}/{y}"],
+            tileSize: 256,
+            encoding: "terrarium",
+            maxzoom: 16
+          }
         },
+        layers: [
+          {
+            id: "background",
+            type: "background",
+            paint: { "background-color": "#090d16" }
+          },
         {
           id: "landcover",
           type: "fill",
@@ -697,6 +708,9 @@ function initMap() {
     pitch: 0,
     bearing: 0
   });
+  } catch (err) {
+    console.error("MapLibre GL Map initialization error:", err);
+  }
 
   // Update debug zoom overlay
   const updateZoomDisplay = () => {
@@ -713,6 +727,9 @@ function initMap() {
       map.addImage("icon-fuel", createFuelIconImageData(), { sdf: true });
     }
     applyTheme(map, "2d-basic");
+  });
+  map.on("error", (e) => {
+    console.error("MapLibre GL Map Error Event:", e.error || e);
   });
 
   // Add Navigation and Scale controls
@@ -2619,6 +2636,7 @@ function initMap() {
     gasResultsContainer.innerHTML = htmlResults;
   }
 
+  // Register Menu Listeners reliably after initMap setup completes
   listen("menu-file-new", () => newTrip());
   listen("menu-file-load", () => loadTrip());
   listen("menu-file-save", () => saveTrip());
@@ -2626,9 +2644,13 @@ function initMap() {
   listen("menu-file-print", () => openPrintModal());
   listen("menu-tools-gas-planner", () => openGasModal());
 
-  return map;
+  return map!;
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
   initMap();
-});
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+  });
+}

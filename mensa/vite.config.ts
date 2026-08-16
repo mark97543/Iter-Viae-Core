@@ -1,10 +1,20 @@
 import { defineConfig } from "vite";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+
+const removeCrossoriginPlugin = () => ({
+  name: 'remove-crossorigin',
+  transformIndexHtml(html: string) {
+    return html.replace(/ crossorigin/g, '');
+  }
+});
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
+  plugins: [removeCrossoriginPlugin()],
+  build: {
+    modulePreload: false,
+  },
   optimizeDeps: {
     exclude: ["maplibre-gl"]
   },
