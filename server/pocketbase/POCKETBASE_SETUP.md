@@ -17,8 +17,12 @@ PocketBase is an ultra-fast, 100% open-source backend with zero paywalls on auth
 5. Under **Domains**:
    - Add Domain: `api.wade-usa.com` (Container Port `8090`, HTTPS Enabled).
 6. Under **Mounts / Volumes**:
-   - Add Volume: `/pb_data` -> Mount Path `/pb_data`.
+   - **Type**: Select **`Volume`** (do NOT select `Bind`).
+   - **Name**: `pb_data`
+   - **Mount Path**: `/pb_data`
 7. Click **Deploy**.
+
+> 💡 **Why `Volume` instead of `Bind`**: Choosing `Bind` requires creating a directory on the server host disk first. Selecting **`Volume`** lets Docker automatically manage creating the persistent volume for PocketBase data (`/pb_data`).
 
 ---
 
@@ -27,7 +31,7 @@ PocketBase is an ultra-fast, 100% open-source backend with zero paywalls on auth
    - **Service Name**: `pocketbase`
    - **Docker Image**: `ghcr.io/muchweb/pocketbase:latest`
    - **Port**: Set Container Port to `8090` -> Map to `api.wade-usa.com` (HTTPS SSL enabled).
-   - **Volume**: Mount Volume to `/pb_data`.
+   - **Mounts / Volumes**: Type **`Volume`**, Name `pb_data`, Mount Path `/pb_data`.
 2. Click **Deploy**.
 
 ---
