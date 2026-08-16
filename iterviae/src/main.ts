@@ -31,11 +31,35 @@ const logoutBtn = document.getElementById("logout-btn");
 const unverifiedUserEmail = document.getElementById("unverified-user-email");
 const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
 
-// Global Map Instance & Endpoints
+// Global Map Instance & Style Configuration
 let map: maplibregl.Map | null = null;
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
-const VECTOR_TILESERVER_STYLE = "https://tiles.wade-usa.com/styles/basic-preview/style.json";
-const FALLBACK_DEMO_STYLE = "https://demotiles.maplibre.org/style.json";
+
+// Resilient default vector style (CARTO Dark Matter / MapLibre)
+const DEFAULT_MAP_STYLE = {
+  version: 8 as const,
+  sources: {
+    "carto-dark": {
+      type: "raster" as const,
+      tiles: [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+      ],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors, © CARTO"
+    }
+  },
+  layers: [
+    {
+      id: "carto-dark-layer",
+      type: "raster" as const,
+      source: "carto-dark",
+      minzoom: 0,
+      maxzoom: 20
+    }
+  ]
+};
 
 function initializeMapSurface() {
   const container = document.getElementById("map-container");
@@ -45,24 +69,12 @@ function initializeMapSurface() {
 
   map = new maplibregl.Map({
     container: "map-container",
-    style: VECTOR_TILESERVER_STYLE,
+    style: DEFAULT_MAP_STYLE,
     center: DEFAULT_CENTER,
     zoom: 11,
     pitch: 35,
     bearing: -10,
     attributionControl: false
-  });
-
-  // Handle TileServer GL CORS/Network error fallback gracefully
-  let fallbackAttempted = false;
-  map.on("error", (e) => {
-    if (!fallbackAttempted && (e.error?.message?.includes("CORS") || e.error?.message?.includes("Failed to fetch") || e.error?.message?.includes("style"))) {
-      fallbackAttempted = true;
-      console.warn("TileServer GL CORS or style network fetch blocked. Switching to resilient vector map fallback...", e);
-      if (map) {
-        map.setStyle(FALLBACK_DEMO_STYLE);
-      }
-    }
   });
 
   // Add Navigation & Fullscreen Controls
@@ -103,7 +115,7 @@ function updateAuthStateUI() {
 
     // Router: Switch between Unverified Screen vs Verified Map Surface Workspace
     if (isVerified) {
-      // Verified User View -> Render Clean Map Surface
+      // Verified User View -> Render Map Surface
       if (guestView) guestView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "flex";
