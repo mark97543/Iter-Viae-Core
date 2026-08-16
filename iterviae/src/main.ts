@@ -15,11 +15,6 @@ const openAuthBtn = document.getElementById("open-auth-btn");
 const authModal = document.getElementById("auth-modal");
 const authModalClose = document.getElementById("auth-modal-close");
 
-const serverStatusBtn = document.getElementById("server-status-btn");
-const statusIndicatorPill = document.getElementById("status-indicator-btn");
-const nodesModal = document.getElementById("nodes-modal");
-const nodesModalClose = document.getElementById("nodes-modal-close");
-
 const tabLoginBtn = document.getElementById("tab-login-btn");
 const tabRegisterBtn = document.getElementById("tab-register-btn");
 
@@ -39,7 +34,7 @@ const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
 let map: maplibregl.Map | null = null;
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Denver / Rocky Mountain Corridor
 
-// Resilient default vector style (CARTO Dark Matter / MapLibre)
+// Resilient default vector style (CARTO Dark Matter / OpenStreetMap)
 const DEFAULT_MAP_STYLE = {
   version: 8 as const,
   sources: {
@@ -67,7 +62,12 @@ const DEFAULT_MAP_STYLE = {
 
 function initializeMapSurface() {
   const container = document.getElementById("map-container");
-  if (!container || map) return;
+  if (!container) return;
+
+  if (map) {
+    map.resize();
+    return;
+  }
 
   console.log("Initializing MapLibre GL Map Surface...");
 
@@ -91,9 +91,13 @@ function initializeMapSurface() {
     .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML("<h4 style='color: #ef4444; margin-bottom: 4px;'>Iter Viae Command Center</h4><p style='color: #64748b; font-size: 0.8rem;'>Tactical Base Node 01</p>"))
     .addTo(map);
 
+  map.on("load", () => {
+    map?.resize();
+  });
+
   setTimeout(() => {
     map?.resize();
-  }, 300);
+  }, 200);
 }
 
 // View Switcher & Auth UI State Management
@@ -124,7 +128,9 @@ function updateAuthStateUI() {
       if (unverifiedView) unverifiedView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "flex";
 
-      initializeMapSurface();
+      setTimeout(() => {
+        initializeMapSurface();
+      }, 50);
     } else {
       // Unverified User View
       if (guestView) guestView.style.display = "none";
@@ -156,19 +162,6 @@ function closeAuthModal() {
 if (openAuthBtn) openAuthBtn.addEventListener("click", openAuthModal);
 if (heroAuthBtn) heroAuthBtn.addEventListener("click", openAuthModal);
 if (authModalClose) authModalClose.addEventListener("click", closeAuthModal);
-
-// System Nodes Infrastructure Modal Handlers
-function openNodesModal() {
-  if (nodesModal) nodesModal.style.display = "flex";
-}
-
-function closeNodesModal() {
-  if (nodesModal) nodesModal.style.display = "none";
-}
-
-if (serverStatusBtn) serverStatusBtn.addEventListener("click", openNodesModal);
-if (statusIndicatorPill) statusIndicatorPill.addEventListener("click", openNodesModal);
-if (nodesModalClose) nodesModalClose.addEventListener("click", closeNodesModal);
 
 // Tab Switching Handlers
 if (tabLoginBtn && tabRegisterBtn && loginForm && registerForm) {

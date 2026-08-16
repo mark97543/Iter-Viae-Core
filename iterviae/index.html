@@ -17,7 +17,7 @@
       <!-- Ambient Radial Background Glow -->
       <div class="glow-bg"></div>
 
-      <!-- Header Navigation -->
+      <!-- Clean Header Navigation -->
       <header class="navbar">
         <div class="nav-brand">
           <img src="/logo.png" alt="Iter Viae Logo" class="brand-logo-img" />
@@ -28,16 +28,7 @@
         </div>
 
         <div class="nav-actions">
-          <div id="status-indicator-btn" class="status-indicator-pill" title="Click to view infrastructure nodes">
-            <span class="status-dot"></span>
-            <span>Services Online</span>
-          </div>
-
-          <button id="server-status-btn" class="btn btn-ghost">
-            System Nodes
-          </button>
-
-          <!-- User Auth State Pill -->
+          <!-- User Auth Controls -->
           <div id="user-auth-controls">
             <button id="open-auth-btn" class="btn btn-primary">
               Sign In
@@ -125,51 +116,10 @@
         </div>
       </main>
 
-      <!-- View 3: Verified User Workspace (Clean Full-Screen Map Canvas) -->
+      <!-- View 3: Verified User Workspace (Full-Screen Map Canvas) -->
       <main id="verified-view" class="map-view-container" style="display: none;">
         <div id="map-container" class="map-surface"></div>
       </main>
-
-      <!-- System Nodes Infrastructure Modal -->
-      <div id="nodes-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card">
-          <button id="nodes-modal-close" class="modal-close-btn">&times;</button>
-          
-          <div class="modal-header">
-            <h2 class="modal-title">System Infrastructure Nodes</h2>
-            <p class="modal-subtitle">Iter Viae Server Endpoints & API Status</p>
-          </div>
-
-          <div class="nodes-modal-list">
-            <div class="node-card">
-              <div class="node-icon">🗺️</div>
-              <div class="node-details">
-                <h3>Vector Map Tile Server</h3>
-                <p>https://tiles.wade-usa.com</p>
-              </div>
-              <span class="badge badge-success">ONLINE</span>
-            </div>
-
-            <div class="node-card">
-              <div class="node-icon">⚡</div>
-              <div class="node-details">
-                <h3>Valhalla Routing Engine</h3>
-                <p>https://valhalla.wade-usa.com</p>
-              </div>
-              <span class="badge badge-success">ONLINE</span>
-            </div>
-
-            <div class="node-card">
-              <div class="node-icon">🔒</div>
-              <div class="node-details">
-                <h3>PocketBase Cloud Auth & DB</h3>
-                <p>https://api.wade-usa.com</p>
-              </div>
-              <span class="badge badge-primary">AUTH READY</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Auth Modal -->
       <div id="auth-modal" class="modal-overlay" style="display: none;">

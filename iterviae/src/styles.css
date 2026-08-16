@@ -2,7 +2,7 @@
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   
-  /* Lightened Modern Slate Dark Theme - Easy on the eyes */
+  /* Slate Dark Theme */
   --bg-dark: #0f172a;
   --bg-card: rgba(30, 41, 59, 0.85);
   --bg-item: rgba(51, 65, 85, 0.5);
@@ -69,10 +69,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.1rem 3rem;
+  padding: 1rem 3rem;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-subtle);
+  height: 65px;
 }
 
 .nav-brand {
@@ -117,34 +118,6 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-.status-indicator-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid var(--border-subtle);
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(51, 65, 85, 0.8);
-    border-color: rgba(16, 185, 129, 0.4);
-    color: var(--text-primary);
-  }
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  background-color: var(--accent-emerald);
-  border-radius: 50%;
-  box-shadow: 0 0 8px var(--accent-emerald);
 }
 
 /* User Session Pill */
@@ -206,18 +179,6 @@ html, body {
   background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
   box-shadow: 0 5px 20px rgba(239, 68, 68, 0.55);
   transform: translateY(-1px);
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-subtle);
-}
-
-.btn-ghost:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .btn-outline {
@@ -421,59 +382,21 @@ html, body {
   justify-content: center;
 }
 
-/* Map Surface Layout for Verified Users */
+/* Map Surface Container for Verified Users */
 .map-view-container {
   position: relative;
   flex: 1;
   width: 100%;
-  height: calc(100vh - 70px - 45px);
+  height: calc(100vh - 65px - 40px);
+  min-height: 500px;
   display: flex;
-  flex-direction: column;
 }
 
 .map-surface {
   width: 100%;
   height: 100%;
+  min-height: 500px;
   background: #1e293b;
-}
-
-/* System Nodes Modal Cards */
-.nodes-modal-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  .node-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 1rem 1.25rem;
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    text-align: left;
-  }
-
-  .node-icon {
-    font-size: 1.5rem;
-  }
-
-  .node-details {
-    flex: 1;
-
-    h3 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    p {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-  }
 }
 
 /* MapLibre Controls Customization */
@@ -493,7 +416,7 @@ html, body {
   }
 }
 
-/* Auth & System Modals */
+/* Auth Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -512,7 +435,7 @@ html, body {
 .modal-card {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: 420px;
   background: #1e293b;
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
@@ -647,9 +570,10 @@ html, body {
   position: relative;
   z-index: 10;
   text-align: center;
-  padding: 0.85rem;
+  padding: 0.6rem;
   font-size: 0.8rem;
   color: var(--text-muted);
   border-top: 1px solid var(--border-subtle);
   background: rgba(15, 23, 42, 0.95);
+  height: 40px;
 }
