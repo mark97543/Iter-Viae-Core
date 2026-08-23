@@ -1,18 +1,42 @@
 import dialogueData from "./asshole-dialogue.json";
 
 export type VoiceMode = "sarcastic" | "tactical" | "muted";
-
 export type DialogueCategory = "route_start" | "speed_warning" | "off_route" | "fuel_low" | "waypoint_arrival" | "voice_test";
 
 class AssholeVoiceEngine {
   private mode: VoiceMode = "sarcastic";
   private synth: SpeechSynthesis | null = null;
   private lastSpokenTime: number = 0;
-  private cooldownMs: number = 6000; // Cooldown between automatic callouts
+  private cooldownMs: number = 4000;
+  private unlocked: boolean = false;
+  private voices: SpeechSynthesisVoice[] = [];
 
   constructor() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       this.synth = window.speechSynthesis;
+      this.initVoices();
+    }
+  }
+
+  private initVoices() {
+    if (!this.synth) return;
+    const populate = () => {
+      this.voices = this.synth?.getVoices() || [];
+    };
+    populate();
+    if (typeof this.synth.onvoiceschanged !== "undefined") {
+      this.synth.onvoiceschanged = populate;
+    }
+  }
+
+  public unlockSpeech() {
+    if (!this.synth || this.unlocked) return;
+    try {
+      this.synth.resume();
+      this.unlocked = true;
+      console.log("[A.S.S.H.O.L.E. Voice] Speech engine unlocked via user gesture.");
+    } catch (e) {
+      console.warn("Speech unlock warning:", e);
     }
   }
 
@@ -26,18 +50,18 @@ class AssholeVoiceEngine {
   }
 
   public toggleMode(): VoiceMode {
+    this.unlockSpeech();
     if (this.mode === "sarcastic") this.mode = "tactical";
     else if (this.mode === "tactical") this.mode = "muted";
     else this.mode = "sarcastic";
 
-    this.speakRaw(
-      this.mode === "sarcastic"
-        ? "A.S.S.H.O.L.E. mode active. Buckle up buttercup."
-        : this.mode === "tactical"
-        ? "Tactical navigation voice engaged."
-        : "Voice audio muted."
-    );
+    const text = this.mode === "sarcastic"
+      ? "A.S.S.H.O.L.E. mode active. Buckle up buttercup."
+      : this.mode === "tactical"
+      ? "Tactical navigation voice engaged."
+      : "Voice audio muted.";
 
+    this.speakRaw(text, true);
     return this.mode;
   }
 
@@ -46,11 +70,10 @@ class AssholeVoiceEngine {
 
     const now = Date.now();
     if (!forceImmediate && now - this.lastSpokenTime < this.cooldownMs) {
-      return; // Skip inside cooldown window
+      return;
     }
 
     let textToSpeak = "";
-
     if (this.mode === "sarcastic") {
       const lines = dialogueData[category] || [];
       if (lines.length > 0) {
@@ -60,32 +83,48 @@ class AssholeVoiceEngine {
         textToSpeak = customTacticalText || "Attention driver.";
       }
     } else {
-      // Tactical mode: concise, professional
       textToSpeak = customTacticalText || this.getTacticalFallback(category);
     }
 
-    this.speakRaw(textToSpeak);
+    this.speakRaw(textToSpeak, forceImmediate);
   }
 
-  public speakRaw(text: string) {
+  public speakRaw(text: string, force = false) {
     if (!this.synth || this.mode === "muted") return;
 
-    // Cancel existing queued speech
-    this.synth.cancel();
+    this.unlockSpeech();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = this.mode === "sarcastic" ? 1.05 : 1.0;
-    utterance.pitch = this.mode === "sarcastic" ? 0.9 : 1.0;
-
-    // Find best English voice
-    const voices = this.synth.getVoices();
-    const engVoice = voices.find((v) => v.lang.startsWith("en"));
-    if (engVoice) {
-      utterance.voice = engVoice;
+    if (this.synth.paused) {
+      this.synth.resume();
     }
 
-    this.lastSpokenTime = Date.now();
-    this.synth.speak(utterance);
+    // Chrome fix: cancel previous and schedule speech after short delay
+    this.synth.cancel();
+
+    setTimeout(() => {
+      if (!this.synth) return;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = this.mode === "sarcastic" ? 1.05 : 1.0;
+      utterance.pitch = this.mode === "sarcastic" ? 0.9 : 1.0;
+      utterance.volume = 1.0;
+
+      const engVoice = this.voices.find((v) => v.lang.startsWith("en-US") || v.lang.startsWith("en"));
+      if (engVoice) {
+        utterance.voice = engVoice;
+      }
+
+      utterance.onstart = () => {
+        console.log("[A.S.S.H.O.L.E. Voice] Speaking:", text);
+      };
+
+      utterance.onerror = (err) => {
+        console.error("[A.S.S.H.O.L.E. Voice] Speech error:", err);
+      };
+
+      this.lastSpokenTime = Date.now();
+      this.synth.speak(utterance);
+    }, 60);
   }
 
   private getTacticalFallback(category: DialogueCategory): string {

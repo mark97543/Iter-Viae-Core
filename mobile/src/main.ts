@@ -623,4 +623,8 @@ document.addEventListener("DOMContentLoaded", () => {
   startGPSWatcher();
   initCompassGyro();
   requestScreenWakeLock();
+
+  // Unlock Speech Synthesis on first user click/tap anywhere on page
+  document.addEventListener("click", () => assholeVoice.unlockSpeech());
+  document.addEventListener("touchstart", () => assholeVoice.unlockSpeech());
 });
