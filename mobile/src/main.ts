@@ -149,6 +149,11 @@ function startGPSWatcher() {
 
       // Update Active Navigation Progress
       updateNavigationMetrics();
+
+      // If active trip loaded, dynamically update polyline starting from current position
+      if (activeTrip && !map?.getSource("mobile-route")) {
+        renderActiveRouteOnMap();
+      }
     },
     (err) => {
       console.warn("GPS Location error:", err);
@@ -247,8 +252,15 @@ async function renderActiveRouteOnMap() {
   valid.forEach((wp) => bounds.extend([wp.lon, wp.lat]));
   map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
 
-  // Fetch & Render Valhalla Polyline starting at Expedition Origin Point
-  const valhallaData = await fetchExpeditionRoute(valid);
+  // Dynamic Route Points: Point 0 is your LIVE CURRENT LOCATION (where you are at right now!)
+  const routePoints: Array<{ lat: number; lon: number }> = [];
+  if (currentPosition) {
+    routePoints.push({ lat: currentPosition.lat, lon: currentPosition.lon });
+  }
+  routePoints.push(...valid.map((w) => ({ lat: w.lat!, lon: w.lon! })));
+
+  // Fetch & Render Valhalla Polyline starting from Live Location to all waypoints
+  const valhallaData = await fetchExpeditionRoute(routePoints);
   if (valhallaData && valhallaData.trip && valhallaData.trip.legs) {
     const coordinates: [number, number][] = [];
     valhallaData.trip.legs.forEach((leg: any) => {
