@@ -1592,13 +1592,55 @@ function closeItineraryModal() {
 if (openItineraryBtn) openItineraryBtn.addEventListener("click", openItineraryModal);
 if (itineraryModalClose) itineraryModalClose.addEventListener("click", closeItineraryModal);
 
+// Tactical Document ID Generator: IV-YEAR-JULIANDAY-ROMAN
+let lastManifestJulianDay = "";
+let manifestDailyCounter = 0;
+
+function getJulianDayNumber(d: Date): string {
+  const start = new Date(d.getFullYear(), 0, 0);
+  const diff = (d.getTime() - start.getTime()) + ((start.getTimezoneOffset() - d.getTimezoneOffset()) * 60 * 1000);
+  const oneDay = 1000 * 60 * 60 * 24;
+  const day = Math.floor(diff / oneDay);
+  return day.toString().padStart(3, "0");
+}
+
+function toRomanNumeral(num: number): string {
+  const val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const syb = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"];
+  let roman = "";
+  let n = num;
+  for (let i = 0; i < val.length; i++) {
+    while (n >= val[i]) {
+      roman += syb[i];
+      n -= val[i];
+    }
+  }
+  return roman || "I";
+}
+
+function generateTacticalDocId(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const julian = getJulianDayNumber(now);
+
+  if (julian !== lastManifestJulianDay) {
+    lastManifestJulianDay = julian;
+    manifestDailyCounter = 1;
+  } else {
+    manifestDailyCounter++;
+  }
+
+  const roman = toRomanNumeral(manifestDailyCounter);
+  return `IV-${year}-${julian}-${roman}`;
+}
+
 // Render Clean Monochrome Print Manifest Document (Dynamic Multi-Page Chunking & Alternating Shaded Rows)
 function renderPrintManifest() {
   const container = document.getElementById("print-manifest-container");
   if (!container) return;
 
   const now = new Date();
-  const docId = `IV-${now.getFullYear()}-${Math.floor(Math.random() * 899 + 100)}`;
+  const docId = generateTacticalDocId();
   const issuedDate = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase();
 
   let startMillis = Date.parse(expeditionStartTime);
