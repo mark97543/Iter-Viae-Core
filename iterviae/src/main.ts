@@ -1755,7 +1755,6 @@ function renderPrintManifest() {
           <div class="print-form-meta-box">
             <div><strong>DOC ID:</strong> ${docId}</div>
             <div><strong>ISSUED:</strong> ${issuedDate}</div>
-            <div><strong>CLASSIFICATION:</strong> OFFICIAL EXPEDITION</div>
           </div>
         </div>
         <div class="print-form-divider"></div>
@@ -1845,7 +1844,6 @@ function renderPrintManifest() {
             <div class="print-form-meta-box">
               <div><strong>DOC ID:</strong> ${docId}</div>
               <div><strong>ISSUED:</strong> ${issuedDate}</div>
-              <div><strong>CLASSIFICATION:</strong> OFFICIAL EXPEDITION</div>
             </div>
           </div>
           <div class="print-form-divider"></div>
@@ -1962,7 +1960,6 @@ function renderPrintManifest() {
           <div class="print-form-meta-box">
             <div><strong>DOC ID:</strong> ${docId}</div>
             <div><strong>ISSUED:</strong> ${issuedDate}</div>
-            <div><strong>CLASSIFICATION:</strong> OFFICIAL EXPEDITION</div>
           </div>
         </div>
         <div class="print-form-divider"></div>
