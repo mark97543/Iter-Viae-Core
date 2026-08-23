@@ -216,6 +216,21 @@ function updateNavigationMetrics() {
     if (nextWpDistance) nextWpDistance.textContent = formatDistance(distToNext);
     if (nextWpTitle) nextWpTitle.textContent = `NEXT: ${nextWp.title || `Waypoint #${currentWaypointIndex + 1}`}`;
 
+    // Calculate Turn Direction Icon based on bearing
+    const bearingToNext = calculateBearing(currentPosition.lat, currentPosition.lon, nextWp.lat, nextWp.lon);
+    const relBearing = (bearingToNext - (currentPosition.heading || 0) + 360) % 360;
+
+    let arrowSymbol = "⬆️";
+    if (relBearing > 30 && relBearing <= 75) arrowSymbol = "↗️";
+    else if (relBearing > 75 && relBearing <= 115) arrowSymbol = "➔";
+    else if (relBearing > 115 && relBearing <= 160) arrowSymbol = "↘️";
+    else if (relBearing > 160 && relBearing <= 200) arrowSymbol = "↩️";
+    else if (relBearing > 200 && relBearing <= 245) arrowSymbol = "↙️";
+    else if (relBearing > 245 && relBearing <= 285) arrowSymbol = "⬅️";
+    else if (relBearing > 285 && relBearing <= 330) arrowSymbol = "↖️";
+
+    if (turnIcon) turnIcon.textContent = arrowSymbol;
+
     // Check Waypoint Arrival Threshold (< 300 feet)
     if (distToNext < 0.06 && currentWaypointIndex < validWaypoints.length - 1) {
       assholeVoice.trigger("waypoint_arrival", `Arriving at waypoint: ${nextWp.title}`);
@@ -279,11 +294,13 @@ async function renderActiveRouteOnMap() {
     waypointMarkers.push(marker);
   });
 
-  // Fit camera bounds to show full route
-  const bounds = new maplibregl.LngLatBounds();
-  if (currentPosition) bounds.extend([currentPosition.lon, currentPosition.lat]);
-  valid.forEach((wp) => bounds.extend([wp.lon, wp.lat]));
-  map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+  // Fit camera bounds ONLY on initial load (pause zooming in Debugger mode to keep current camera)
+  if (!debugMode && !map.getSource("mobile-route")) {
+    const bounds = new maplibregl.LngLatBounds();
+    if (currentPosition) bounds.extend([currentPosition.lon, currentPosition.lat]);
+    valid.forEach((wp) => bounds.extend([wp.lon, wp.lat]));
+    map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+  }
 
   // Dynamic Route Points: Point 0 is your LIVE CURRENT LOCATION (where you are at right now!)
   const routePoints: Array<{ lat: number; lon: number }> = [];
