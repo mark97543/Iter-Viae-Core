@@ -609,18 +609,45 @@ if (authModalClose) {
   });
 }
 
+const btnToggleAuthMode = document.getElementById("btn-toggle-auth-mode");
+const btnSubmitAuth = document.getElementById("btn-submit-auth");
+const authModalTitle = document.getElementById("auth-modal-title");
+const authModalSubtitle = document.getElementById("auth-modal-subtitle");
+let isSignUpMode = false;
+
+if (btnToggleAuthMode) {
+  btnToggleAuthMode.addEventListener("click", () => {
+    isSignUpMode = !isSignUpMode;
+    if (authModalTitle) authModalTitle.textContent = isSignUpMode ? "CREATE ITER VIAE ACCOUNT" : "ITER VIAE ACCOUNT AUTH";
+    if (authModalSubtitle) authModalSubtitle.textContent = isSignUpMode ? "Create an account to save and sync expedition routes" : "Sign in to access your saved expedition routes";
+    if (btnSubmitAuth) btnSubmitAuth.textContent = isSignUpMode ? "✨ Create Account & Sign In" : "🚀 Sign In to Iter Viae";
+    if (btnToggleAuthMode) btnToggleAuthMode.textContent = isSignUpMode ? "Already have an account? Sign in here" : "Need an account? Create one here";
+    if (authErrorMsg) authErrorMsg.style.display = "none";
+  });
+}
+
 if (mobileLoginForm) {
   mobileLoginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!mobileAuthEmail || !mobileAuthPassword) return;
 
     if (authErrorMsg) authErrorMsg.style.display = "none";
+    const emailVal = mobileAuthEmail.value.trim();
+    const passVal = mobileAuthPassword.value;
 
     try {
-      const authData = await pb.collection("users").authWithPassword(
-        mobileAuthEmail.value.trim(),
-        mobileAuthPassword.value
-      );
+      if (isSignUpMode) {
+        // Create new PocketBase account
+        await pb.collection("users").create({
+          email: emailVal,
+          password: passVal,
+          passwordConfirm: passVal
+        });
+        showToast("Account created successfully! Signing in...");
+      }
+
+      // Authenticate with credentials
+      const authData = await pb.collection("users").authWithPassword(emailVal, passVal);
 
       showToast(`Welcome back, ${authData.record.email || authData.record.username}!`);
       updateAuthUI();
@@ -630,9 +657,23 @@ if (mobileLoginForm) {
       if (mobileTripsModal) mobileTripsModal.style.display = "flex";
       loadSavedTripsFromCloud();
     } catch (err: any) {
-      console.error("Login failed:", err);
+      console.error("Auth process failed:", err);
+      let detailedMsg = err.message || "Authentication failed.";
+
+      if (err.data && typeof err.data === "object") {
+        const details: string[] = [];
+        for (const k of Object.keys(err.data)) {
+          if (err.data[k]?.message) {
+            details.push(`${k}: ${err.data[k].message}`);
+          }
+        }
+        if (details.length > 0) {
+          detailedMsg += ` — ${details.join(", ")}`;
+        }
+      }
+
       if (authErrorMsg) {
-        authErrorMsg.textContent = err.message || "Invalid email or password.";
+        authErrorMsg.textContent = detailedMsg;
         authErrorMsg.style.display = "block";
       }
     }

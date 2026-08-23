@@ -132,8 +132,8 @@
       <div class="modal-card">
         <div class="modal-header">
           <div>
-            <h2 class="modal-title">ITER VIAE ACCOUNT AUTH</h2>
-            <p class="modal-subtitle">Sign in to access your saved expedition routes</p>
+            <h2 class="modal-title" id="auth-modal-title">ITER VIAE ACCOUNT AUTH</h2>
+            <p class="modal-subtitle" id="auth-modal-subtitle">Sign in to access your saved expedition routes</p>
           </div>
           <button class="btn-icon" id="auth-modal-close">&times;</button>
         </div>
@@ -147,10 +147,15 @@
               <label style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-sub); font-weight: 800;">PASSWORD</label>
               <input type="password" id="mobile-auth-password" required style="height: 44px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0 12px; font-family: var(--font-mono); font-size: 0.9rem;" placeholder="••••••••" />
             </div>
-            <div id="auth-error-msg" style="color: var(--accent-red); font-family: var(--font-mono); font-size: 0.75rem; display: none;"></div>
-            <button type="submit" class="btn btn-primary" style="height: 46px; margin-top: 4px;">
+            <div id="auth-error-msg" style="color: var(--accent-red); font-family: var(--font-mono); font-size: 0.75rem; display: none; line-height: 1.4; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 8px 12px; border-radius: 6px;"></div>
+            <button type="submit" id="btn-submit-auth" class="btn btn-primary" style="height: 46px; margin-top: 4px;">
               🚀 Sign In to Iter Viae
             </button>
+            <div style="text-align: center; margin-top: 4px;">
+              <button type="button" id="btn-toggle-auth-mode" style="background: none; border: none; color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; text-decoration: underline;">
+                Need an account? Create one here
+              </button>
+            </div>
           </form>
         </div>
       </div>
