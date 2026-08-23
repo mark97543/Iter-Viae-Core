@@ -2530,11 +2530,6 @@ if (reserveGalInput) reserveGalInput.addEventListener("input", updateFuelCalcula
 // Delete Specific Saved Trip
 async function deleteTripFromCloud(tripId: string, btnElement?: HTMLElement) {
   console.log("deleteTripFromCloud triggered for tripId:", tripId);
-  if (!confirm("Are you sure you want to delete this saved expedition route?")) {
-    console.log("Delete cancelled by user confirmation.");
-    return;
-  }
-
   const cardElement = btnElement ? (btnElement.closest(".saved-trip-card") as HTMLElement) : null;
 
   try {
