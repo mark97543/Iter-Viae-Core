@@ -1833,7 +1833,6 @@ function renderPrintManifest() {
   waypointChunks.forEach((chunk, chunkIdx) => {
     const pageNum = 2 + chunkIdx;
     html += `
-      <div class="print-page-break"></div>
       <div class="print-form-card print-page-2">
         <div class="print-form-header">
           <div class="print-form-brand-row">
@@ -1949,7 +1948,6 @@ function renderPrintManifest() {
   }
 
   html += `
-    <div class="print-page-break"></div>
     <div class="print-form-card print-page-2">
       <div class="print-form-header">
         <div class="print-form-brand-row">
@@ -2041,8 +2039,8 @@ function printManifestDocument() {
         }
         .print-form-card {
           width: 100% !important;
-          height: 9.8in !important;
-          max-height: 9.8in !important;
+          height: 9.2in !important;
+          max-height: 9.2in !important;
           margin: 0 auto !important;
           padding: 0.35in !important;
           border: 2px solid #0f172a !important;
