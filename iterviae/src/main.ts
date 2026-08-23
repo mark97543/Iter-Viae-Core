@@ -2023,12 +2023,12 @@ function printManifestDocument() {
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>${currentTripTitle} - Expedition Manifest</title>
+      <title></title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
       <style>
-        @page { size: letter portrait; margin: 0mm !important; }
+        @page { size: letter portrait; margin: 0.5in !important; }
         * { box-sizing: border-box; }
         body {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -2040,11 +2040,11 @@ function printManifestDocument() {
           print-color-adjust: exact;
         }
         .print-form-card {
-          width: 190mm !important;
-          height: 245mm !important;
-          max-height: 245mm !important;
+          width: 100% !important;
+          height: 9.8in !important;
+          max-height: 9.8in !important;
           margin: 0 auto !important;
-          padding: 10mm !important;
+          padding: 0.35in !important;
           border: 2px solid #0f172a !important;
           background: #ffffff !important;
           box-sizing: border-box !important;
