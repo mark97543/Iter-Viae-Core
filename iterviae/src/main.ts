@@ -1760,28 +1760,30 @@ function renderPrintManifest() {
         <div class="print-form-divider"></div>
       </div>
 
-      <div class="print-form-section">
+      <div class="print-form-section" style="flex-grow: 1; display: flex; flex-direction: column;">
         <div class="print-form-section-head">SECTION 1 — EXPEDITION OVERVIEW</div>
-        <div class="print-form-grid-2">
-          <div class="print-form-field">
-            <span class="print-field-label">EXPEDITION ROUTE TITLE</span>
-            <span class="print-field-value">${currentTripTitle}</span>
+        <div style="flex-grow: 1; display: flex; flex-direction: column;">
+          <div class="print-form-grid-2">
+            <div class="print-form-field">
+              <span class="print-field-label">EXPEDITION ROUTE TITLE</span>
+              <span class="print-field-value">${currentTripTitle}</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">TOTAL DISTANCE & TRAVEL DURATION</span>
+              <span class="print-field-value">${totalStatsStr}</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">DEPARTURE DATE & TIME</span>
+              <span class="print-field-value">${departDateStr}</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">FINAL ARRIVAL DATE & TIME</span>
+              <span class="print-field-value">${arriveDateStr}</span>
+            </div>
           </div>
-          <div class="print-form-field">
-            <span class="print-field-label">TOTAL DISTANCE & TRAVEL DURATION</span>
-            <span class="print-field-value">${totalStatsStr}</span>
-          </div>
-          <div class="print-form-field">
-            <span class="print-field-label">DEPARTURE DATE & TIME</span>
-            <span class="print-field-value">${departDateStr}</span>
-          </div>
-          <div class="print-form-field">
-            <span class="print-field-label">FINAL ARRIVAL DATE & TIME</span>
-            <span class="print-field-value">${arriveDateStr}</span>
-          </div>
-          <div class="print-form-field" style="grid-column: span 2; min-height: 180px; max-height: 250px; overflow: hidden; display: flex; flex-direction: column;">
+          <div class="print-form-field" style="flex-grow: 1; margin-top: 6px; display: flex; flex-direction: column; overflow: hidden; min-height: 180px;">
             <span class="print-field-label">EXPEDITION SUMMARY & BRIEFING</span>
-            <span class="print-field-value" style="font-weight: 500; font-size: 0.82rem; line-height: 1.4; white-space: pre-wrap; display: block; overflow: hidden; max-height: 220px;">${currentTripSummary || "No special briefing notes specified."}</span>
+            <span class="print-field-value" style="font-weight: 500; font-size: 0.82rem; line-height: 1.4; white-space: pre-wrap; flex-grow: 1; display: block; overflow: hidden;">${currentTripSummary || "No special briefing notes specified."}</span>
           </div>
         </div>
       </div>
