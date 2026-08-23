@@ -247,12 +247,8 @@ async function renderActiveRouteOnMap() {
   valid.forEach((wp) => bounds.extend([wp.lon, wp.lat]));
   map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
 
-  // Fetch & Render Valhalla Polyline from CURRENT POSITION to next waypoints
-  const routePoints = currentPosition 
-    ? [{ lat: currentPosition.lat, lon: currentPosition.lon }, ...valid]
-    : valid;
-
-  const valhallaData = await fetchExpeditionRoute(routePoints);
+  // Fetch & Render Valhalla Polyline starting at Expedition Origin Point
+  const valhallaData = await fetchExpeditionRoute(valid);
   if (valhallaData && valhallaData.trip && valhallaData.trip.legs) {
     const coordinates: [number, number][] = [];
     valhallaData.trip.legs.forEach((leg: any) => {
