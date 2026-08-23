@@ -2144,14 +2144,13 @@ input:checked + .toggle-slider:before {
 }
 
 .print-form-card {
-  width: 7.5in !important;
-  max-width: 7.5in !important;
-  min-width: 7.5in !important;
-  height: 10.0in !important;
-  min-height: 10.0in !important;
-  max-height: 10.0in !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 10.5in !important;
+  min-height: 10.5in !important;
+  max-height: 10.5in !important;
   margin: 0 auto !important;
-  padding: 0.35in !important;
+  padding: 0.3in !important;
   border: 2px solid #0f172a !important;
   background: #ffffff !important;
   box-sizing: border-box !important;
@@ -2396,7 +2395,7 @@ input:checked + .toggle-slider:before {
 
 @page {
   size: letter portrait;
-  margin: 0.5in !important;
+  margin: 0.25in !important;
 }
 
 

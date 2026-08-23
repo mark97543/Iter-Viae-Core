@@ -1779,9 +1779,9 @@ function renderPrintManifest() {
             <span class="print-field-label">FINAL ARRIVAL DATE & TIME</span>
             <span class="print-field-value">${arriveDateStr}</span>
           </div>
-          <div class="print-form-field" style="grid-column: span 2; height: 60px; max-height: 60px; overflow: hidden;">
+          <div class="print-form-field" style="grid-column: span 2; min-height: 180px; max-height: 250px; overflow: hidden; display: flex; flex-direction: column;">
             <span class="print-field-label">EXPEDITION SUMMARY & BRIEFING</span>
-            <span class="print-field-value" style="font-weight: 500; font-size: 0.75rem; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: ellipsis;">${currentTripSummary || "No special briefing notes specified."}</span>
+            <span class="print-field-value" style="font-weight: 500; font-size: 0.82rem; line-height: 1.4; white-space: pre-wrap; display: block; overflow: hidden; max-height: 220px;">${currentTripSummary || "No special briefing notes specified."}</span>
           </div>
         </div>
       </div>
@@ -1808,16 +1808,11 @@ function renderPrintManifest() {
         </div>
       </div>
 
-      <div class="print-form-section" style="flex-grow: 1; display: flex; flex-direction: column;">
+      <div class="print-form-section">
         <div class="print-form-section-head">SECTION 4 — FIELD NOTES & REMARKS</div>
-        <div class="print-notes-box" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around;">
+        <div class="print-notes-box">
           <div class="print-field-label">FIELD LOG / RADIO FREQUENCIES / CHECKPOINT REMARKS:</div>
-          <div class="print-blank-lines" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; min-height: 160px;">
-            <div class="print-line"></div>
-            <div class="print-line"></div>
-            <div class="print-line"></div>
-            <div class="print-line"></div>
-            <div class="print-line"></div>
+          <div class="print-blank-lines">
             <div class="print-line"></div>
             <div class="print-line"></div>
             <div class="print-line"></div>
@@ -2034,7 +2029,7 @@ function printManifestDocument() {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
       <style>
-        @page { size: letter portrait; margin: 0.5in !important; }
+        @page { size: letter portrait; margin: 0.25in !important; }
         * { box-sizing: border-box; }
         body {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -2046,14 +2041,13 @@ function printManifestDocument() {
           print-color-adjust: exact;
         }
         .print-form-card {
-          width: 7.5in !important;
-          max-width: 7.5in !important;
-          min-width: 7.5in !important;
-          height: 10.0in !important;
-          min-height: 10.0in !important;
-          max-height: 10.0in !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          height: 10.5in !important;
+          min-height: 10.5in !important;
+          max-height: 10.5in !important;
           margin: 0 auto !important;
-          padding: 0.35in !important;
+          padding: 0.3in !important;
           border: 2px solid #0f172a !important;
           background: #ffffff !important;
           box-sizing: border-box !important;
