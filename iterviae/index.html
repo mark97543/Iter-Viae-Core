@@ -215,263 +215,265 @@
         </div>
       </main>
 
-      <!-- Edit Expedition Details Modal -->
-      <div id="trip-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card">
-          <button id="trip-modal-close" class="modal-close-btn">&times;</button>
-          
-          <div class="modal-header">
-            <h2 class="modal-title">Expedition Settings</h2>
-            <p class="modal-subtitle">Configure Trip Title & Route Log Summary</p>
-          </div>
-
-          <form id="trip-settings-form" class="auth-form">
-            <div class="form-group">
-              <label for="modal-trip-title">Expedition Title</label>
-              <input type="text" id="modal-trip-title" placeholder="e.g. Rocky Mountain Overland Trek 2026" required />
-            </div>
-
-            <div class="form-group">
-              <label for="modal-trip-summary">Expedition Summary & Notes</label>
-              <textarea 
-                id="modal-trip-summary" 
-                class="form-textarea" 
-                rows="4" 
-                placeholder="Enter route terrain details, fuel stops, radio channels, or expedition notes..."
-              ></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block btn-lg">
-              Save Expedition Details
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Itinerary Spreadsheet Modal -->
-      <div id="itinerary-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card itinerary-modal-card">
-          <button id="itinerary-modal-close" class="modal-close-btn">&times;</button>
-          
-          <div class="itinerary-modal-header">
-            <div class="itinerary-header-left">
-              <div class="excel-badge-pill">📊 EXCEL ITINERARY MATRIX</div>
-              <h2 id="itinerary-trip-title" class="modal-title">EXPEDITION ITINERARY PLANNER</h2>
-            </div>
-
-            <div class="itinerary-controls-row">
-              <div class="start-time-picker-wrapper">
-                <label for="itinerary-start-time">Expedition Start:</label>
-                <input type="datetime-local" id="itinerary-start-time" class="datetime-input" />
-              </div>
-              <div class="itinerary-toolbar-actions">
-                <button id="print-manifest-btn" class="btn btn-primary btn-sm" title="Print Clean Expedition Manifest Document or Save to PDF">
-                  🖨️ Print Manifest
-                </button>
-                <button id="export-csv-btn" class="btn btn-emerald btn-sm">
-                  📊 Export CSV
-                </button>
-                <button id="reset-breaks-btn" class="btn btn-outline btn-sm">
-                  ↺ Reset Breaks
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="itinerary-table-container">
-            <table class="itinerary-table">
-              <thead>
-                <tr>
-                  <th class="col-seq">DAY / #</th>
-                  <th class="col-stop">WAYPOINT / STOP</th>
-                  <th class="col-travel">TRAVEL TIME</th>
-                  <th class="col-dist">DISTANCE</th>
-                  <th class="col-eta">ETA</th>
-                  <th class="col-break">REST / BREAK</th>
-                  <th class="col-depart">DEPART TIME</th>
-                  <th class="col-budget">BUDGET ($)</th>
-                  <th class="col-notes">NOTES & DETAILS</th>
-                </tr>
-              </thead>
-              <tbody id="itinerary-table-body">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-
-          <div class="itinerary-summary-bar">
-            <div class="summary-metric highlight-days">
-              <span class="summary-label">EXPEDITION SPAN</span>
-              <span id="itin-sum-days" class="summary-val">1 DAY</span>
-            </div>
-            <div class="summary-metric">
-              <span class="summary-label">DRIVING TIME</span>
-              <span id="itin-sum-travel" class="summary-val">0H 0M</span>
-            </div>
-            <div class="summary-metric">
-              <span class="summary-label">REST / OVERNIGHT</span>
-              <span id="itin-sum-break" class="summary-val">0H 0M</span>
-            </div>
-            <div class="summary-metric highlight-metric">
-              <span class="summary-label">TOTAL DURATION</span>
-              <span id="itin-sum-total" class="summary-val">0H 0M</span>
-            </div>
-            <div class="summary-metric">
-              <span class="summary-label">TOTAL DISTANCE</span>
-              <span id="itin-sum-dist" class="summary-val">0.0 MI</span>
-            </div>
-            <div class="summary-metric highlight-fuel">
-              <span class="summary-label">EST. FUEL COST</span>
-              <span id="itin-sum-fuel" class="summary-val">0.0 GAL ($0.00)</span>
-            </div>
-            <div class="summary-metric highlight-budget">
-              <span class="summary-label">TOTAL BUDGET</span>
-              <span id="itin-sum-budget" class="summary-val">$0.00</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Saved Trips Logbook Modal -->
-      <div id="saved-trips-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card saved-trips-modal-card">
-          <button id="saved-trips-modal-close" class="modal-close-btn">&times;</button>
-          
-          <div class="modal-header">
-            <div class="pill-badge badge-primary">POCKETBASE CLOUD LOGBOOK</div>
-            <h2 class="modal-title">My Expedition Routes</h2>
-            <p class="modal-subtitle">Load or manage your private cloud-synced trips</p>
-          </div>
-
-          <div id="saved-trips-loading" class="saved-trips-state" style="display: none;">
-            <p class="text-muted">Loading your saved routes from PocketBase Cloud...</p>
-          </div>
-
-          <div id="saved-trips-empty" class="saved-trips-state" style="display: none;">
-            <p style="font-weight: 600; color: var(--text-primary);">No saved trips found for your account.</p>
-            <p class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">Plan a route on the map and click <strong>Save Cloud</strong>!</p>
-          </div>
-
-          <div id="saved-trips-list" class="saved-trips-list">
-            <!-- Injected via JS -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Vehicle Profile Modal -->
-      <div id="vehicle-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card vehicle-modal-card">
-          <button id="vehicle-modal-close" class="modal-close-btn">&times;</button>
-          
-          <div class="modal-header">
-            <div class="pill-badge badge-primary">VEHICLE FUEL & RANGE SPECIFICATIONS</div>
-            <h2 class="modal-title">Vehicle & Fuel Profile</h2>
-            <p class="modal-subtitle">Configure MPG, tank size, and fuel price for range & cost calculations</p>
-          <!-- Master Fuel Tracking Toggle -->
-          <div class="master-fuel-toggle-row">
-            <label class="toggle-switch">
-              <input type="checkbox" id="fuel-tracking-toggle" checked />
-              <span class="toggle-slider"></span>
-            </label>
-            <div class="toggle-text-block">
-              <span class="toggle-label-title">Enable Fuel Range & Exhaustion Signals</span>
-              <span class="toggle-label-sub">Track fuel budget, refuel stops, and live route exhaustion points</span>
-            </div>
-          </div>
-
-          <div class="vehicle-input-grid" style="grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 1rem;">
-            <div class="vehicle-field">
-              <label class="vehicle-label" for="fuel-mpg-input">FUEL EFFICIENCY (MPG)</label>
-              <input type="number" id="fuel-mpg-input" class="vehicle-input" value="18.0" min="1" step="0.5" placeholder="18.0" />
-            </div>
-            <div class="vehicle-field">
-              <label class="vehicle-label" for="tank-capacity-input">TANK CAPACITY (GALLONS)</label>
-              <input type="number" id="tank-capacity-input" class="vehicle-input" value="20.0" min="1" step="0.5" placeholder="20.0" />
-            </div>
-            <div class="vehicle-field">
-              <label class="vehicle-label" for="fuel-price-input">FUEL PRICE ($/GALLON)</label>
-              <input type="number" id="fuel-price-input" class="vehicle-input" value="3.65" min="0" step="0.05" placeholder="3.65" />
-            </div>
-            <div class="vehicle-field">
-              <label class="vehicle-label" for="reserve-gal-input">SAFETY RESERVE (GALLONS)</label>
-              <input type="number" id="reserve-gal-input" class="vehicle-input" value="2.0" min="0" step="0.5" placeholder="2.0" />
-            </div>
-          </div>
-
-          <div class="fuel-metrics-summary" style="margin-top: 1.25rem; padding: 1rem;">
-            <div class="fuel-metric-pill">
-              <span class="fuel-key">MAX CRUISING RANGE</span>
-              <span id="fuel-max-range" class="fuel-val" style="font-size: 1.1rem;">324.0 MI</span>
-            </div>
-            <div class="fuel-metric-pill">
-              <span class="fuel-key">TOTAL FUEL REQUIRED</span>
-              <span id="fuel-req-gal" class="fuel-val" style="font-size: 1.1rem;">0.0 GAL</span>
-            </div>
-            <div class="fuel-metric-pill highlight-fuel-cost">
-              <span class="fuel-key">ESTIMATED FUEL COST</span>
-              <span id="fuel-est-cost" class="fuel-val" style="font-size: 1.1rem;">$0.00</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Auth Modal -->
-      <div id="auth-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card">
-          <button id="auth-modal-close" class="modal-close-btn">&times;</button>
-          
-          <div class="modal-header">
-            <img src="/logo.png" alt="Iter Viae" class="modal-logo-img" />
-            <h2 class="modal-title">Sign In to Iter Viae</h2>
-            <p class="modal-subtitle">PocketBase Cloud Portal (https://api.wade-usa.com)</p>
-          </div>
-
-          <div class="auth-tabs">
-            <button id="tab-login-btn" class="auth-tab active">Sign In</button>
-            <button id="tab-register-btn" class="auth-tab">Create Account</button>
-          </div>
-
-          <div id="auth-error-banner" class="auth-alert" style="display: none;"></div>
-
-          <form id="login-form" class="auth-form">
-            <div class="form-group">
-              <label for="login-email">Email or Username</label>
-              <input type="text" id="login-email" placeholder="user@domain.com" autocomplete="username" required />
-            </div>
-            <div class="form-group">
-              <label for="login-password">Password</label>
-              <input type="password" id="login-password" placeholder="••••••••••••" autocomplete="current-password" required />
-            </div>
-            <button type="submit" class="btn btn-primary btn-block btn-lg">
-              Sign In
-            </button>
-          </form>
-
-          <form id="register-form" class="auth-form" style="display: none;">
-            <div class="form-group">
-              <label for="reg-name">Full Name</label>
-              <input type="text" id="reg-name" placeholder="User Name" autocomplete="name" required />
-            </div>
-            <div class="form-group">
-              <label for="reg-email">Email Address</label>
-              <input type="email" id="reg-email" placeholder="user@domain.com" autocomplete="email" required />
-            </div>
-            <div class="form-group">
-              <label for="reg-password">Password</label>
-              <input type="password" id="reg-password" placeholder="Min. 8 characters" autocomplete="new-password" required />
-            </div>
-            <p class="reg-notice">Note: New accounts start as Unverified and require administrator clearance.</p>
-            <button type="submit" class="btn btn-primary btn-block btn-lg">
-              Create Account
-            </button>
-          </form>
-        </div>
-      </div>
-
       <!-- Footer -->
       <footer id="app-footer" class="footer">
         <p>© 2026 Iter Viae • The Way of the Journey</p>
       </footer>
+    </div>
+
+    <!-- Edit Expedition Details Modal -->
+    <div id="trip-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-card">
+        <button id="trip-modal-close" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-header">
+          <h2 class="modal-title">Expedition Settings</h2>
+          <p class="modal-subtitle">Configure Trip Title & Route Log Summary</p>
+        </div>
+
+        <form id="trip-settings-form" class="auth-form">
+          <div class="form-group">
+            <label for="modal-trip-title">Expedition Title</label>
+            <input type="text" id="modal-trip-title" placeholder="e.g. Rocky Mountain Overland Trek 2026" required />
+          </div>
+
+          <div class="form-group">
+            <label for="modal-trip-summary">Expedition Summary & Notes</label>
+            <textarea 
+              id="modal-trip-summary" 
+              class="form-textarea" 
+              rows="4" 
+              placeholder="Enter route terrain details, fuel stops, radio channels, or expedition notes..."
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg">
+            Save Expedition Details
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Itinerary Spreadsheet Modal -->
+    <div id="itinerary-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-card itinerary-modal-card">
+        <button id="itinerary-modal-close" class="modal-close-btn">&times;</button>
+        
+        <div class="itinerary-modal-header">
+          <div class="itinerary-header-left">
+            <div class="excel-badge-pill">📊 EXCEL ITINERARY MATRIX</div>
+            <h2 id="itinerary-trip-title" class="modal-title">EXPEDITION ITINERARY PLANNER</h2>
+          </div>
+
+          <div class="itinerary-controls-row">
+            <div class="start-time-picker-wrapper">
+              <label for="itinerary-start-time">Expedition Start:</label>
+              <input type="datetime-local" id="itinerary-start-time" class="datetime-input" />
+            </div>
+            <div class="itinerary-toolbar-actions">
+              <button id="print-manifest-btn" class="btn btn-primary btn-sm" title="Print Clean Expedition Manifest Document or Save to PDF">
+                🖨️ Print Manifest
+              </button>
+              <button id="export-csv-btn" class="btn btn-emerald btn-sm">
+                📊 Export CSV
+              </button>
+              <button id="reset-breaks-btn" class="btn btn-outline btn-sm">
+                ↺ Reset Breaks
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="itinerary-table-container">
+          <table class="itinerary-table">
+            <thead>
+              <tr>
+                <th class="col-seq">DAY / #</th>
+                <th class="col-stop">WAYPOINT / STOP</th>
+                <th class="col-travel">TRAVEL TIME</th>
+                <th class="col-dist">DISTANCE</th>
+                <th class="col-eta">ETA</th>
+                <th class="col-break">REST / BREAK</th>
+                <th class="col-depart">DEPART TIME</th>
+                <th class="col-budget">BUDGET ($)</th>
+                <th class="col-notes">NOTES & DETAILS</th>
+              </tr>
+            </thead>
+            <tbody id="itinerary-table-body">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="itinerary-summary-bar">
+          <div class="summary-metric highlight-days">
+            <span class="summary-label">EXPEDITION SPAN</span>
+            <span id="itin-sum-days" class="summary-val">1 DAY</span>
+          </div>
+          <div class="summary-metric">
+            <span class="summary-label">DRIVING TIME</span>
+            <span id="itin-sum-travel" class="summary-val">0H 0M</span>
+          </div>
+          <div class="summary-metric">
+            <span class="summary-label">REST / OVERNIGHT</span>
+            <span id="itin-sum-break" class="summary-val">0H 0M</span>
+          </div>
+          <div class="summary-metric highlight-metric">
+            <span class="summary-label">TOTAL DURATION</span>
+            <span id="itin-sum-total" class="summary-val">0H 0M</span>
+          </div>
+          <div class="summary-metric">
+            <span class="summary-label">TOTAL DISTANCE</span>
+            <span id="itin-sum-dist" class="summary-val">0.0 MI</span>
+          </div>
+          <div class="summary-metric highlight-fuel">
+            <span class="summary-label">EST. FUEL COST</span>
+            <span id="itin-sum-fuel" class="summary-val">0.0 GAL ($0.00)</span>
+          </div>
+          <div class="summary-metric highlight-budget">
+            <span class="summary-label">TOTAL BUDGET</span>
+            <span id="itin-sum-budget" class="summary-val">$0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Trips Logbook Modal -->
+    <div id="saved-trips-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-card saved-trips-modal-card">
+        <button id="saved-trips-modal-close" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-header">
+          <div class="pill-badge badge-primary">POCKETBASE CLOUD LOGBOOK</div>
+          <h2 class="modal-title">My Expedition Routes</h2>
+          <p class="modal-subtitle">Load or manage your private cloud-synced trips</p>
+        </div>
+
+        <div id="saved-trips-loading" class="saved-trips-state" style="display: none;">
+          <p class="text-muted">Loading your saved routes from PocketBase Cloud...</p>
+        </div>
+
+        <div id="saved-trips-empty" class="saved-trips-state" style="display: none;">
+          <p style="font-weight: 600; color: var(--text-primary);">No saved trips found for your account.</p>
+          <p class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">Plan a route on the map and click <strong>Save Cloud</strong>!</p>
+        </div>
+
+        <div id="saved-trips-list" class="saved-trips-list">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicle Profile Modal -->
+    <div id="vehicle-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-card vehicle-modal-card">
+        <button id="vehicle-modal-close" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-header">
+          <div class="pill-badge badge-primary">VEHICLE FUEL & RANGE SPECIFICATIONS</div>
+          <h2 class="modal-title">Vehicle & Fuel Profile</h2>
+          <p class="modal-subtitle">Configure MPG, tank size, and fuel price for range & cost calculations</p>
+        </div>
+
+        <!-- Master Fuel Tracking Toggle -->
+        <div class="master-fuel-toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="fuel-tracking-toggle" checked />
+            <span class="toggle-slider"></span>
+          </label>
+          <div class="toggle-text-block">
+            <span class="toggle-label-title">Enable Fuel Range & Exhaustion Signals</span>
+            <span class="toggle-label-sub">Track fuel budget, refuel stops, and live route exhaustion points</span>
+          </div>
+        </div>
+
+        <div class="vehicle-input-grid" style="grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 1rem;">
+          <div class="vehicle-field">
+            <label class="vehicle-label" for="fuel-mpg-input">FUEL EFFICIENCY (MPG)</label>
+            <input type="number" id="fuel-mpg-input" class="vehicle-input" value="18.0" min="1" step="0.5" placeholder="18.0" />
+          </div>
+          <div class="vehicle-field">
+            <label class="vehicle-label" for="tank-capacity-input">TANK CAPACITY (GALLONS)</label>
+            <input type="number" id="tank-capacity-input" class="vehicle-input" value="20.0" min="1" step="0.5" placeholder="20.0" />
+          </div>
+          <div class="vehicle-field">
+            <label class="vehicle-label" for="fuel-price-input">FUEL PRICE ($/GALLON)</label>
+            <input type="number" id="fuel-price-input" class="vehicle-input" value="3.65" min="0" step="0.05" placeholder="3.65" />
+          </div>
+          <div class="vehicle-field">
+            <label class="vehicle-label" for="reserve-gal-input">SAFETY RESERVE (GALLONS)</label>
+            <input type="number" id="reserve-gal-input" class="vehicle-input" value="2.0" min="0" step="0.5" placeholder="2.0" />
+          </div>
+        </div>
+
+        <div class="fuel-metrics-summary" style="margin-top: 1.25rem; padding: 1rem;">
+          <div class="fuel-metric-pill">
+            <span class="fuel-key">MAX CRUISING RANGE</span>
+            <span id="fuel-max-range" class="fuel-val" style="font-size: 1.1rem;">324.0 MI</span>
+          </div>
+          <div class="fuel-metric-pill">
+            <span class="fuel-key">TOTAL FUEL REQUIRED</span>
+            <span id="fuel-req-gal" class="fuel-val" style="font-size: 1.1rem;">0.0 GAL</span>
+          </div>
+          <div class="fuel-metric-pill highlight-fuel-cost">
+            <span class="fuel-key">ESTIMATED FUEL COST</span>
+            <span id="fuel-est-cost" class="fuel-val" style="font-size: 1.1rem;">$0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-card">
+        <button id="auth-modal-close" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-header">
+          <img src="/logo.png" alt="Iter Viae" class="modal-logo-img" />
+          <h2 class="modal-title">Sign In to Iter Viae</h2>
+          <p class="modal-subtitle">PocketBase Cloud Portal (https://api.wade-usa.com)</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button id="tab-login-btn" class="auth-tab active">Sign In</button>
+          <button id="tab-register-btn" class="auth-tab">Create Account</button>
+        </div>
+
+        <div id="auth-error-banner" class="auth-alert" style="display: none;"></div>
+
+        <form id="login-form" class="auth-form">
+          <div class="form-group">
+            <label for="login-email">Email or Username</label>
+            <input type="text" id="login-email" placeholder="user@domain.com" autocomplete="username" required />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="••••••••••••" autocomplete="current-password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">
+            Sign In
+          </button>
+        </form>
+
+        <form id="register-form" class="auth-form" style="display: none;">
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" placeholder="User Name" autocomplete="name" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email Address</label>
+            <input type="email" id="reg-email" placeholder="user@domain.com" autocomplete="email" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" placeholder="Min. 8 characters" autocomplete="new-password" required />
+          </div>
+          <p class="reg-notice">Note: New accounts start as Unverified and require administrator clearance.</p>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">
+            Create Account
+          </button>
+        </form>
+      </div>
     </div>
 
     <!-- Official Expedition Flight / Mission Manifest Form (Hidden on screen, visible during printing) -->
