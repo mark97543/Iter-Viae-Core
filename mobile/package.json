@@ -1,0 +1,21 @@
+{
+  "name": "iterviae-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview --port 3000 --host",
+    "start": "vite preview --port 3000 --host"
+  },
+  "dependencies": {
+    "maplibre-gl": "^4.7.1",
+    "pocketbase": "^0.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
+}

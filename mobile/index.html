@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>ITER VIAE — Tactical Mobile Cockpit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  </head>
+  <body class="mobile-cockpit-body">
+    <!-- Top HUD Guidance Banner -->
+    <header class="hud-banner">
+      <div class="turn-icon-box" id="turn-icon-container">
+        <span id="turn-icon">➔</span>
+      </div>
+      <div class="turn-info">
+        <div class="turn-distance" id="next-wp-distance">-- MI</div>
+        <div class="turn-instruction" id="next-wp-title">No Route Loaded</div>
+      </div>
+      <div class="hud-meta-group">
+        <button id="btn-voice-mode" class="hud-chip chip-voice" title="A.S.S.H.O.L.E. Voice Mode">
+          <span class="chip-icon">🤖</span>
+          <span id="voice-mode-label">SARCASTIC</span>
+        </button>
+        <div class="hud-chip chip-wakelock" id="wakelock-indicator" title="Screen Wake Lock Active">
+          <span class="wakelock-dot"></span> WAKE LOCK
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Map Canvas -->
+    <main class="map-viewport">
+      <div id="mobile-map" class="mobile-map-container"></div>
+
+      <!-- Floating Speedometer Badge -->
+      <div class="speedometer-box">
+        <div class="speed-value" id="speed-display">0</div>
+        <div class="speed-unit">MPH</div>
+        <div class="speed-warning-badge" id="speed-warning" style="display:none;">OVER LIMIT</div>
+      </div>
+
+      <!-- Floating Map Control Buttons -->
+      <div class="map-floating-controls">
+        <button id="btn-recenter" class="floating-btn" title="Recenter Camera on GPS Vehicle">
+          <span>🎯</span>
+        </button>
+        <button id="btn-compass-toggle" class="floating-btn" title="360° Compass Mode">
+          <span>🧭</span>
+        </button>
+        <button id="btn-toggle-hud" class="floating-btn" title="Toggle Compact HUD">
+          <span>👁️</span>
+        </button>
+      </div>
+
+      <!-- 360° Tactical Compass Overlay (Hidden by default) -->
+      <div class="compass-overlay" id="compass-overlay" style="display: none;">
+        <div class="compass-ring-container">
+          <div class="compass-dial" id="compass-dial">
+            <span class="cardinal cardinal-n">N</span>
+            <span class="cardinal cardinal-e">E</span>
+            <span class="cardinal cardinal-s">S</span>
+            <span class="cardinal cardinal-w">W</span>
+          </div>
+          <div class="target-bearing-pointer" id="bearing-pointer">▲</div>
+          <div class="compass-readout">
+            <div class="heading-deg" id="heading-deg-display">000°</div>
+            <div class="target-wp-name" id="compass-wp-target">TARGET: --</div>
+          </div>
+        </div>
+        <button id="btn-close-compass" class="btn btn-outline btn-sm">Close Compass Mode</button>
+      </div>
+    </main>
+
+    <!-- Bottom Tactical Cockpit Dock -->
+    <footer class="cockpit-dock">
+      <div class="dock-metrics-row">
+        <div class="metric-cell">
+          <div class="metric-label">REMAINING DIST</div>
+          <div class="metric-val" id="dock-dist-val">-- MI</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-label">ETA COUNTDOWN</div>
+          <div class="metric-val" id="dock-eta-val">--H --M</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-label">CURRENT TRIP</div>
+          <div class="metric-val trip-title-truncate" id="dock-trip-title">None</div>
+        </div>
+      </div>
+
+      <div class="dock-actions-row">
+        <button id="btn-open-trips" class="dock-btn btn-primary">
+          <span>📂</span> Load Route
+        </button>
+        <button id="btn-test-asshole" class="dock-btn btn-secondary">
+          <span>🗣️</span> Voice Test
+        </button>
+        <button id="btn-wakelock-toggle" class="dock-btn btn-secondary">
+          <span>💡</span> Screen Lock
+        </button>
+      </div>
+    </footer>
+
+    <!-- Saved Trips Logbook Modal -->
+    <div class="modal-overlay" id="mobile-trips-modal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">POCKETBASE CLOUD LOGBOOK</h2>
+            <p class="modal-subtitle">Select an expedition route for active mobile guidance</p>
+          </div>
+          <button class="btn-icon" id="trips-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="trips-loading-spinner" class="loading-spinner">Syncing routes from api.wade-usa.com...</div>
+          <div id="mobile-trips-list" class="mobile-trips-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
