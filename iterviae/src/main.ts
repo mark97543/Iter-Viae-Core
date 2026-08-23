@@ -2434,10 +2434,10 @@ async function loadUserSavedTrips() {
         </div>
         ${record.summary ? `<p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">${record.summary}</p>` : ""}
         <div class="trip-card-actions">
-          <button class="btn btn-primary btn-sm btn-load-trip" data-id="${record.id}">
+          <button class="btn btn-primary btn-sm btn-load-trip" data-id="${record.id}" onclick="loadTripIntoWorkspace('${record.id}')">
             ${isCurrentActive ? '✓ Currently Loaded' : '📂 Load Route'}
           </button>
-          <button class="btn btn-outline btn-sm btn-delete-trip" data-id="${record.id}" style="color: #f87171; border-color: rgba(239,68,68,0.3);">
+          <button class="btn btn-outline btn-sm btn-delete-trip" data-id="${record.id}" onclick="deleteTripFromCloud('${record.id}', this)" style="color: #f87171; border-color: rgba(239,68,68,0.3);">
             🗑️ Delete
           </button>
         </div>
@@ -2528,16 +2528,24 @@ if (fuelPriceInput) fuelPriceInput.addEventListener("input", updateFuelCalculati
 if (reserveGalInput) reserveGalInput.addEventListener("input", updateFuelCalculations);
 
 // Delete Specific Saved Trip
-async function deleteTripFromCloud(tripId: string, cardElement?: HTMLElement) {
-  if (!confirm("Are you sure you want to delete this saved expedition route?")) return;
+async function deleteTripFromCloud(tripId: string, btnElement?: HTMLElement) {
+  console.log("deleteTripFromCloud triggered for tripId:", tripId);
+  if (!confirm("Are you sure you want to delete this saved expedition route?")) {
+    console.log("Delete cancelled by user confirmation.");
+    return;
+  }
+
+  const cardElement = btnElement ? (btnElement.closest(".saved-trip-card") as HTMLElement) : null;
 
   try {
     if (cardElement) {
-      cardElement.style.opacity = "0.4";
+      cardElement.style.opacity = "0.3";
       cardElement.style.pointerEvents = "none";
     }
-    console.log("Deleting trip from PocketBase:", tripId);
+    console.log(`Executing PocketBase delete for trip ID: ${tripId}...`);
     await pb.collection("trips").delete(tripId);
+    console.log("PocketBase delete successful!");
+
     if (currentTripId === tripId) {
       currentTripId = null;
     }
@@ -2548,13 +2556,16 @@ async function deleteTripFromCloud(tripId: string, cardElement?: HTMLElement) {
     loadUserSavedTrips();
   } catch (err: any) {
     console.error("Failed to delete trip from PocketBase:", err);
-    alert("Error deleting trip: " + (err.message || err.toString() || "Unknown error"));
+    alert("PocketBase Delete Error: " + (err.message || err.toString() || "Unknown error"));
     if (cardElement) {
       cardElement.style.opacity = "1";
       cardElement.style.pointerEvents = "auto";
     }
   }
 }
+
+(window as any).deleteTripFromCloud = deleteTripFromCloud;
+(window as any).loadTripIntoWorkspace = loadTripIntoWorkspace;
 
 // Saved Trips Modal Handlers
 function openSavedTripsModal() {
@@ -2584,8 +2595,7 @@ if (savedTripsList) {
     if (deleteBtn && deleteBtn.dataset.id) {
       e.stopPropagation();
       e.preventDefault();
-      const tripCard = deleteBtn.closest(".saved-trip-card") as HTMLElement;
-      deleteTripFromCloud(deleteBtn.dataset.id, tripCard || undefined);
+      deleteTripFromCloud(deleteBtn.dataset.id, deleteBtn);
       return;
     }
   });
