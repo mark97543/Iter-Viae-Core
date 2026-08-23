@@ -2039,8 +2039,9 @@ function printManifestDocument() {
         }
         .print-form-card {
           width: 100% !important;
-          height: 9.2in !important;
-          max-height: 9.2in !important;
+          max-width: 100% !important;
+          height: 9.8in !important;
+          max-height: 9.8in !important;
           margin: 0 auto !important;
           padding: 0.35in !important;
           border: 2px solid #0f172a !important;
