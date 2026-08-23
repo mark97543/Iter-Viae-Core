@@ -1183,7 +1183,7 @@ html, body {
   height: 100vh;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(12px);
-  z-index: 100;
+  z-index: 99999 !important;
   display: flex;
   align-items: center;
   justify-content: center;

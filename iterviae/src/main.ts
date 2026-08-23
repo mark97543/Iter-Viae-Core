@@ -2830,6 +2830,9 @@ function closeAuthModal() {
   if (authModal) authModal.style.display = "none";
 }
 
+(window as any).openAuthModal = openAuthModal;
+(window as any).closeAuthModal = closeAuthModal;
+
 if (openAuthBtn) openAuthBtn.addEventListener("click", openAuthModal);
 if (heroAuthBtn) heroAuthBtn.addEventListener("click", openAuthModal);
 if (authModalClose) authModalClose.addEventListener("click", closeAuthModal);
