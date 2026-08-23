@@ -161,6 +161,34 @@
       </div>
     </div>
 
+    <!-- Checkpoint Arrival Modal -->
+    <div class="modal-overlay" id="mobile-arrival-modal" style="display: none;">
+      <div class="modal-card arrival-card">
+        <div class="modal-header arrival-header">
+          <div>
+            <div class="arrival-badge">🎯 CHECKPOINT ARRIVAL</div>
+            <h2 class="modal-title" id="arrival-wp-title">CHECKPOINT #1</h2>
+            <p class="modal-subtitle" id="arrival-wp-coords">LAT: 00.0000 | LON: 00.0000</p>
+          </div>
+          <button class="btn-icon" id="arrival-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="arrival-briefing-box">
+            <div class="briefing-label">FIELD BRIEFING & ARRIVAL NOTES</div>
+            <div class="briefing-text" id="arrival-wp-notes">No briefing notes provided for this stop.</div>
+          </div>
+          <div class="arrival-actions">
+            <button id="btn-read-notes" class="btn btn-secondary" style="height: 46px;">
+              🗣️ Read Notes Out Loud
+            </button>
+            <button id="btn-complete-waypoint" class="btn btn-primary" style="height: 50px; font-size: 0.9rem;">
+              ✅ Complete & Continue Route
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Notification Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 

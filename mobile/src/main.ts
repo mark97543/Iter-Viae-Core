@@ -52,6 +52,16 @@ const mobileAuthEmail = document.getElementById("mobile-auth-email") as HTMLInpu
 const mobileAuthPassword = document.getElementById("mobile-auth-password") as HTMLInputElement | null;
 const authErrorMsg = document.getElementById("auth-error-msg");
 
+// Arrival Modal Elements
+const mobileArrivalModal = document.getElementById("mobile-arrival-modal");
+const arrivalModalClose = document.getElementById("arrival-modal-close");
+const arrivalWpTitle = document.getElementById("arrival-wp-title");
+const arrivalWpCoords = document.getElementById("arrival-wp-coords");
+const arrivalWpNotes = document.getElementById("arrival-wp-notes");
+const btnReadNotes = document.getElementById("btn-read-notes");
+const btnCompleteWaypoint = document.getElementById("btn-complete-waypoint");
+let activeArrivalWp: any = null;
+
 const btnDebugToggle = document.getElementById("btn-debug-toggle");
 const btnVoiceMode = document.getElementById("btn-voice-mode");
 const btnRecenter = document.getElementById("btn-recenter");
@@ -251,11 +261,26 @@ function updateNavigationMetrics() {
       }
     }
 
-    // Check Waypoint Arrival Threshold (< 300 feet)
-    if (distToNext < 0.06 && currentWaypointIndex < validWaypoints.length - 1) {
-      assholeVoice.trigger("waypoint_arrival", `Arriving at waypoint: ${nextWp.title}`);
-      currentWaypointIndex++;
-      showToast(`Arrived at ${nextWp.title}! Next waypoint set.`);
+    // Check Waypoint Arrival Threshold (< 300 feet = 0.06 miles)
+    if (distToNext < 0.06 && currentWaypointIndex < validWaypoints.length) {
+      if (isShapingPoint(nextWp)) {
+        // Shaping point: Pass right through without stopping
+        currentWaypointIndex++;
+        showToast(`Passed shaping point "${nextWp.title || `Point #${currentWaypointIndex}`}".`);
+        assholeVoice.speakRaw("Passing shaping point.");
+        renderActiveRouteOnMap();
+      } else {
+        // Major Checkpoint / Stop: Open Arrival Screen Modal
+        if (!mobileArrivalModal || mobileArrivalModal.style.display !== "flex") {
+          activeArrivalWp = nextWp;
+          if (arrivalWpTitle) arrivalWpTitle.textContent = nextWp.title || `CHECKPOINT #${currentWaypointIndex + 1}`;
+          if (arrivalWpCoords) arrivalWpCoords.textContent = `LAT: ${nextWp.lat.toFixed(4)} | LON: ${nextWp.lon.toFixed(4)}`;
+          if (arrivalWpNotes) arrivalWpNotes.textContent = nextWp.notes || nextWp.description || nextWp.briefing || "No field notes or briefing provided for this checkpoint.";
+          
+          if (mobileArrivalModal) mobileArrivalModal.style.display = "flex";
+          assholeVoice.trigger("waypoint_arrival", `Arriving at checkpoint: ${nextWp.title}`);
+        }
+      }
     }
 
     // Calculate Total Remaining Distance
@@ -283,6 +308,14 @@ function updateNavigationMetrics() {
   }
 }
 
+// Helper: Check if waypoint is a Shaping Point
+function isShapingPoint(wp: any): boolean {
+  if (!wp) return false;
+  if (wp.isShaping === true || wp.type === "shaping" || wp.type === "via") return true;
+  const title = (wp.title || "").toLowerCase();
+  return title.includes("shaping") || title.includes("via point");
+}
+
 // Render Active Route & Waypoints on Mobile Map
 async function renderActiveRouteOnMap() {
   if (!map || !activeTrip || !activeTrip.waypoints) return;
@@ -294,16 +327,20 @@ async function renderActiveRouteOnMap() {
   const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
   if (valid.length === 0) return;
 
-  // Add Waypoint Markers
-  valid.forEach((wp, idx) => {
+  // Add Markers ONLY for remaining uncompleted waypoints
+  const remainingWaypoints = valid.slice(currentWaypointIndex);
+
+  remainingWaypoints.forEach((wp, relIdx) => {
+    const absIdx = currentWaypointIndex + relIdx;
     const el = document.createElement("div");
-    const isStart = idx === 0;
-    const isEnd = idx === valid.length - 1;
+    const isStart = relIdx === 0;
+    const isEnd = relIdx === remainingWaypoints.length - 1;
     const bgColor = isStart ? "#10b981" : isEnd ? "#ef4444" : "#38bdf8";
+    const shapingBadge = isShapingPoint(wp) ? " 📍" : "";
 
     el.innerHTML = `
       <div style="background:${bgColor}; color:#000000; font-family:'JetBrains Mono', monospace; font-size:0.75rem; font-weight:900; padding:4px 8px; border-radius:6px; border:2px solid #ffffff; box-shadow:0 4px 10px rgba(0,0,0,0.5); white-space:nowrap;">
-        #${idx + 1} ${wp.title || "Waypoint"}
+        #${absIdx + 1} ${wp.title || "Waypoint"}${shapingBadge}
       </div>
     `;
 
@@ -323,7 +360,6 @@ async function renderActiveRouteOnMap() {
   }
 
   // Dynamic Route Points: Point 0 is your LIVE CURRENT LOCATION -> remaining waypoints
-  const remainingWaypoints = valid.slice(currentWaypointIndex);
   const routePoints: Array<{ lat: number; lon: number }> = [];
   if (currentPosition) {
     routePoints.push({ lat: currentPosition.lat, lon: currentPosition.lon });
@@ -611,6 +647,31 @@ if (btnMobileAuth) {
 if (authModalClose) {
   authModalClose.addEventListener("click", () => {
     if (mobileAuthModal) mobileAuthModal.style.display = "none";
+  });
+}
+
+// Arrival Modal Listeners
+if (arrivalModalClose) {
+  arrivalModalClose.addEventListener("click", () => {
+    if (mobileArrivalModal) mobileArrivalModal.style.display = "none";
+  });
+}
+
+if (btnReadNotes) {
+  btnReadNotes.addEventListener("click", () => {
+    if (arrivalWpNotes && arrivalWpNotes.textContent) {
+      assholeVoice.speakRaw(arrivalWpNotes.textContent, true);
+    }
+  });
+}
+
+if (btnCompleteWaypoint) {
+  btnCompleteWaypoint.addEventListener("click", () => {
+    currentWaypointIndex++;
+    if (mobileArrivalModal) mobileArrivalModal.style.display = "none";
+    showToast("Checkpoint completed! Route updated.");
+    assholeVoice.speakRaw("Checkpoint completed. Resuming expedition navigation.", true);
+    renderActiveRouteOnMap();
   });
 }
 

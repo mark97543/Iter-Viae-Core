@@ -566,6 +566,56 @@ html, body {
   animation: fadeIn 0.2s ease-out;
 }
 
+/* Checkpoint Arrival Modal Styling */
+.arrival-card {
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 32px rgba(16, 185, 129, 0.3);
+}
+
+.arrival-header {
+  border-bottom: 2px solid var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.arrival-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: var(--accent-emerald);
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.arrival-briefing-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.briefing-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.briefing-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  white-space: pre-wrap;
+}
+
+.arrival-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
