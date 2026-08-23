@@ -1779,9 +1779,9 @@ function renderPrintManifest() {
             <span class="print-field-label">FINAL ARRIVAL DATE & TIME</span>
             <span class="print-field-value">${arriveDateStr}</span>
           </div>
-          <div class="print-form-field" style="grid-column: span 2;">
+          <div class="print-form-field" style="grid-column: span 2; height: 60px; max-height: 60px; overflow: hidden;">
             <span class="print-field-label">EXPEDITION SUMMARY & BRIEFING</span>
-            <span class="print-field-value" style="font-weight: 500; font-size: 0.8rem; white-space: pre-wrap;">${currentTripSummary || "No special briefing notes specified."}</span>
+            <span class="print-field-value" style="font-weight: 500; font-size: 0.75rem; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: ellipsis;">${currentTripSummary || "No special briefing notes specified."}</span>
           </div>
         </div>
       </div>
@@ -2046,11 +2046,12 @@ function printManifestDocument() {
           print-color-adjust: exact;
         }
         .print-form-card {
-          width: 100% !important;
-          max-width: 100% !important;
-          height: 9.85in !important;
-          min-height: 9.85in !important;
-          max-height: 9.85in !important;
+          width: 7.5in !important;
+          max-width: 7.5in !important;
+          min-width: 7.5in !important;
+          height: 10.0in !important;
+          min-height: 10.0in !important;
+          max-height: 10.0in !important;
           margin: 0 auto !important;
           padding: 0.35in !important;
           border: 2px solid #0f172a !important;
