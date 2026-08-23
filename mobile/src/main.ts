@@ -485,7 +485,7 @@ async function loadSavedTripsFromCloud() {
   if (!pb.authStore.isValid) {
     if (mobileTripsModal) mobileTripsModal.style.display = "none";
     if (mobileAuthModal) mobileAuthModal.style.display = "flex";
-    showToast("Please sign in to access your PocketBase cloud routes.");
+    showToast("Please sign in to your Iter Viae account to access your routes.");
     return;
   }
 
@@ -592,10 +592,10 @@ function showToast(msg: string) {
 if (btnMobileAuth) {
   btnMobileAuth.addEventListener("click", () => {
     if (pb.authStore.isValid) {
-      if (confirm("Sign out of PocketBase cloud account?")) {
+      if (confirm("Sign out of your Iter Viae account?")) {
         pb.authStore.clear();
         updateAuthUI();
-        showToast("Signed out of PocketBase.");
+        showToast("Signed out of Iter Viae account.");
       }
     } else {
       if (mobileAuthModal) mobileAuthModal.style.display = "flex";
