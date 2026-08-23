@@ -2073,9 +2073,9 @@ function printManifestDocument() {
         .print-form-card {
           width: 100% !important;
           max-width: 100% !important;
-          height: 10.0in !important;
-          min-height: 10.0in !important;
-          max-height: 10.0in !important;
+          height: 9.85in !important;
+          min-height: 9.85in !important;
+          max-height: 9.85in !important;
           margin: 0 auto !important;
           padding: 0.35in !important;
           border: 2px solid #0f172a !important;
@@ -2113,7 +2113,7 @@ function printManifestDocument() {
         .print-blank-lines { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; margin-bottom: 4px; }
         .print-line { border-bottom: 1px dashed #cbd5e1; height: 1px; }
         .print-budget-totals-row td { background: #e2e8f0 !important; border-top: 2px solid #0f172a !important; }
-        .print-form-footer { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 6px; margin-top: 10px; }
+        .print-form-footer { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 6px; margin-top: auto !important; }
         .print-page-break {
           page-break-before: always !important;
           break-before: page !important;

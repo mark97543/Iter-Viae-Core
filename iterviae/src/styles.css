@@ -2146,8 +2146,9 @@ input:checked + .toggle-slider:before {
 .print-form-card {
   width: 100% !important;
   max-width: 100% !important;
-  height: 9.8in !important;
-  max-height: 9.8in !important;
+  height: 9.85in !important;
+  min-height: 9.85in !important;
+  max-height: 9.85in !important;
   margin: 0 auto !important;
   padding: 0.35in !important;
   border: 2px solid #0f172a !important;
@@ -2317,7 +2318,7 @@ input:checked + .toggle-slider:before {
   color: #64748b;
   border-top: 1px solid #cbd5e1;
   padding-top: 6px;
-  margin-top: 0.75rem;
+  margin-top: auto !important;
 }
 
 .print-page-break {
