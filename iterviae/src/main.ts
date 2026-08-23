@@ -2538,7 +2538,7 @@ async function deleteTripFromCloud(tripId: string, btnElement?: HTMLElement) {
       cardElement.style.pointerEvents = "none";
     }
     console.log(`Executing PocketBase delete for trip ID: ${tripId}...`);
-    await pb.collection("trips").delete(tripId);
+    await pb.collection("trips").delete(tripId, { requestKey: null });
     console.log("PocketBase delete successful!");
 
     if (currentTripId === tripId) {
@@ -2550,6 +2550,7 @@ async function deleteTripFromCloud(tripId: string, btnElement?: HTMLElement) {
     }
     loadUserSavedTrips();
   } catch (err: any) {
+    if (err.isAbort) return; // Suppress harmless PocketBase abort signals
     console.error("Failed to delete trip from PocketBase:", err);
     alert("PocketBase Delete Error: " + (err.message || err.toString() || "Unknown error"));
     if (cardElement) {
@@ -2576,25 +2577,6 @@ function closeSavedTripsModal() {
 if (navSavedTripsBtn) navSavedTripsBtn.addEventListener("click", openSavedTripsModal);
 if (openSavedTripsBtn) openSavedTripsBtn.addEventListener("click", openSavedTripsModal);
 if (savedTripsModalClose) savedTripsModalClose.addEventListener("click", closeSavedTripsModal);
-
-if (savedTripsList) {
-  savedTripsList.addEventListener("click", (e) => {
-    const target = e.target as HTMLElement;
-    const loadBtn = target.closest(".btn-load-trip") as HTMLButtonElement;
-    if (loadBtn && loadBtn.dataset.id) {
-      loadTripIntoWorkspace(loadBtn.dataset.id);
-      return;
-    }
-
-    const deleteBtn = target.closest(".btn-delete-trip") as HTMLButtonElement;
-    if (deleteBtn && deleteBtn.dataset.id) {
-      e.stopPropagation();
-      e.preventDefault();
-      deleteTripFromCloud(deleteBtn.dataset.id, deleteBtn);
-      return;
-    }
-  });
-}
 
 function addPinAtLocation(lat: number, lon: number) {
   if (!map) return;
