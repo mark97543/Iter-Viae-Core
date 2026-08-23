@@ -18,6 +18,7 @@ let watchPositionId: number | null = null;
 let autoFollowVehicle: boolean = true;
 let currentDeviceHeading: number = 0;
 let debugMode: boolean = false;
+let lastSpokenTurnCategory: string = "";
 
 // DOM Elements
 const speedDisplay = document.getElementById("speed-display");
@@ -242,9 +243,12 @@ function updateNavigationMetrics() {
 
     if (turnIcon) turnIcon.textContent = arrowSymbol;
 
-    // Spoken turn announcement on approach or Debugger click
-    if (distToNext < 1.5) {
-      assholeVoice.trigger(turnCategory);
+    // Spoken turn announcement on approach, turn category change, or Debugger click
+    if (debugMode || turnCategory !== lastSpokenTurnCategory || distToNext < 1.5) {
+      if (turnCategory !== lastSpokenTurnCategory || debugMode) {
+        lastSpokenTurnCategory = turnCategory;
+        assholeVoice.trigger(turnCategory, undefined, true); // Force immediate spoken turn callout
+      }
     }
 
     // Check Waypoint Arrival Threshold (< 300 feet)
