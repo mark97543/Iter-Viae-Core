@@ -1808,11 +1808,16 @@ function renderPrintManifest() {
         </div>
       </div>
 
-      <div class="print-form-section">
+      <div class="print-form-section" style="flex-grow: 1; display: flex; flex-direction: column;">
         <div class="print-form-section-head">SECTION 4 — FIELD NOTES & REMARKS</div>
-        <div class="print-notes-box">
+        <div class="print-notes-box" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around;">
           <div class="print-field-label">FIELD LOG / RADIO FREQUENCIES / CHECKPOINT REMARKS:</div>
-          <div class="print-blank-lines">
+          <div class="print-blank-lines" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; min-height: 160px;">
+            <div class="print-line"></div>
+            <div class="print-line"></div>
+            <div class="print-line"></div>
+            <div class="print-line"></div>
+            <div class="print-line"></div>
             <div class="print-line"></div>
             <div class="print-line"></div>
             <div class="print-line"></div>
@@ -1929,8 +1934,9 @@ function renderPrintManifest() {
     }
   });
 
-  // Add 4 Blank Checkbook Register Rows for handwritten field entries
-  for (let b = 1; b <= 4; b++) {
+  // Fill blank Checkbook Register Rows so Section 5 fills the page cleanly
+  const targetCheckRows = Math.max(8, 12 - bRowIndex);
+  for (let b = 1; b <= targetCheckRows; b++) {
     const isEven = bRowIndex % 2 === 0;
     const rowBg = isEven ? "#ffffff" : "#f1f5f9";
     bRowIndex++;
@@ -2522,19 +2528,31 @@ if (fuelPriceInput) fuelPriceInput.addEventListener("input", updateFuelCalculati
 if (reserveGalInput) reserveGalInput.addEventListener("input", updateFuelCalculations);
 
 // Delete Specific Saved Trip
-async function deleteTripFromCloud(tripId: string) {
+async function deleteTripFromCloud(tripId: string, cardElement?: HTMLElement) {
   if (!confirm("Are you sure you want to delete this saved expedition route?")) return;
 
   try {
+    if (cardElement) {
+      cardElement.style.opacity = "0.4";
+      cardElement.style.pointerEvents = "none";
+    }
+    console.log("Deleting trip from PocketBase:", tripId);
     await pb.collection("trips").delete(tripId);
     if (currentTripId === tripId) {
       currentTripId = null;
     }
     showToast("Expedition trip deleted.");
+    if (cardElement) {
+      cardElement.remove();
+    }
     loadUserSavedTrips();
   } catch (err: any) {
-    console.error("Failed to delete trip:", err);
-    alert("Error deleting trip: " + err.message);
+    console.error("Failed to delete trip from PocketBase:", err);
+    alert("Error deleting trip: " + (err.message || err.toString() || "Unknown error"));
+    if (cardElement) {
+      cardElement.style.opacity = "1";
+      cardElement.style.pointerEvents = "auto";
+    }
   }
 }
 
@@ -2564,7 +2582,10 @@ if (savedTripsList) {
 
     const deleteBtn = target.closest(".btn-delete-trip") as HTMLButtonElement;
     if (deleteBtn && deleteBtn.dataset.id) {
-      deleteTripFromCloud(deleteBtn.dataset.id);
+      e.stopPropagation();
+      e.preventDefault();
+      const tripCard = deleteBtn.closest(".saved-trip-card") as HTMLElement;
+      deleteTripFromCloud(deleteBtn.dataset.id, tripCard || undefined);
       return;
     }
   });
