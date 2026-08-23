@@ -28,6 +28,19 @@
         </div>
 
         <div class="nav-actions">
+          <!-- Quick Access Toolbar Buttons -->
+          <button id="open-itinerary-btn" class="btn btn-emerald btn-sm" style="display: none; margin-right: 6px;" title="Open Detailed Itinerary">
+            📊 Itinerary
+          </button>
+          <button id="save-trip-btn" class="btn btn-primary btn-sm" style="display: none; margin-right: 6px;" title="Save Trip to Cloud">
+            💾 Save
+          </button>
+          <button id="nav-vehicle-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Vehicle Specs & Fuel Calculator">
+            ⛽ Vehicle Specs
+          </button>
+          <button id="nav-saved-trips-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 8px;">
+            📁 Saved Trips
+          </button>
           <!-- User Auth Controls -->
           <div id="user-auth-controls">
             <button id="open-auth-btn" class="btn btn-primary">
@@ -158,12 +171,6 @@
             </div>
           </div>
 
-          <!-- Save Trip Action Button -->
-          <div class="planner-actions">
-            <button id="save-trip-btn" class="btn btn-primary btn-block">
-              Save Trip to Cloud
-            </button>
-          </div>
         </aside>
 
         <!-- Toggle Drawer Pill (Visible when panel is collapsed) -->
@@ -241,6 +248,173 @@
         </div>
       </div>
 
+      <!-- Itinerary Spreadsheet Modal -->
+      <div id="itinerary-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card itinerary-modal-card">
+          <button id="itinerary-modal-close" class="modal-close-btn">&times;</button>
+          
+          <div class="itinerary-modal-header">
+            <div class="itinerary-header-left">
+              <div class="excel-badge-pill">📊 EXCEL ITINERARY MATRIX</div>
+              <h2 id="itinerary-trip-title" class="modal-title">EXPEDITION ITINERARY PLANNER</h2>
+            </div>
+
+            <div class="itinerary-controls-row">
+              <div class="start-time-picker-wrapper">
+                <label for="itinerary-start-time">Expedition Start:</label>
+                <input type="datetime-local" id="itinerary-start-time" class="datetime-input" />
+              </div>
+              <div class="itinerary-toolbar-actions">
+                <button id="print-manifest-btn" class="btn btn-primary btn-sm" title="Print Clean Expedition Manifest Document or Save to PDF">
+                  🖨️ Print Manifest
+                </button>
+                <button id="export-csv-btn" class="btn btn-emerald btn-sm">
+                  📊 Export CSV
+                </button>
+                <button id="reset-breaks-btn" class="btn btn-outline btn-sm">
+                  ↺ Reset Breaks
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="itinerary-table-container">
+            <table class="itinerary-table">
+              <thead>
+                <tr>
+                  <th class="col-seq">DAY / #</th>
+                  <th class="col-stop">WAYPOINT / STOP</th>
+                  <th class="col-travel">TRAVEL TIME</th>
+                  <th class="col-dist">DISTANCE</th>
+                  <th class="col-eta">ETA</th>
+                  <th class="col-break">REST / BREAK</th>
+                  <th class="col-depart">DEPART TIME</th>
+                  <th class="col-budget">BUDGET ($)</th>
+                  <th class="col-notes">NOTES & DETAILS</th>
+                </tr>
+              </thead>
+              <tbody id="itinerary-table-body">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="itinerary-summary-bar">
+            <div class="summary-metric highlight-days">
+              <span class="summary-label">EXPEDITION SPAN</span>
+              <span id="itin-sum-days" class="summary-val">1 DAY</span>
+            </div>
+            <div class="summary-metric">
+              <span class="summary-label">DRIVING TIME</span>
+              <span id="itin-sum-travel" class="summary-val">0H 0M</span>
+            </div>
+            <div class="summary-metric">
+              <span class="summary-label">REST / OVERNIGHT</span>
+              <span id="itin-sum-break" class="summary-val">0H 0M</span>
+            </div>
+            <div class="summary-metric highlight-metric">
+              <span class="summary-label">TOTAL DURATION</span>
+              <span id="itin-sum-total" class="summary-val">0H 0M</span>
+            </div>
+            <div class="summary-metric">
+              <span class="summary-label">TOTAL DISTANCE</span>
+              <span id="itin-sum-dist" class="summary-val">0.0 MI</span>
+            </div>
+            <div class="summary-metric highlight-fuel">
+              <span class="summary-label">EST. FUEL COST</span>
+              <span id="itin-sum-fuel" class="summary-val">0.0 GAL ($0.00)</span>
+            </div>
+            <div class="summary-metric highlight-budget">
+              <span class="summary-label">TOTAL BUDGET</span>
+              <span id="itin-sum-budget" class="summary-val">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saved Trips Logbook Modal -->
+      <div id="saved-trips-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card saved-trips-modal-card">
+          <button id="saved-trips-modal-close" class="modal-close-btn">&times;</button>
+          
+          <div class="modal-header">
+            <div class="pill-badge badge-primary">POCKETBASE CLOUD LOGBOOK</div>
+            <h2 class="modal-title">My Expedition Routes</h2>
+            <p class="modal-subtitle">Load or manage your private cloud-synced trips</p>
+          </div>
+
+          <div id="saved-trips-loading" class="saved-trips-state" style="display: none;">
+            <p class="text-muted">Loading your saved routes from PocketBase Cloud...</p>
+          </div>
+
+          <div id="saved-trips-empty" class="saved-trips-state" style="display: none;">
+            <p style="font-weight: 600; color: var(--text-primary);">No saved trips found for your account.</p>
+            <p class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">Plan a route on the map and click <strong>Save Cloud</strong>!</p>
+          </div>
+
+          <div id="saved-trips-list" class="saved-trips-list">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehicle Profile Modal -->
+      <div id="vehicle-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card vehicle-modal-card">
+          <button id="vehicle-modal-close" class="modal-close-btn">&times;</button>
+          
+          <div class="modal-header">
+            <div class="pill-badge badge-primary">VEHICLE FUEL & RANGE SPECIFICATIONS</div>
+            <h2 class="modal-title">Vehicle & Fuel Profile</h2>
+            <p class="modal-subtitle">Configure MPG, tank size, and fuel price for range & cost calculations</p>
+          <!-- Master Fuel Tracking Toggle -->
+          <div class="master-fuel-toggle-row">
+            <label class="toggle-switch">
+              <input type="checkbox" id="fuel-tracking-toggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+            <div class="toggle-text-block">
+              <span class="toggle-label-title">Enable Fuel Range & Exhaustion Signals</span>
+              <span class="toggle-label-sub">Track fuel budget, refuel stops, and live route exhaustion points</span>
+            </div>
+          </div>
+
+          <div class="vehicle-input-grid" style="grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 1rem;">
+            <div class="vehicle-field">
+              <label class="vehicle-label" for="fuel-mpg-input">FUEL EFFICIENCY (MPG)</label>
+              <input type="number" id="fuel-mpg-input" class="vehicle-input" value="18.0" min="1" step="0.5" placeholder="18.0" />
+            </div>
+            <div class="vehicle-field">
+              <label class="vehicle-label" for="tank-capacity-input">TANK CAPACITY (GALLONS)</label>
+              <input type="number" id="tank-capacity-input" class="vehicle-input" value="20.0" min="1" step="0.5" placeholder="20.0" />
+            </div>
+            <div class="vehicle-field">
+              <label class="vehicle-label" for="fuel-price-input">FUEL PRICE ($/GALLON)</label>
+              <input type="number" id="fuel-price-input" class="vehicle-input" value="3.65" min="0" step="0.05" placeholder="3.65" />
+            </div>
+            <div class="vehicle-field">
+              <label class="vehicle-label" for="reserve-gal-input">SAFETY RESERVE (GALLONS)</label>
+              <input type="number" id="reserve-gal-input" class="vehicle-input" value="2.0" min="0" step="0.5" placeholder="2.0" />
+            </div>
+          </div>
+
+          <div class="fuel-metrics-summary" style="margin-top: 1.25rem; padding: 1rem;">
+            <div class="fuel-metric-pill">
+              <span class="fuel-key">MAX CRUISING RANGE</span>
+              <span id="fuel-max-range" class="fuel-val" style="font-size: 1.1rem;">324.0 MI</span>
+            </div>
+            <div class="fuel-metric-pill">
+              <span class="fuel-key">TOTAL FUEL REQUIRED</span>
+              <span id="fuel-req-gal" class="fuel-val" style="font-size: 1.1rem;">0.0 GAL</span>
+            </div>
+            <div class="fuel-metric-pill highlight-fuel-cost">
+              <span class="fuel-key">ESTIMATED FUEL COST</span>
+              <span id="fuel-est-cost" class="fuel-val" style="font-size: 1.1rem;">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Auth Modal -->
       <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-card">
@@ -298,6 +472,162 @@
       <footer id="app-footer" class="footer">
         <p>© 2026 Iter Viae • The Way of the Journey</p>
       </footer>
+    </div>
+
+    <!-- Official Expedition Flight / Mission Manifest Form (Hidden on screen, visible during printing) -->
+    <div id="print-manifest-container" class="print-manifest-wrapper" style="display: none;">
+      
+      <!-- PAGE 1: OVERVIEW, LOGISTICS & FIELD NOTES -->
+      <div class="print-form-card print-page-1">
+        <!-- Official Form Header -->
+        <div class="print-form-header">
+          <div class="print-form-brand-row">
+            <div class="print-form-logo-group">
+              <span class="print-logo-text">ITER VIAE</span>
+              <span class="print-logo-sub">TACTICAL ROUTE COMMAND • EXPEDITION MANIFEST</span>
+            </div>
+            <div class="print-form-meta-box">
+              <div><strong>DOC ID:</strong> <span id="print-doc-id">IV-2026-MF8</span></div>
+              <div><strong>ISSUED:</strong> <span id="print-issued-date">AUG 22, 2026</span></div>
+              <div><strong>CLASSIFICATION:</strong> OFFICIAL EXPEDITION</div>
+            </div>
+          </div>
+          <div class="print-form-divider"></div>
+        </div>
+
+        <!-- Section 1: Expedition Overview Box -->
+        <div class="print-form-section">
+          <div class="print-form-section-head">SECTION 1 — EXPEDITION OVERVIEW</div>
+          <div class="print-form-grid-2">
+            <div class="print-form-field">
+              <span class="print-field-label">EXPEDITION ROUTE TITLE</span>
+              <span id="print-trip-title" class="print-field-value">MY EXPEDITION ROUTE</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">TOTAL DISTANCE & TRAVEL DURATION</span>
+              <span id="print-total-stats" class="print-field-value">450.2 MI • 7H 30M</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">DEPARTURE DATE & TIME</span>
+              <span id="print-depart-date" class="print-field-value">Sat, Aug 22, 2026 • 08:00 AM</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">FINAL ARRIVAL DATE & TIME</span>
+              <span id="print-arrive-date" class="print-field-value">Sat, Aug 22, 2026 • 03:30 PM</span>
+            </div>
+            <div class="print-form-field" style="grid-column: span 2;">
+              <span class="print-field-label">EXPEDITION SUMMARY & NOTES</span>
+              <span id="print-trip-summary" class="print-field-value" style="font-weight: 500; font-size: 0.8rem; white-space: pre-wrap;">No expedition notes provided.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Vehicle & Fuel Profile Box -->
+        <div class="print-form-section">
+          <div class="print-form-section-head">SECTION 2 — VEHICLE SPECIFICATIONS & FUEL LOGISTICS</div>
+          <div class="print-form-grid-4">
+            <div class="print-form-field">
+              <span class="print-field-label">FUEL EFFICIENCY</span>
+              <span id="print-fuel-mpg" class="print-field-value">18.0 MPG</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">CRUISING RANGE</span>
+              <span id="print-fuel-range" class="print-field-value">324.0 MI</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">REQUIRED FUEL</span>
+              <span id="print-fuel-req" class="print-field-value">25.0 GAL</span>
+            </div>
+            <div class="print-form-field">
+              <span class="print-field-label">ESTIMATED FUEL COST</span>
+              <span id="print-fuel-cost" class="print-field-value">$91.25</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Pure Blank Lined Field Notes (Remainder of Page 1) -->
+        <div class="print-form-section">
+          <div class="print-form-section-head">SECTION 4 — FIELD NOTES & REMARKS</div>
+          <div class="print-notes-box">
+            <div class="print-field-label">FIELD LOG / RADIO FREQUENCIES / CHECKPOINT REMARKS:</div>
+            <div class="print-blank-lines">
+              <div class="print-line"></div>
+              <div class="print-line"></div>
+              <div class="print-line"></div>
+              <div class="print-line"></div>
+              <div class="print-line"></div>
+              <div class="print-line"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Page 1 Footer -->
+        <div class="print-form-footer">
+          <span>OFFICIAL EXPEDITION FORM • GENERATED BY ITER VIAE TACTICAL ROUTE COMMAND</span>
+          <span>PAGE 1 OF 2</span>
+        </div>
+      </div>
+
+      <!-- EXPLICIT PAGE BREAK -->
+      <div class="print-page-break"></div>
+
+      <!-- PAGE 2: WAYPOINT LOG & FINANCIAL CHECK REGISTER -->
+      <div class="print-form-card print-page-2">
+        <!-- Section 3: Waypoint & Itinerary Log Table -->
+        <div class="print-form-section">
+          <div class="print-form-section-head">SECTION 3 — ROUTE WAYPOINTS & TIMELINE LOG</div>
+          <table class="print-form-table">
+            <thead>
+              <tr>
+                <th style="width: 5%;">SEQ</th>
+                <th style="width: 32%;">WAYPOINT LOCATION</th>
+                <th style="width: 18%;">CATEGORY</th>
+                <th style="width: 12%;">ARRIVE</th>
+                <th style="width: 12%;">DEPART</th>
+                <th style="width: 9%;">LEG MI</th>
+                <th style="width: 12%;">COORDINATES</th>
+              </tr>
+            </thead>
+            <tbody id="print-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 5: Check Register Financial Ledger (Estimated vs Actual Spend) -->
+        <div class="print-form-section">
+          <div class="print-form-section-head">SECTION 5 — EXPEDITION FINANCIAL LEDGER & CHECK REGISTER</div>
+          <table class="print-form-table print-budget-table">
+            <thead>
+              <tr>
+                <th style="width: 10%;">DATE / LEG</th>
+                <th style="width: 38%;">DESCRIPTION / EXPENSE ITEM</th>
+                <th style="width: 18%;">CATEGORY</th>
+                <th style="width: 12%;">ESTIMATED ($)</th>
+                <th style="width: 11%;">ACTUAL SPENT ($)</th>
+                <th style="width: 11%;">VARIANCE (+/-)</th>
+              </tr>
+            </thead>
+            <tbody id="print-budget-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+            <tfoot>
+              <tr class="print-budget-totals-row">
+                <td colspan="3" style="text-align: right; font-weight: 800; font-family: var(--font-mono);">TOTAL FINANCIAL BUDGET:</td>
+                <td id="print-total-est-budget" style="font-weight: 800; font-family: var(--font-mono);">$0.00</td>
+                <td id="print-total-act-budget" style="font-weight: 800; font-family: var(--font-mono);">$0.00</td>
+                <td id="print-total-var-budget" style="font-weight: 800; font-family: var(--font-mono);">$0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Page 2 Footer -->
+        <div class="print-form-footer">
+          <span>OFFICIAL EXPEDITION FORM • GENERATED BY ITER VIAE TACTICAL ROUTE COMMAND</span>
+          <span>PAGE 2 OF 2</span>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

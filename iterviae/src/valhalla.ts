@@ -71,42 +71,50 @@ function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
 
 /**
  * Main Routing Engine Fetcher:
- * Tries OSRM turn-by-turn routing (full CORS enabled), falls back to Valhalla / Geodesic line
+ * Tries OSRM turn-by-turn routing with extended search radii (2km -> unlimited), falls back to Geodesic line
  */
 export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<RouteResult> {
   if (locations.length < 2) {
     return { coordinates: [], distanceMi: 0, durationSec: 0, legs: [] };
   }
 
-  // 1. Try OSRM Routing Engine (CORS enabled: *)
+  const locString = locations.map((loc) => `${loc.lon},${loc.lat}`).join(";");
+  
+  // Standard OSRM Route Request (OSRM automatically snaps any off-road/house coordinate to the nearest road node)
+  const standardUrl = `https://router.project-osrm.org/route/v1/driving/${locString}?overview=full&geometries=geojson&continue_straight=false`;
+
   try {
-    const locString = locations.map((loc) => `${loc.lon},${loc.lat}`).join(";");
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${locString}?overview=full&geometries=geojson`;
+    console.log("Fetching Turn-by-Turn Route from Routing Engine (auto road snapping):", standardUrl);
+    let res = await fetch(standardUrl);
+    let data = res.ok ? await res.json() : null;
 
-    console.log("Fetching Turn-by-Turn Route from Routing Engine:", osrmUrl);
-    const res = await fetch(osrmUrl);
+    // Fallback attempt with explicit unlimited radii
+    if (!data || data.code !== "Ok" || !data.routes || data.routes.length === 0) {
+      const unlimitedRadii = locations.map(() => "unlimited").join(";");
+      const fallbackUrl = `https://router.project-osrm.org/route/v1/driving/${locString}?overview=full&geometries=geojson&radiuses=${unlimitedRadii}&continue_straight=false`;
+      console.warn("Standard snapping returned no route, retrying with UNLIMITED radii:", fallbackUrl);
+      res = await fetch(fallbackUrl);
+      data = res.ok ? await res.json() : null;
+    }
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.code === "Ok" && data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const coordinates: [number, number][] = route.geometry.coordinates; // [[lon, lat], ...]
-        const distanceMi = route.distance * 0.000621371; // meters to miles
-        const durationSec = route.duration; // seconds
+    if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      const coordinates: [number, number][] = route.geometry.coordinates; // [[lon, lat], ...]
+      const distanceMi = route.distance * 0.000621371; // meters to miles
+      const durationSec = route.duration; // seconds
 
-        const legs: LegMetric[] = (route.legs || []).map((leg: any) => ({
-          distanceMi: leg.distance * 0.000621371,
-          durationSec: leg.duration
-        }));
+      const legs: LegMetric[] = (route.legs || []).map((leg: any) => ({
+        distanceMi: leg.distance * 0.000621371,
+        durationSec: leg.duration
+      }));
 
-        return { coordinates, distanceMi, durationSec, legs };
-      }
+      return { coordinates, distanceMi, durationSec, legs };
     }
   } catch (err) {
     console.warn("OSRM Route fetch failed, falling back to Geodesic path:", err);
   }
 
-  // 2. Fallback to Smooth Geodesic Route
+  // Fallback to Smooth Geodesic Route if OSRM is unavailable or fails completely
   console.log("Using Geodesic Fallback Path Engine...");
   return generateGeodesicFallback(locations);
 }
