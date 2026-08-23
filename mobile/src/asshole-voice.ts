@@ -1,13 +1,23 @@
 import dialogueData from "./asshole-dialogue.json";
 
 export type VoiceMode = "sarcastic" | "tactical" | "muted";
-export type DialogueCategory = "route_start" | "speed_warning" | "off_route" | "fuel_low" | "waypoint_arrival" | "voice_test";
+export type DialogueCategory =
+  | "route_start"
+  | "speed_warning"
+  | "off_route"
+  | "fuel_low"
+  | "waypoint_arrival"
+  | "turn_right"
+  | "turn_left"
+  | "turn_straight"
+  | "turn_uturn"
+  | "voice_test";
 
 class AssholeVoiceEngine {
   private mode: VoiceMode = "sarcastic";
   private synth: SpeechSynthesis | null = null;
   private lastSpokenTime: number = 0;
-  private cooldownMs: number = 4000;
+  private cooldownMs: number = 3500;
   private unlocked: boolean = false;
   private voices: SpeechSynthesisVoice[] = [];
 
@@ -75,7 +85,7 @@ class AssholeVoiceEngine {
 
     let textToSpeak = "";
     if (this.mode === "sarcastic") {
-      const lines = dialogueData[category] || [];
+      const lines = (dialogueData as any)[category] || [];
       if (lines.length > 0) {
         const randomIndex = Math.floor(Math.random() * lines.length);
         textToSpeak = lines[randomIndex];
@@ -134,6 +144,10 @@ class AssholeVoiceEngine {
       case "off_route": return "Off route. Recalculating path.";
       case "fuel_low": return "Fuel low. Refuel stop advised.";
       case "waypoint_arrival": return "Arriving at waypoint checkpoint.";
+      case "turn_right": return "In 500 feet, turn right.";
+      case "turn_left": return "In 500 feet, turn left.";
+      case "turn_straight": return "Continue straight on route.";
+      case "turn_uturn": return "Make a U-turn when safe.";
       case "voice_test": return "Tactical navigation speech test complete.";
       default: return "Attention driver.";
     }

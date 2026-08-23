@@ -1,7 +1,7 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, SavedTripRecord } from "./pocketbase";
-import { assholeVoice, VoiceMode } from "./asshole-voice";
+import { assholeVoice, VoiceMode, DialogueCategory } from "./asshole-voice";
 import { haversineDistance, formatDistance, formatDuration, fetchExpeditionRoute } from "./valhalla";
 
 console.log("ITER VIAE Mobile Tactical Cockpit initialized.");
@@ -216,20 +216,27 @@ function updateNavigationMetrics() {
     if (nextWpDistance) nextWpDistance.textContent = formatDistance(distToNext);
     if (nextWpTitle) nextWpTitle.textContent = `NEXT: ${nextWp.title || `Waypoint #${currentWaypointIndex + 1}`}`;
 
-    // Calculate Turn Direction Icon based on bearing
+    // Calculate Turn Direction Icon and spoken turn callout
     const bearingToNext = calculateBearing(currentPosition.lat, currentPosition.lon, nextWp.lat, nextWp.lon);
     const relBearing = (bearingToNext - (currentPosition.heading || 0) + 360) % 360;
 
     let arrowSymbol = "⬆️";
-    if (relBearing > 30 && relBearing <= 75) arrowSymbol = "↗️";
-    else if (relBearing > 75 && relBearing <= 115) arrowSymbol = "➔";
-    else if (relBearing > 115 && relBearing <= 160) arrowSymbol = "↘️";
-    else if (relBearing > 160 && relBearing <= 200) arrowSymbol = "↩️";
-    else if (relBearing > 200 && relBearing <= 245) arrowSymbol = "↙️";
-    else if (relBearing > 245 && relBearing <= 285) arrowSymbol = "⬅️";
-    else if (relBearing > 285 && relBearing <= 330) arrowSymbol = "↖️";
+    let turnCategory: DialogueCategory = "turn_straight";
+
+    if (relBearing > 30 && relBearing <= 75) { arrowSymbol = "↗️"; turnCategory = "turn_right"; }
+    else if (relBearing > 75 && relBearing <= 115) { arrowSymbol = "➔"; turnCategory = "turn_right"; }
+    else if (relBearing > 115 && relBearing <= 160) { arrowSymbol = "↘️"; turnCategory = "turn_right"; }
+    else if (relBearing > 160 && relBearing <= 200) { arrowSymbol = "↩️"; turnCategory = "turn_uturn"; }
+    else if (relBearing > 200 && relBearing <= 245) { arrowSymbol = "↙️"; turnCategory = "turn_left"; }
+    else if (relBearing > 245 && relBearing <= 285) { arrowSymbol = "⬅️"; turnCategory = "turn_left"; }
+    else if (relBearing > 285 && relBearing <= 330) { arrowSymbol = "↖️"; turnCategory = "turn_left"; }
 
     if (turnIcon) turnIcon.textContent = arrowSymbol;
+
+    // Spoken turn announcement on approach or Debugger click
+    if (distToNext < 1.5) {
+      assholeVoice.trigger(turnCategory);
+    }
 
     // Check Waypoint Arrival Threshold (< 300 feet)
     if (distToNext < 0.06 && currentWaypointIndex < validWaypoints.length - 1) {

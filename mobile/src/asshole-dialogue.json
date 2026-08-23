@@ -27,6 +27,24 @@
     "Arrived at checkpoint. Park it, cut the engine, and stretch your legs, grunt.",
     "Target location acquired. We made it without catching fire. Outstanding job."
   ],
+  "turn_right": [
+    "Turn right ahead. And yes, turn signals were included with your vehicle.",
+    "Take a right coming up. Try not to clip the curb this time, driver.",
+    "Turn right here. Don't panic, it's just a steering wheel motion."
+  ],
+  "turn_left": [
+    "Turn left ahead. Watch out for oncoming traffic, hotshot.",
+    "Take a left coming up. Check your mirrors, assuming you know where they are.",
+    "Turn left here. Ease into the turn, Mario."
+  ],
+  "turn_straight": [
+    "Continue straight. Even you should be able to handle driving in a straight line.",
+    "Keep heading straight. Simple enough, right?",
+    "Stay straight on this road."
+  ],
+  "turn_uturn": [
+    "Make a U-turn when safe. Yep, we're doubling back. Blame the navigator."
+  ],
   "voice_test": [
     "A.S.S.H.O.L.E. voice system active. Yes, I am loud, yes, I am sarcastic, and no, I don't give a damn about your feelings. Now drive."
   ]
