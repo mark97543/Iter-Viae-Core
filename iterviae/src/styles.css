@@ -2392,7 +2392,7 @@ input:checked + .toggle-slider:before {
 
   @page {
     size: letter portrait;
-    margin: 10mm;
+    margin: 0mm !important;
   }
 }
 

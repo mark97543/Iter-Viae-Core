@@ -2054,7 +2054,7 @@ function printManifestDocument() {
           margin-top: 0 !important;
         }
         @media print {
-          @page { size: letter portrait; margin: 10mm; }
+          @page { size: letter portrait; margin: 0mm !important; }
           .print-page-break { page-break-before: always !important; break-before: page !important; }
           .print-page-2 { page-break-before: always !important; break-before: page !important; margin-top: 0 !important; }
         }
