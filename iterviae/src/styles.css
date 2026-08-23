@@ -2389,11 +2389,11 @@ input:checked + .toggle-slider:before {
     page-break-inside: avoid;
     break-inside: avoid;
   }
+}
 
-  @page {
-    size: letter portrait;
-    margin: 0mm !important;
-  }
+@page {
+  size: letter portrait;
+  margin: 0mm !important;
 }
 
 

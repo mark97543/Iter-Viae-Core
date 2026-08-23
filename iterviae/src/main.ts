@@ -2028,13 +2028,14 @@ function printManifestDocument() {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
       <style>
+        @page { size: letter portrait; margin: 0mm !important; }
         * { box-sizing: border-box; }
         body {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           background: #ffffff;
           color: #0f172a;
           margin: 0;
-          padding: 20px;
+          padding: 0;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
