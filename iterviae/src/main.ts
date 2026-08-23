@@ -1779,9 +1779,9 @@ function renderPrintManifest() {
             <span class="print-field-label">FINAL ARRIVAL DATE & TIME</span>
             <span class="print-field-value">${arriveDateStr}</span>
           </div>
-          <div class="print-form-field" style="grid-column: span 2; height: 380px; max-height: 380px; overflow: hidden; display: flex; flex-direction: column;">
+          <div class="print-form-field" style="grid-column: span 2; height: 480px; max-height: 480px; overflow: hidden; display: flex; flex-direction: column;">
             <span class="print-field-label">EXPEDITION SUMMARY & BRIEFING</span>
-            <span class="print-field-value" style="font-weight: 500; font-size: 0.82rem; line-height: 1.4; white-space: pre-wrap; display: block; overflow: hidden; max-height: 350px;">${currentTripSummary || "No special briefing notes specified."}</span>
+            <span class="print-field-value" style="font-weight: 500; font-size: 0.82rem; line-height: 1.4; white-space: pre-wrap; display: block; overflow: hidden; max-height: 450px;">${currentTripSummary || "No special briefing notes specified."}</span>
           </div>
         </div>
       </div>
