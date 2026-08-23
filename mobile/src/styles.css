@@ -251,6 +251,18 @@ html, body {
   cursor: pointer;
 }
 
+.btn-debug {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.btn-debug.active {
+  border-color: var(--accent-amber);
+  background: var(--accent-amber);
+  color: #000000;
+  box-shadow: 0 0 18px var(--accent-amber);
+}
+
 .floating-btn:active {
   transform: scale(0.95);
 }

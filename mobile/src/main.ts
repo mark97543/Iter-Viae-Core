@@ -17,6 +17,7 @@ let wakeLockSentinel: any = null;
 let watchPositionId: number | null = null;
 let autoFollowVehicle: boolean = true;
 let currentDeviceHeading: number = 0;
+let debugMode: boolean = false;
 
 // DOM Elements
 const speedDisplay = document.getElementById("speed-display");
@@ -41,6 +42,7 @@ const headingDegDisplay = document.getElementById("heading-deg-display");
 const compassWpTarget = document.getElementById("compass-wp-target");
 
 // Buttons
+const btnDebugToggle = document.getElementById("btn-debug-toggle");
 const btnVoiceMode = document.getElementById("btn-voice-mode");
 const btnRecenter = document.getElementById("btn-recenter");
 const btnCompassToggle = document.getElementById("btn-compass-toggle");
@@ -101,6 +103,37 @@ function initMobileMap() {
 
   map.on("dragstart", () => {
     autoFollowVehicle = false;
+  });
+
+  // Map Click GPS Simulator for Desktop Debugging
+  map.on("click", (e) => {
+    if (!debugMode) return;
+
+    const lat = e.lngLat.lat;
+    const lon = e.lngLat.lng;
+    const speedMph = 55;
+    const heading = currentPosition
+      ? Math.round(calculateBearing(currentPosition.lat, currentPosition.lon, lat, lon))
+      : 0;
+
+    currentPosition = { lat, lon, speedMph, heading };
+
+    if (speedDisplay) speedDisplay.textContent = `${speedMph}`;
+
+    if (vehicleMarker && map) {
+      vehicleMarker.setLngLat([lon, lat]);
+      const arrowInner = document.getElementById("vehicle-arrow-icon");
+      if (arrowInner) {
+        arrowInner.style.transform = `rotate(${heading}deg)`;
+      }
+    }
+
+    updateNavigationMetrics();
+    if (activeTrip) {
+      renderActiveRouteOnMap();
+    }
+
+    showToast(`GPS Debugger: Set vehicle to ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
   });
 
   // Load cached trip if exists offline
@@ -502,6 +535,18 @@ function showToast(msg: string) {
 }
 
 // Event Listeners
+if (btnDebugToggle) {
+  btnDebugToggle.addEventListener("click", () => {
+    debugMode = !debugMode;
+    btnDebugToggle.classList.toggle("active", debugMode);
+    showToast(
+      debugMode
+        ? "🐛 GPS Debugger ON: Tap anywhere on map to set vehicle location!"
+        : "GPS Debugger OFF"
+    );
+  });
+}
+
 if (btnVoiceMode) {
   btnVoiceMode.addEventListener("click", () => {
     const newMode = assholeVoice.toggleMode();
