@@ -2822,16 +2822,47 @@ function updateAuthStateUI() {
 
 // Auth Modal Handlers
 function openAuthModal() {
-  if (authModal) authModal.style.display = "flex";
-  if (authErrorBanner) authErrorBanner.style.display = "none";
+  console.log("openAuthModal triggered!");
+  const modal = authModal || document.getElementById("auth-modal");
+  const errBanner = authErrorBanner || document.getElementById("auth-error-banner");
+  if (modal) {
+    modal.style.setProperty("display", "flex", "important");
+    modal.style.setProperty("visibility", "visible", "important");
+    modal.style.setProperty("opacity", "1", "important");
+  }
+  if (errBanner) errBanner.style.display = "none";
 }
 
 function closeAuthModal() {
-  if (authModal) authModal.style.display = "none";
+  console.log("closeAuthModal triggered!");
+  const modal = authModal || document.getElementById("auth-modal");
+  if (modal) {
+    modal.style.setProperty("display", "none", "important");
+  }
 }
 
 (window as any).openAuthModal = openAuthModal;
 (window as any).closeAuthModal = closeAuthModal;
+
+// Global Event Delegation for Sign In Buttons (100% Fail-Safe)
+document.addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  if (!target) return;
+
+  if (
+    target.id === "open-auth-btn" || 
+    target.id === "hero-auth-btn" || 
+    target.closest("#open-auth-btn, #hero-auth-btn, .btn-open-auth")
+  ) {
+    e.preventDefault();
+    openAuthModal();
+  }
+
+  if (target.id === "auth-modal-close" || target.closest("#auth-modal-close")) {
+    e.preventDefault();
+    closeAuthModal();
+  }
+});
 
 if (openAuthBtn) openAuthBtn.addEventListener("click", openAuthModal);
 if (heroAuthBtn) heroAuthBtn.addEventListener("click", openAuthModal);
