@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "vite preview --port 3000 --host"
+    "start": "vite preview --port 3000 --host --allowed-hosts all"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
