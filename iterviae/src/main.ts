@@ -2327,7 +2327,6 @@ if (saveTripBtn) {
       const payload1: any = {
         user: user.id,
         title: currentTripTitle,
-        status: "PLANNED",
         summary: currentTripSummary,
         waypoints: waypoints,
         route_geometry: {
@@ -2357,7 +2356,6 @@ if (saveTripBtn) {
         const payload2: any = {
           user: user.id,
           title: currentTripTitle,
-          status: "PLANNED",
           waypoints: waypoints,
           route_geometry: {},
           metrics: baseMetrics
