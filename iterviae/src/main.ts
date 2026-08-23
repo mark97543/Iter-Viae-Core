@@ -1895,32 +1895,7 @@ function renderPrintManifest() {
       `;
     });
 
-    // Fill remaining table rows so Section 3 fills the page cleanly without an empty white void
-    const blankWaypointsNeeded = WAYPOINTS_PER_PAGE - chunk.length;
-    for (let b = 0; b < blankWaypointsNeeded; b++) {
-      const seqNum = (chunkIdx * WAYPOINTS_PER_PAGE) + chunk.length + b + 1;
-      const isEven = (chunk.length + b) % 2 === 0;
-      const rowBg = isEven ? "#ffffff" : "#f1f5f9";
-      const subBg = isEven ? "#f8fafc" : "#e2e8f0";
 
-      html += `
-        <tr style="background:${rowBg};">
-          <td style="font-family:var(--font-mono); color:#94a3b8; text-align:center;">#${seqNum}</td>
-          <td style="color:#cbd5e1; font-weight: 500;">________________________</td>
-          <td style="font-family:var(--font-mono); color:#cbd5e1; font-size:0.68rem;">_____________</td>
-          <td style="font-family:var(--font-mono); color:#cbd5e1;">____</td>
-          <td style="font-family:var(--font-mono); color:#cbd5e1;">____</td>
-          <td style="font-family:var(--font-mono); color:#cbd5e1;">____</td>
-          <td style="font-family:var(--font-mono); color:#cbd5e1; font-size:0.68rem;">___________</td>
-        </tr>
-        <tr class="print-notes-subrow">
-          <td colspan="7" style="background:${subBg}; padding: 4px 10px 5px 12px; border-top: none; border-bottom: 1px solid #cbd5e1;">
-            <span style="font-family:var(--font-mono); font-size:0.62rem; font-weight:800; color:#94a3b8; letter-spacing:0.05em; margin-right:8px;">REMARKS / CONFIRMATION:</span>
-            <span style="color:#cbd5e1;">____________________________________________________________________</span>
-          </td>
-        </tr>
-      `;
-    }
 
     html += `
             </tbody>
