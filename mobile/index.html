@@ -20,6 +20,10 @@
         <div class="turn-instruction" id="next-wp-title">No Route Loaded</div>
       </div>
       <div class="hud-meta-group">
+        <button id="btn-mobile-auth" class="hud-chip chip-auth" title="PocketBase Account Sign In">
+          <span class="chip-icon">🔑</span>
+          <span id="auth-status-text">SIGN IN</span>
+        </button>
         <button id="btn-voice-mode" class="hud-chip chip-voice" title="A.S.S.H.O.L.E. Voice Mode">
           <span class="chip-icon">🤖</span>
           <span id="voice-mode-label">SARCASTIC</span>
@@ -119,6 +123,35 @@
         <div class="modal-body">
           <div id="trips-loading-spinner" class="loading-spinner">Syncing routes from api.wade-usa.com...</div>
           <div id="mobile-trips-list" class="mobile-trips-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PocketBase Auth Modal -->
+    <div class="modal-overlay" id="mobile-auth-modal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">POCKETBASE CLOUD AUTH</h2>
+            <p class="modal-subtitle">Sign in to access your saved expedition routes</p>
+          </div>
+          <button class="btn-icon" id="auth-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="mobile-login-form" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-sub); font-weight: 800;">EMAIL OR USERNAME</label>
+              <input type="text" id="mobile-auth-email" required style="height: 44px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0 12px; font-family: var(--font-mono); font-size: 0.9rem;" placeholder="user@wade-usa.com" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-sub); font-weight: 800;">PASSWORD</label>
+              <input type="password" id="mobile-auth-password" required style="height: 44px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0 12px; font-family: var(--font-mono); font-size: 0.9rem;" placeholder="••••••••" />
+            </div>
+            <div id="auth-error-msg" style="color: var(--accent-red); font-family: var(--font-mono); font-size: 0.75rem; display: none;"></div>
+            <button type="submit" class="btn btn-primary" style="height: 46px; margin-top: 4px;">
+              🚀 Sign In to PocketBase
+            </button>
+          </form>
         </div>
       </div>
     </div>

@@ -41,7 +41,16 @@ const bearingPointer = document.getElementById("bearing-pointer");
 const headingDegDisplay = document.getElementById("heading-deg-display");
 const compassWpTarget = document.getElementById("compass-wp-target");
 
-// Buttons
+// Buttons & Auth Elements
+const btnMobileAuth = document.getElementById("btn-mobile-auth");
+const authStatusText = document.getElementById("auth-status-text");
+const mobileAuthModal = document.getElementById("mobile-auth-modal");
+const authModalClose = document.getElementById("auth-modal-close");
+const mobileLoginForm = document.getElementById("mobile-login-form") as HTMLFormElement | null;
+const mobileAuthEmail = document.getElementById("mobile-auth-email") as HTMLInputElement | null;
+const mobileAuthPassword = document.getElementById("mobile-auth-password") as HTMLInputElement | null;
+const authErrorMsg = document.getElementById("auth-error-msg");
+
 const btnDebugToggle = document.getElementById("btn-debug-toggle");
 const btnVoiceMode = document.getElementById("btn-voice-mode");
 const btnRecenter = document.getElementById("btn-recenter");
@@ -460,22 +469,43 @@ function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number
   return (brng + 360) % 360;
 }
 
+// Update Header Auth UI Status
+function updateAuthUI() {
+  if (pb.authStore.isValid && pb.authStore.model) {
+    const user = pb.authStore.model;
+    const name = user.email || user.username || "LOGGED IN";
+    if (authStatusText) authStatusText.textContent = name.substring(0, 12).toUpperCase();
+  } else {
+    if (authStatusText) authStatusText.textContent = "SIGN IN";
+  }
+}
+
 // Load Saved Trips from PocketBase (api.wade-usa.com)
 async function loadSavedTripsFromCloud() {
+  if (!pb.authStore.isValid) {
+    if (mobileTripsModal) mobileTripsModal.style.display = "none";
+    if (mobileAuthModal) mobileAuthModal.style.display = "flex";
+    showToast("Please sign in to access your PocketBase cloud routes.");
+    return;
+  }
+
   if (!mobileTripsList) return;
   mobileTripsList.innerHTML = "";
   if (tripsLoadingSpinner) tripsLoadingSpinner.style.display = "block";
 
   try {
+    const filter = pb.authStore.model?.id ? `user = "${pb.authStore.model.id}"` : "";
+
     const records = await pb.collection("trips").getFullList<SavedTripRecord>({
       sort: "-updated",
+      filter: filter,
       requestKey: null
     });
 
     if (tripsLoadingSpinner) tripsLoadingSpinner.style.display = "none";
 
     if (records.length === 0) {
-      mobileTripsList.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8; font-family:'JetBrains Mono',monospace;">No saved expedition routes found on PocketBase cloud.</div>`;
+      mobileTripsList.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8; font-family:'JetBrains Mono',monospace;">No saved expedition routes found for your account.</div>`;
       return;
     }
 
@@ -559,6 +589,56 @@ function showToast(msg: string) {
 }
 
 // Event Listeners
+if (btnMobileAuth) {
+  btnMobileAuth.addEventListener("click", () => {
+    if (pb.authStore.isValid) {
+      if (confirm("Sign out of PocketBase cloud account?")) {
+        pb.authStore.clear();
+        updateAuthUI();
+        showToast("Signed out of PocketBase.");
+      }
+    } else {
+      if (mobileAuthModal) mobileAuthModal.style.display = "flex";
+    }
+  });
+}
+
+if (authModalClose) {
+  authModalClose.addEventListener("click", () => {
+    if (mobileAuthModal) mobileAuthModal.style.display = "none";
+  });
+}
+
+if (mobileLoginForm) {
+  mobileLoginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!mobileAuthEmail || !mobileAuthPassword) return;
+
+    if (authErrorMsg) authErrorMsg.style.display = "none";
+
+    try {
+      const authData = await pb.collection("users").authWithPassword(
+        mobileAuthEmail.value.trim(),
+        mobileAuthPassword.value
+      );
+
+      showToast(`Welcome back, ${authData.record.email || authData.record.username}!`);
+      updateAuthUI();
+      if (mobileAuthModal) mobileAuthModal.style.display = "none";
+
+      // Automatically open routes modal after successful sign in
+      if (mobileTripsModal) mobileTripsModal.style.display = "flex";
+      loadSavedTripsFromCloud();
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      if (authErrorMsg) {
+        authErrorMsg.textContent = err.message || "Invalid email or password.";
+        authErrorMsg.style.display = "block";
+      }
+    }
+  });
+}
+
 if (btnDebugToggle) {
   btnDebugToggle.addEventListener("click", () => {
     debugMode = !debugMode;
@@ -630,6 +710,7 @@ document.addEventListener("DOMContentLoaded", () => {
   startGPSWatcher();
   initCompassGyro();
   requestScreenWakeLock();
+  updateAuthUI();
 
   // Unlock Speech Synthesis on first user click/tap anywhere on page
   document.addEventListener("click", () => assholeVoice.unlockSpeech());

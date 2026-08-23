@@ -109,6 +109,12 @@ html, body {
   cursor: pointer;
 }
 
+.chip-auth {
+  color: var(--accent-cyan);
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+}
+
 .chip-voice {
   color: var(--accent-amber);
   border-color: rgba(245, 158, 11, 0.4);

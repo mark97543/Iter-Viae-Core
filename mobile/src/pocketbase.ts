@@ -18,3 +18,19 @@ export interface SavedTripRecord {
   created?: string;
   updated?: string;
 }
+
+export function isUserAuthenticated(): boolean {
+  return pb.authStore.isValid;
+}
+
+export function getCurrentUser() {
+  return pb.authStore.model;
+}
+
+export async function loginMobileUser(email: string, pass: string) {
+  return await pb.collection("users").authWithPassword(email, pass);
+}
+
+export function logoutMobileUser() {
+  pb.authStore.clear();
+}
