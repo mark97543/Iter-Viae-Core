@@ -85,12 +85,13 @@ function initMobileMap() {
 
   map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
 
-  // Create Vehicle Marker Element
+  // Create Vehicle Marker Element (Iter Viae Tactical Arrow)
   const vehicleEl = document.createElement("div");
-  vehicleEl.className = "vehicle-marker";
+  vehicleEl.className = "vehicle-arrow-marker";
   vehicleEl.innerHTML = `
-    <div style="width: 32px; height: 32px; background: #38bdf8; border: 3px solid #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 0 16px #38bdf8; transform: rotate(0deg); transition: transform 0.2s ease-out;">
-      🚘
+    <div class="arrow-pulse"></div>
+    <div class="arrow-inner" id="vehicle-arrow-icon">
+      ▲
     </div>
   `;
 
@@ -137,6 +138,10 @@ function startGPSWatcher() {
       // Update Vehicle Marker on Map
       if (vehicleMarker && map) {
         vehicleMarker.setLngLat([lon, lat]);
+        const arrowInner = document.getElementById("vehicle-arrow-icon");
+        if (arrowInner && heading !== null) {
+          arrowInner.style.transform = `rotate(${heading}deg)`;
+        }
         if (autoFollowVehicle) {
           map.easeTo({ center: [lon, lat], zoom: 15, duration: 800 });
         }
@@ -238,11 +243,16 @@ async function renderActiveRouteOnMap() {
 
   // Fit camera bounds to show full route
   const bounds = new maplibregl.LngLatBounds();
+  if (currentPosition) bounds.extend([currentPosition.lon, currentPosition.lat]);
   valid.forEach((wp) => bounds.extend([wp.lon, wp.lat]));
   map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
 
-  // Fetch & Render Valhalla Polyline
-  const valhallaData = await fetchExpeditionRoute(valid);
+  // Fetch & Render Valhalla Polyline from CURRENT POSITION to next waypoints
+  const routePoints = currentPosition 
+    ? [{ lat: currentPosition.lat, lon: currentPosition.lon }, ...valid]
+    : valid;
+
+  const valhallaData = await fetchExpeditionRoute(routePoints);
   if (valhallaData && valhallaData.trip && valhallaData.trip.legs) {
     const coordinates: [number, number][] = [];
     valhallaData.trip.legs.forEach((leg: any) => {

@@ -1,33 +1,33 @@
 {
   "route_start": [
-    "Expedition route engaged. Try to stay on the road this time.",
-    "Navigation online. Remember, speed limits are technically mandatory.",
-    "Route loaded. I'll be keeping an eye on your driving skills, or lack thereof.",
-    "Tactical guidance active. Let's see how long before you miss a turn."
+    "Expedition route engaged. Welcome back to the sandbox, dipshit. Try to keep all four wheels on the pavement.",
+    "Navigation active. Eyes open, stay in your lane, and for the love of God, don't roll us into a ditch.",
+    "Route loaded. Remember, there's no air support coming if you break down out here.",
+    "Tactical guidance engaged. Drive like you actually have somewhere to be, boot."
   ],
   "speed_warning": [
-    "Slow down, racer! Your alternator isn't sponsored by Formula One.",
-    "Whoa, easy on the gas pedal. This isn't a getaway vehicle.",
-    "Speed limit exceeded! I didn't sign up to be your stunt coordinator.",
-    "Tone it down, hotshot. The state troopers are not known for their sense of humor."
+    "Slow the fuck down, Mario Andretti! The VA isn't gonna approve a claim for a high-speed rollover.",
+    "Whoa, easy on the throttle! Your alternator isn't sponsored by Formula One and your insurance policy sucks.",
+    "Speed limit exceeded! What are we doing, running a hot LZ extract? Ease off the damn gas!",
+    "You're speeding, hotshot. If a state trooper pulls us over, I'm telling them it was 100 percent your fault."
   ],
   "off_route": [
-    "Great job Christopher Columbus, you are officially off route.",
-    "Where are you going? That wasn't on the map.",
-    "Off-route detected. Did you forget how turn signals work?",
-    "Rerouting... because apparently reading a screen is too complicated."
+    "Great job, Land Navigation Champ. You are officially lost in the woods.",
+    "Where the hell are you driving? That turn wasn't on the map, Lieutenant.",
+    "Off route detected. Did you drop your compass in a port-a-john or what?",
+    "Rerouting... because apparently following a glowing cyan line on a 6-inch screen is rocket science for you."
   ],
   "fuel_low": [
-    "Warning: Your fuel tank is drier than a desert bone. Find gas now.",
-    "Low fuel alert! Unless this rig runs on hopes and dreams, pull over for gas.",
-    "Fuel reserves critical. Pushing this vehicle won't be fun for either of us."
+    "Warning: Your fuel tank is drier than C-rations in July. Find a gas station before we're pushing this hunk of junk.",
+    "Fuel critical! Unless this rig runs on motor oil and cheap coffee, pull over and refuel now.",
+    "Fuel reserves in the red. If we run out of gas out here, I am roasting your driving skills until the tow truck arrives."
   ],
   "waypoint_arrival": [
-    "Waypoint reached. Try not to break anything while we're stopped.",
-    "Arrived at checkpoint. Take a break, you look like you need it.",
-    "Target location acquired. Stop the engine before you stall it."
+    "Waypoint reached. Take 5, smoke 'em if you got 'em, and try not to break anything while we're stopped.",
+    "Arrived at checkpoint. Park it, cut the engine, and stretch your legs, grunt.",
+    "Target location acquired. We made it without catching fire. Outstanding job."
   ],
   "voice_test": [
-    "A.S.S.H.O.L.E. voice system operational. Yes, I am loud, and yes, I am watching your speed."
+    "A.S.S.H.O.L.E. voice system active. Yes, I am loud, yes, I am sarcastic, and no, I don't give a damn about your feelings. Now drive."
   ]
 }

@@ -140,6 +140,48 @@ html, body {
   height: 100%;
 }
 
+/* Vehicle Arrow Marker (Iter Viae Tactical Arrow) */
+.vehicle-arrow-marker {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.arrow-inner {
+  width: 36px;
+  height: 36px;
+  background: var(--bg-dark);
+  border: 3px solid var(--accent-cyan);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: var(--accent-cyan);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.8), inset 0 0 8px rgba(56, 189, 248, 0.4);
+  transition: transform 0.2s ease-out;
+  z-index: 2;
+}
+
+.arrow-pulse {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.3);
+  animation: pulseAura 2s infinite ease-out;
+  z-index: 1;
+}
+
+@keyframes pulseAura {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
 /* Floating Speedometer */
 .speedometer-box {
   position: absolute;
