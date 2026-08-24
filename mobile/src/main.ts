@@ -262,38 +262,40 @@ function updateNavigationMetrics() {
 
     if (turnIcon) turnIcon.textContent = arrowSymbol;
 
-    const { phrase: distPhrase, key: milestoneKey } = getDistanceMilestoneKey(distToNext);
-    let turnAction = "continue straight";
-    if (turnCategory === "turn_right") turnAction = "turn right";
-    else if (turnCategory === "turn_left") turnAction = "turn left";
-    else if (turnCategory === "turn_uturn") turnAction = "make a U-turn";
+    const milestoneInfo = getDistanceMilestoneKey(distToNext);
 
-    // Compound Maneuver Check (e.g. Turn Right then Quick Left within 500 ft)
-    const followingWp = validWaypoints[currentWaypointIndex + 1];
-    let compoundAction = "";
+    if (milestoneInfo) {
+      const { phrase: distPhrase, key: milestoneKey } = milestoneInfo;
+      let turnAction = "continue straight";
+      if (turnCategory === "turn_right") turnAction = "turn right";
+      else if (turnCategory === "turn_left") turnAction = "turn left";
+      else if (turnCategory === "turn_uturn") turnAction = "make a U-turn";
 
-    if (followingWp) {
-      const distBetweenWaypoints = haversineDistance(nextWp.lat, nextWp.lon, followingWp.lat, followingWp.lon);
-      if (distBetweenWaypoints < 0.1) {
-        const bearingSecond = calculateBearing(nextWp.lat, nextWp.lon, followingWp.lat, followingWp.lon);
-        const relBearingSecond = (bearingSecond - bearingToNext + 360) % 360;
+      // Compound Maneuver Check (e.g. Turn Right then Quick Left within 500 ft)
+      const followingWp = validWaypoints[currentWaypointIndex + 1];
+      let compoundAction = "";
 
-        let secondTurn = "";
-        if (relBearingSecond > 30 && relBearingSecond <= 160) secondTurn = "then turn immediate right";
-        else if (relBearingSecond > 200 && relBearingSecond <= 330) secondTurn = "then turn immediate left";
+      if (followingWp) {
+        const distBetweenWaypoints = haversineDistance(nextWp.lat, nextWp.lon, followingWp.lat, followingWp.lon);
+        if (distBetweenWaypoints < 0.1) {
+          const bearingSecond = calculateBearing(nextWp.lat, nextWp.lon, followingWp.lat, followingWp.lon);
+          const relBearingSecond = (bearingSecond - bearingToNext + 360) % 360;
 
-        if (secondTurn) {
-          compoundAction = `, ${secondTurn}`;
+          let secondTurn = "";
+          if (relBearingSecond > 30 && relBearingSecond <= 160) secondTurn = "then turn immediate right";
+          else if (relBearingSecond > 200 && relBearingSecond <= 330) secondTurn = "then turn immediate left";
+
+          if (secondTurn) {
+            compoundAction = `, ${secondTurn}`;
+          }
         }
       }
-    }
 
-    const customTurnSpeech = `${distPhrase}, ${turnAction}${compoundAction}.`;
-    const turnKey = `${currentWaypointIndex}_${turnCategory}_${milestoneKey}`;
+      const customTurnSpeech = `${distPhrase}, ${turnAction}${compoundAction}.`;
+      const turnKey = `${currentWaypointIndex}_${turnCategory}_${milestoneKey}`;
 
-    // Spoken turn announcement: Always trigger in Debugger mode or when reaching a new milestone
-    if (debugMode || turnKey !== lastSpokenTurnKey) {
-      if (debugMode || milestoneKey !== "far") {
+      // Spoken turn announcement: Trigger ONCE per approach milestone (1mile -> 1000ft -> 500ft -> 200ft)
+      if (turnKey !== lastSpokenTurnKey) {
         lastSpokenTurnKey = turnKey;
         assholeVoice.trigger(turnCategory, customTurnSpeech, true);
       }
@@ -346,15 +348,14 @@ function updateNavigationMetrics() {
   }
 }
 
-// Format spoken distance phrase and milestone key (e.g. "In 500 feet", "500ft")
-function getDistanceMilestoneKey(miles: number): { phrase: string; key: string } {
+// Standard GPS approach milestones (200ft, 500ft, 1000ft, 1mile). Returns null if > 1.2 miles away
+function getDistanceMilestoneKey(miles: number): { phrase: string; key: string } | null {
   const feet = Math.round(miles * 5280);
   if (feet < 350) return { phrase: "In 200 feet", key: "200ft" };
   if (feet < 850) return { phrase: "In 500 feet", key: "500ft" };
   if (feet < 1800) return { phrase: "In 1000 feet", key: "1000ft" };
-  if (miles < 0.8) return { phrase: "In half a mile", key: "half_mile" };
-  const roundedMiles = Math.max(1, Math.round(miles));
-  return { phrase: `In ${roundedMiles} miles`, key: `miles_${roundedMiles}` };
+  if (miles < 1.2) return { phrase: "In 1 mile", key: "1mile" };
+  return null;
 }
 
 // Helper: Check if waypoint is a Shaping Point
