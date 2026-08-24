@@ -194,6 +194,18 @@
           </form>
         </div>
 
+        <!-- Floating Map Style Switcher Widget -->
+        <div class="map-style-widget">
+          <label class="map-style-label" for="map-style-select">🗺️ MAP STYLE</label>
+          <select id="map-style-select" class="map-style-dropdown" title="Select Map Surface Theme">
+            <option value="highways" selected>🚘 Highways & Interstates (Esri Route Shields)</option>
+            <option value="voyager">🧭 Voyager Explorer (CARTO)</option>
+            <option value="topo">⛰️ Topo & Mountain Passes (OpenTopoMap)</option>
+            <option value="dark">🌙 Tactical Night (Dark OLED)</option>
+            <option value="satellite">🛰️ High-Res Satellite Imagery (Esri World)</option>
+          </select>
+        </div>
+
         <!-- Map Surface Canvas -->
         <div id="map-container" class="map-surface"></div>
 

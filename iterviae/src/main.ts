@@ -186,32 +186,141 @@ let waypoints: Waypoint[] = [
 
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Fallback map center
 
-// High-Contrast Bright Voyager Map Style
-const BRIGHT_VOYAGER_MAP_STYLE = {
-  version: 8 as const,
-  sources: {
-    "carto-voyager": {
-      type: "raster" as const,
-      tiles: [
-        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-      ],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: "© OpenStreetMap contributors, © CARTO"
-    }
+// 5 High-Quality Map Surface Styles for Expedition Planning
+const MAP_SURFACE_STYLES: Record<string, any> = {
+  highways: {
+    version: 8 as const,
+    sources: {
+      "esri-highways": {
+        type: "raster" as const,
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© Esri, HERE, Garmin, USGS, NGA, EPA, USDA, NPS"
+      }
+    },
+    layers: [
+      {
+        id: "esri-highways-layer",
+        type: "raster" as const,
+        source: "esri-highways",
+        minzoom: 0,
+        maxzoom: 19
+      }
+    ]
   },
-  layers: [
-    {
-      id: "carto-voyager-layer",
-      type: "raster" as const,
-      source: "carto-voyager",
-      minzoom: 0,
-      maxzoom: 19
-    }
-  ]
+  voyager: {
+    version: 8 as const,
+    sources: {
+      "carto-voyager": {
+        type: "raster" as const,
+        tiles: [
+          "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© OpenStreetMap contributors, © CARTO"
+      }
+    },
+    layers: [
+      {
+        id: "carto-voyager-layer",
+        type: "raster" as const,
+        source: "carto-voyager",
+        minzoom: 0,
+        maxzoom: 19
+      }
+    ]
+  },
+  topo: {
+    version: 8 as const,
+    sources: {
+      "opentopo-map": {
+        type: "raster" as const,
+        tiles: [
+          "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+          "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
+          "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"
+        ],
+        tileSize: 256,
+        maxzoom: 17,
+        attribution: "© OpenTopoMap contributors, © OpenStreetMap"
+      }
+    },
+    layers: [
+      {
+        id: "opentopo-map-layer",
+        type: "raster" as const,
+        source: "opentopo-map",
+        minzoom: 0,
+        maxzoom: 17
+      }
+    ]
+  },
+  dark: {
+    version: 8 as const,
+    sources: {
+      "carto-dark": {
+        type: "raster" as const,
+        tiles: [
+          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© OpenStreetMap contributors, © CARTO"
+      }
+    },
+    layers: [
+      {
+        id: "carto-dark-layer",
+        type: "raster" as const,
+        source: "carto-dark",
+        minzoom: 0,
+        maxzoom: 19
+      }
+    ]
+  },
+  satellite: {
+    version: 8 as const,
+    sources: {
+      "esri-satellite": {
+        type: "raster" as const,
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© Esri, Maxar, Earthstar Geographics, USDA, USGS"
+      }
+    },
+    layers: [
+      {
+        id: "esri-satellite-layer",
+        type: "raster" as const,
+        source: "esri-satellite",
+        minzoom: 0,
+        maxzoom: 19
+      }
+    ]
+  }
 };
+
+function changeMapStyle(styleKey: string) {
+  if (!map || !MAP_SURFACE_STYLES[styleKey]) return;
+  showToast(`Switching map surface to ${styleKey.toUpperCase()}...`);
+
+  map.setStyle(MAP_SURFACE_STYLES[styleKey]);
+  map.once("style.load", () => {
+    renderWaypointMapMarkers();
+    updateExpeditionRoute();
+  });
+}
 
 function clearSearchMarker() {
   if (searchMarker) {
@@ -2615,7 +2724,7 @@ function initializeMapSurface() {
 
   map = new maplibregl.Map({
     container: "map-container",
-    style: BRIGHT_VOYAGER_MAP_STYLE,
+    style: MAP_SURFACE_STYLES["highways"],
     center: DEFAULT_CENTER,
     zoom: 13,
     minZoom: 3,
@@ -2624,6 +2733,14 @@ function initializeMapSurface() {
     bearing: 0,
     attributionControl: false
   });
+
+  // Map Style Selector Dropdown Handler
+  const mapStyleSelect = document.getElementById("map-style-select") as HTMLSelectElement | null;
+  if (mapStyleSelect) {
+    mapStyleSelect.addEventListener("change", () => {
+      changeMapStyle(mapStyleSelect.value);
+    });
+  }
 
   // Add Navigation & Fullscreen Controls
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");

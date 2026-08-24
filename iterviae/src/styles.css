@@ -1001,6 +1001,57 @@ html, body {
   max-width: 480px;
 }
 
+/* FLOATING MAP STYLE SWITCHER WIDGET */
+.map-style-widget {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 6px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  transition: all 0.2s ease;
+}
+
+.map-style-widget:hover {
+  border-color: var(--accent-red);
+  box-shadow: 0 10px 35px rgba(239, 68, 68, 0.3);
+}
+
+.map-style-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--accent-red-bright);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.map-style-dropdown {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #f8fafc;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  outline: none;
+  cursor: pointer;
+}
+
+.map-style-dropdown option {
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 8px;
+}
+
 .search-form {
   display: flex;
   align-items: center;
