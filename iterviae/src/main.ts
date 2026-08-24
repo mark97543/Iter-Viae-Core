@@ -1208,31 +1208,48 @@ function updateLegBadgesUI() {
   const isEnabled = vehicleProfile.enabled !== false;
 
   let accumulatedTankDistance = 0;
+  let validIdx = 0;
 
-  currentLegMetrics.forEach((leg, idx) => {
-    accumulatedTankDistance += leg.distanceMi;
+  for (let idx = 1; idx < waypoints.length; idx++) {
+    const legIndex = idx - 1;
+    const badgeEl = document.getElementById(`leg-badge-${legIndex}`);
+    if (!badgeEl) continue;
 
-    const badgeEl = document.getElementById(`leg-badge-${idx}`);
-    if (badgeEl) {
+    const wp = waypoints[idx];
+    const prevWp = waypoints[idx - 1];
+
+    let legMetric: LegMetric | undefined = undefined;
+
+    if (wp.lat !== null && wp.lon !== null && prevWp.lat !== null && prevWp.lon !== null) {
+      if (validIdx < currentLegMetrics.length) {
+        legMetric = currentLegMetrics[validIdx];
+      } else {
+        const dist = haversineDistance(prevWp.lat, prevWp.lon, wp.lat, wp.lon);
+        legMetric = { distanceMi: dist, durationSec: (dist / 50) * 3600 };
+      }
+      validIdx++;
+    }
+
+    if (legMetric) {
+      accumulatedTankDistance += legMetric.distanceMi;
+
       if (isEnabled && accumulatedTankDistance > maxRange) {
         badgeEl.className = "leg-badge leg-range-warning";
         badgeEl.textContent = `⚠️ RANGE WARNING: ${accumulatedTankDistance.toFixed(1)} MI ON TANK > ${maxRange.toFixed(1)} MI MAX RANGE`;
       } else {
         badgeEl.className = "leg-badge";
-        badgeEl.textContent = `↓ ${leg.distanceMi.toFixed(1)} MI • ${formatDuration(leg.durationSec)}`;
+        badgeEl.textContent = `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`;
       }
+    } else {
+      badgeEl.className = "leg-badge";
+      badgeEl.textContent = `↓ ENTER WAYPOINTS...`;
     }
 
-    // Check if the destination waypoint of this leg (idx + 1) is a GAS stop
-    const nextWp = waypoints[idx + 1];
-    if (nextWp) {
-      const nextCategory = getCategoryForWaypoint(nextWp);
-      if (nextCategory === "gas") {
-        // Refuel stop reached! Reset distance accumulated on current tank
-        accumulatedTankDistance = 0;
-      }
+    const currentCategory = getCategoryForWaypoint(wp);
+    if (currentCategory === "gas") {
+      accumulatedTankDistance = 0;
     }
-  });
+  }
 
   updateWaypointCardTiming();
 
