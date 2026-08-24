@@ -291,10 +291,12 @@ function updateNavigationMetrics() {
     const customTurnSpeech = `${distPhrase}, ${turnAction}${compoundAction}.`;
     const turnKey = `${currentWaypointIndex}_${turnCategory}_${milestoneKey}`;
 
-    // Spoken turn announcement: Trigger ONCE per milestone per waypoint
-    if (turnKey !== lastSpokenTurnKey && milestoneKey !== "far") {
-      lastSpokenTurnKey = turnKey;
-      assholeVoice.trigger(turnCategory, customTurnSpeech, true);
+    // Spoken turn announcement: Always trigger in Debugger mode or when reaching a new milestone
+    if (debugMode || turnKey !== lastSpokenTurnKey) {
+      if (debugMode || milestoneKey !== "far") {
+        lastSpokenTurnKey = turnKey;
+        assholeVoice.trigger(turnCategory, customTurnSpeech, true);
+      }
     }
 
     // Check Waypoint Arrival Threshold (< 80 feet = 0.015 miles)
@@ -351,8 +353,8 @@ function getDistanceMilestoneKey(miles: number): { phrase: string; key: string }
   if (feet < 850) return { phrase: "In 500 feet", key: "500ft" };
   if (feet < 1800) return { phrase: "In 1000 feet", key: "1000ft" };
   if (miles < 0.8) return { phrase: "In half a mile", key: "half_mile" };
-  if (miles < 1.4) return { phrase: "In 1 mile", key: "1mile" };
-  return { phrase: `In ${Math.round(miles)} miles`, key: "far" };
+  const roundedMiles = Math.max(1, Math.round(miles));
+  return { phrase: `In ${roundedMiles} miles`, key: `miles_${roundedMiles}` };
 }
 
 // Helper: Check if waypoint is a Shaping Point
