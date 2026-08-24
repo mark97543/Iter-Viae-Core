@@ -703,6 +703,223 @@ html, body {
   box-shadow: 0 0 8px var(--accent-amber);
   cursor: pointer;
 }
+/* Progress Bar under top bar */
+.route-progress-bar-container {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  width: 100%;
+  z-index: 90;
+  background: rgba(13, 13, 13, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 16px;
+}
+
+.route-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+
+.route-progress-title {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+
+.route-progress-pct {
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: #ef4444;
+}
+
+.route-progress-track {
+  width: 100%;
+  height: 4px;
+  background: #262626;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.route-progress-fill {
+  height: 100%;
+  background: #e50914;
+  transition: width 0.3s ease;
+}
+
+/* Dashboard Cockpit Deck (Matches wade-usa.com Screenshot Exactly) */
+.dash-cockpit-deck {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 85;
+  background: #0f0f11;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  padding: 14px 16px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.dash-card {
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dash-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-section-next {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+
+.dash-section-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: #ef4444;
+  letter-spacing: 0.08em;
+}
+
+.dash-location-title {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.dash-next-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.dash-pill-badge {
+  background: #2a2a30;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dash-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.dash-budget-tag {
+  color: #e2e8f0;
+  font-weight: 800;
+}
+
+.dash-notes-box {
+  background: #222228;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dash-notes-text {
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+/* Dashboard Action Bar matching screenshot */
+.dash-action-bar {
+  display: flex;
+  gap: 10px;
+  height: 54px;
+}
+
+.btn-dash-square {
+  width: 54px;
+  height: 54px;
+  background: #26262c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 1.3rem;
+  font-weight: 900;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-dash-square:active {
+  transform: scale(0.95);
+}
+
+.btn-dash-primary {
+  flex: 1;
+  height: 54px;
+  background: #e50914;
+  border: none;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(229, 9, 20, 0.4);
+}
+
+.btn-dash-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-dash-blue {
+  width: 54px;
+  height: 54px;
+  background: #2563eb;
+  border: none;
+  color: #ffffff;
+  font-size: 1.3rem;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+}
+
+.btn-dash-blue:active {
+  transform: scale(0.95);
+}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }

@@ -68,6 +68,26 @@ const arrivalWpNotes = document.getElementById("arrival-wp-notes");
 const btnReadNotes = document.getElementById("btn-read-notes");
 const btnCompleteWaypoint = document.getElementById("btn-complete-waypoint");
 let activeArrivalWp: any = null;
+let carouselActiveIndex: number = 0;
+
+// Dashboard UI Elements (Matching wade-usa.com Screenshot Exactly)
+const dashRouteTitle = document.getElementById("dash-route-title");
+const dashRoutePct = document.getElementById("dash-route-pct");
+const dashProgressFill = document.getElementById("dash-progress-fill");
+
+const dashCurrTitle = document.getElementById("dash-curr-title");
+const dashCurrMeta = document.getElementById("dash-curr-meta");
+
+const dashNextTitle = document.getElementById("dash-next-title");
+const dashNextPill = document.getElementById("dash-next-pill");
+const dashNextMeta = document.getElementById("dash-next-meta");
+
+const dashNotesText = document.getElementById("dash-notes-text");
+
+const btnDashPrev = document.getElementById("btn-dash-prev");
+const btnDashNext = document.getElementById("btn-dash-next");
+const btnDashGmaps = document.getElementById("btn-dash-gmaps");
+
 // Debugger Route Scrubber Elements
 const debugSliderPanel = document.getElementById("debug-slider-panel");
 const debugSliderMetrics = document.getElementById("debug-slider-metrics");
@@ -376,6 +396,82 @@ function isShapingPoint(wp: any): boolean {
   return title.includes("shaping") || title.includes("via point");
 }
 
+// Render Expedition Dashboard Card Deck (Matches wade-usa.com Screenshot Exactly)
+function renderDashboardDeck(focusMap = false) {
+  if (!activeTrip || !activeTrip.waypoints || activeTrip.waypoints.length === 0) {
+    if (dashRouteTitle) dashRouteTitle.textContent = "SELECT AN EXPEDITION ROUTE";
+    if (dashRoutePct) dashRoutePct.textContent = "0%";
+    if (dashProgressFill) dashProgressFill.style.width = "0%";
+    if (dashCurrTitle) dashCurrTitle.textContent = "No Expedition Active";
+    if (dashNextTitle) dashNextTitle.textContent = "Load Route to Start";
+    return;
+  }
+
+  const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
+  if (valid.length === 0) return;
+
+  if (currentWaypointIndex >= valid.length) currentWaypointIndex = valid.length - 1;
+  if (currentWaypointIndex < 0) currentWaypointIndex = 0;
+
+  const currWp = valid[currentWaypointIndex];
+  const nextWp = valid[Math.min(currentWaypointIndex + 1, valid.length - 1)];
+
+  // Route Progress Bar
+  const pct = Math.round((currentWaypointIndex / Math.max(1, valid.length - 1)) * 100);
+  if (dashRouteTitle) dashRouteTitle.textContent = `${activeTrip.title || "EXPEDITION ROUTE"}`;
+  if (dashRoutePct) dashRoutePct.textContent = `${pct}%`;
+  if (dashProgressFill) dashProgressFill.style.width = `${pct}%`;
+
+  // CURRENT LOCATION SECTION
+  if (dashCurrTitle) dashCurrTitle.textContent = currWp.title || `Checkpoint #${currentWaypointIndex + 1}`;
+  if (dashCurrMeta) {
+    const departTime = currWp.departTime || "May 29 @ 09:57 PM";
+    const budgetVal = currWp.budget !== undefined ? currWp.budget : "10.00";
+    dashCurrMeta.innerHTML = `<span>DEPARTING AT ${departTime}</span> <span class="dash-budget-tag">BUDGET $${budgetVal}</span>`;
+  }
+
+  // NEXT DESTINATION SECTION
+  if (dashNextTitle) {
+    if (currentWaypointIndex === valid.length - 1) {
+      dashNextTitle.textContent = "🏁 Final Destination Reached";
+    } else {
+      dashNextTitle.textContent = nextWp.title || `Checkpoint #${currentWaypointIndex + 2}`;
+    }
+  }
+
+  // Distance & Duration calculation for pill badge
+  if (currentPosition && nextWp && currentWaypointIndex < valid.length - 1) {
+    const distMiles = haversineDistance(currentPosition.lat, currentPosition.lon, nextWp.lat, nextWp.lon);
+    const estMinutes = Math.round((distMiles / 45) * 60);
+    if (dashNextPill) dashNextPill.textContent = `${distMiles.toFixed(1)}mi • ${estMinutes}m`;
+  } else if (dashNextPill) {
+    dashNextPill.textContent = "0.0mi • 0m";
+  }
+
+  if (dashNextMeta) {
+    const estArr = (nextWp && nextWp.eta) ? nextWp.eta : "May 29 @ 10:44 PM";
+    dashNextMeta.innerHTML = `<span>EST. ARRIVAL ${estArr}</span>`;
+  }
+
+  // BRIEFING / NOTES BOX
+  if (dashNotesText) {
+    dashNotesText.textContent = currWp.notes || currWp.description || currWp.briefing || currWp.title || "No field notes provided for this stop.";
+  }
+
+  if (focusMap && map && currWp.lat && currWp.lon) {
+    map.easeTo({ center: [currWp.lon, currWp.lat], zoom: 14, duration: 400 });
+  }
+}
+
+// Deep-Link Navigation into Google Maps App for Selected Checkpoint
+function openInGoogleMaps(destLat: number, destLon: number) {
+  let url = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLon}&travelmode=driving`;
+  if (currentPosition) {
+    url += `&origin=${currentPosition.lat},${currentPosition.lon}`;
+  }
+  window.open(url, "_blank");
+}
+
 // Render Active Route & Waypoints on Mobile Map
 async function renderActiveRouteOnMap() {
   if (!map || !activeTrip || !activeTrip.waypoints) return;
@@ -649,6 +745,7 @@ async function loadSavedTripsFromCloud() {
 function setActiveTrip(record: SavedTripRecord) {
   activeTrip = record;
   currentWaypointIndex = 0;
+  carouselActiveIndex = 0;
 
   if (dockTripTitle) dockTripTitle.textContent = record.title || "Active Expedition";
 
@@ -660,6 +757,7 @@ function setActiveTrip(record: SavedTripRecord) {
   }
 
   renderActiveRouteOnMap();
+  renderDashboardDeck(true);
   assholeVoice.trigger("route_start");
   showToast(`Expedition "${record.title}" loaded into Mobile Cockpit!`);
 }
@@ -803,6 +901,40 @@ if (mobileLoginForm) {
         authErrorMsg.textContent = detailedMsg;
         authErrorMsg.style.display = "block";
       }
+    }
+  });
+}
+
+// Dashboard Action Button Handlers (Matching wade-usa.com Screenshot Exactly)
+if (btnDashPrev) {
+  btnDashPrev.addEventListener("click", () => {
+    if (!activeTrip || !activeTrip.waypoints) return;
+    const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
+    if (valid.length === 0) return;
+    currentWaypointIndex = Math.max(0, currentWaypointIndex - 1);
+    renderDashboardDeck(true);
+  });
+}
+
+if (btnDashNext) {
+  btnDashNext.addEventListener("click", () => {
+    if (!activeTrip || !activeTrip.waypoints) return;
+    const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
+    if (valid.length === 0) return;
+    currentWaypointIndex = Math.min(valid.length - 1, currentWaypointIndex + 1);
+    renderDashboardDeck(true);
+    assholeVoice.trigger("waypoint_arrival");
+  });
+}
+
+if (btnDashGmaps) {
+  btnDashGmaps.addEventListener("click", () => {
+    if (!activeTrip || !activeTrip.waypoints) return;
+    const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
+    const targetWp = valid[Math.min(currentWaypointIndex + 1, valid.length - 1)];
+    if (targetWp && targetWp.lat !== null && targetWp.lon !== null) {
+      showToast(`Launching Google Maps navigation to ${targetWp.title || "Next Stop"}...`);
+      openInGoogleMaps(targetWp.lat, targetWp.lon);
     }
   });
 }

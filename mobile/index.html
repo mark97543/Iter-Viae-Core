@@ -89,6 +89,56 @@
       </div>
     </main>
 
+    <!-- Progress Header Bar under top bar -->
+    <div class="route-progress-bar-container">
+      <div class="route-progress-info">
+        <span class="route-progress-title" id="dash-route-title">SELECT AN EXPEDITION ROUTE</span>
+        <span class="route-progress-pct" id="dash-route-pct">0%</span>
+      </div>
+      <div class="route-progress-track">
+        <div class="route-progress-fill" id="dash-progress-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <!-- Expedition Dashboard Card Deck (Matches wade-usa.com Screenshot Exactly) -->
+    <section class="dash-cockpit-deck" id="dash-cockpit-deck">
+      <div class="dash-card">
+        <!-- CURRENT LOCATION SECTION -->
+        <div class="dash-section">
+          <div class="dash-section-label">CURRENT LOCATION</div>
+          <h2 class="dash-location-title" id="dash-curr-title">No Expedition Active</h2>
+          <div class="dash-meta-row" id="dash-curr-meta">
+            <span>DEPARTING AT --</span>
+            <span class="dash-budget-tag" id="dash-curr-budget">BUDGET $0.00</span>
+          </div>
+        </div>
+
+        <!-- NEXT DESTINATION SECTION -->
+        <div class="dash-section dash-section-next">
+          <div class="dash-section-label">NEXT DESTINATION</div>
+          <div class="dash-next-header">
+            <h2 class="dash-location-title" id="dash-next-title">Load Route to Start</h2>
+            <div class="dash-pill-badge" id="dash-next-pill">0.0mi • 0m</div>
+          </div>
+          <div class="dash-meta-row" id="dash-next-meta">
+            <span>EST. ARRIVAL --</span>
+          </div>
+        </div>
+
+        <!-- BRIEFING / NOTES BOX -->
+        <div class="dash-notes-box" id="dash-notes-box">
+          <div class="dash-notes-text" id="dash-notes-text">Load an expedition route from the logbook to view checkpoint briefings and launch Google Maps navigation.</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM ACTION BAR MATCHING SCREENSHOT EXACTLY -->
+      <div class="dash-action-bar">
+        <button id="btn-dash-prev" class="btn-dash-square" title="Previous Leg">&larr;</button>
+        <button id="btn-dash-next" class="btn-dash-primary" title="Advance Leg">NEXT LEG</button>
+        <button id="btn-dash-gmaps" class="btn-dash-blue" title="Open Leg in Google Maps">🗺️</button>
+      </div>
+    </section>
+
     <!-- Bottom Tactical Cockpit Dock -->
     <footer class="cockpit-dock">
       <div class="dock-metrics-row">
