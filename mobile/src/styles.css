@@ -93,9 +93,10 @@ html, body {
 
 .hud-meta-group {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-end;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .hud-chip {
@@ -857,20 +858,46 @@ body.theme-day .btn-dash-square {
   border-color: #cbd5e1 !important;
 }
 
-/* LANDSCAPE MODE SUPPORT (50/50 Horizontal Side-by-Side Split) */
-@media (orientation: landscape), (min-width: 680px) and (max-height: 550px) {
+/* LANDSCAPE MODE SUPPORT (Ultra-Lean Compact HUD) */
+@media (orientation: landscape), (min-width: 600px) and (max-height: 550px) {
   .mobile-cockpit-body {
     display: flex;
     flex-direction: column;
     height: 100vh;
     height: 100dvh;
+    overflow: hidden;
+  }
+
+  .hud-banner {
+    padding: 4px 10px;
+    height: 38px;
+    min-height: 38px;
+    gap: 8px;
+  }
+
+  .dash-app-logo {
+    font-size: 1.1rem;
+  }
+
+  .dash-app-name {
+    font-size: 0.9rem;
+  }
+
+  .dash-app-sub {
+    display: none;
+  }
+
+  .hud-chip {
+    padding: 3px 6px;
+    font-size: 0.58rem;
   }
 
   .landscape-split-container {
     display: flex;
     flex-direction: row;
     width: 100%;
-    height: calc(100vh - 56px);
+    height: calc(100vh - 38px);
+    height: calc(100dvh - 38px);
     overflow: hidden;
   }
 
@@ -886,6 +913,64 @@ body.theme-day .btn-dash-square {
     flex: 1;
     border-top: none;
     border-left: 2px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 10px 12px 10px;
+    gap: 8px;
+    overflow-y: auto;
+  }
+
+  .dash-card {
+    padding: 10px 12px;
+    gap: 8px;
+    border-radius: 14px;
+  }
+
+  .dash-section-label {
+    font-size: 0.6rem;
+  }
+
+  .dash-location-title {
+    font-size: 1.05rem;
+    line-height: 1.15;
+  }
+
+  .meta-item-label {
+    font-size: 0.55rem;
+  }
+
+  .meta-item-val {
+    font-size: 0.72rem;
+  }
+
+  .dash-pill-badge {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+
+  .dash-notes-box {
+    padding: 8px 10px;
+  }
+
+  .dash-notes-text {
+    font-size: 0.78rem;
+  }
+
+  .dash-action-bar {
+    height: 44px;
+    gap: 8px;
+  }
+
+  .btn-dash-square,
+  .btn-dash-blue {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+  }
+
+  .btn-dash-primary {
+    height: 44px;
+    font-size: 0.95rem;
+    border-radius: 12px;
   }
 }
 
