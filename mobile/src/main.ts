@@ -268,7 +268,27 @@ function updateNavigationMetrics() {
     else if (turnCategory === "turn_left") turnAction = "turn left";
     else if (turnCategory === "turn_uturn") turnAction = "make a U-turn";
 
-    const customTurnSpeech = `${distPhrase}, ${turnAction}.`;
+    // Compound Maneuver Check (e.g. Turn Right then Quick Left within 500 ft)
+    const followingWp = validWaypoints[currentWaypointIndex + 1];
+    let compoundAction = "";
+
+    if (followingWp) {
+      const distBetweenWaypoints = haversineDistance(nextWp.lat, nextWp.lon, followingWp.lat, followingWp.lon);
+      if (distBetweenWaypoints < 0.1) {
+        const bearingSecond = calculateBearing(nextWp.lat, nextWp.lon, followingWp.lat, followingWp.lon);
+        const relBearingSecond = (bearingSecond - bearingToNext + 360) % 360;
+
+        let secondTurn = "";
+        if (relBearingSecond > 30 && relBearingSecond <= 160) secondTurn = "then turn immediate right";
+        else if (relBearingSecond > 200 && relBearingSecond <= 330) secondTurn = "then turn immediate left";
+
+        if (secondTurn) {
+          compoundAction = `, ${secondTurn}`;
+        }
+      }
+    }
+
+    const customTurnSpeech = `${distPhrase}, ${turnAction}${compoundAction}.`;
     const turnKey = `${currentWaypointIndex}_${turnCategory}_${milestoneKey}`;
 
     // Spoken turn announcement: Trigger ONCE per milestone per waypoint
