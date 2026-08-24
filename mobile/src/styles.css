@@ -137,11 +137,13 @@ html, body {
   box-shadow: 0 0 6px var(--accent-emerald);
 }
 
-/* Viewport & Map */
+/* Viewport & Map (50/50 Split View) */
 .map-viewport {
-  flex-grow: 1;
+  height: 50vh;
+  height: 50dvh;
   position: relative;
   width: 100%;
+  flex-shrink: 0;
 }
 
 .mobile-map-container {
@@ -189,49 +191,6 @@ html, body {
 @keyframes pulseAura {
   0% { transform: scale(0.8); opacity: 0.8; }
   100% { transform: scale(1.6); opacity: 0; }
-}
-
-/* Floating Speedometer */
-.speedometer-box {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(10px);
-  border: 2px solid var(--border-color);
-  border-radius: 16px;
-  padding: 8px 16px;
-  text-align: center;
-  min-width: 90px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  z-index: 10;
-}
-
-.speed-value {
-  font-family: var(--font-mono);
-  font-size: 2.2rem;
-  font-weight: 900;
-  color: var(--text-main);
-  line-height: 1;
-}
-
-.speed-unit {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: var(--text-sub);
-  letter-spacing: 0.1em;
-}
-
-.speed-warning-badge {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 900;
-  background: var(--accent-red);
-  color: #ffffff;
-  padding: 2px 4px;
-  border-radius: 4px;
-  margin-top: 4px;
 }
 
 /* Floating Controls */
@@ -757,11 +716,10 @@ html, body {
   transition: width 0.3s ease;
 }
 
-/* Dashboard Cockpit Deck (Matches wade-usa.com Screenshot Exactly) */
+/* Dashboard Cockpit Deck (50/50 Split Screen) */
 .dash-cockpit-deck {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+  position: relative;
+  flex: 1;
   width: 100%;
   z-index: 85;
   background: #0f0f11;
@@ -771,6 +729,7 @@ html, body {
   flex-direction: column;
   gap: 12px;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+  overflow-y: auto;
 }
 
 .dash-card {

@@ -22,13 +22,8 @@ let lastSpokenTurnKey: string = "";
 let activeRouteCoordinates: [number, number][] = [];
 let autoDriveInterval: any = null;
 let isAutoDriving: boolean = false;
-let lastSpeedWarningTime: number = 0;
-let currentPostedSpeedLimit: number = 80; // Default 80 MPH highway speed limit
-const SPEED_WARNING_COOLDOWN_MS: number = 5 * 60 * 1000; // 5-minute cooldown between speed warnings
 
 // DOM Elements
-const speedDisplay = document.getElementById("speed-display");
-const speedWarning = document.getElementById("speed-warning");
 const nextWpDistance = document.getElementById("next-wp-distance");
 const nextWpTitle = document.getElementById("next-wp-title");
 const turnIcon = document.getElementById("turn-icon");
@@ -169,8 +164,6 @@ function initMobileMap() {
 
     currentPosition = { lat, lon, speedMph, heading };
 
-    if (speedDisplay) speedDisplay.textContent = `${speedMph}`;
-
     if (vehicleMarker && map) {
       vehicleMarker.setLngLat([lon, lat]);
       const arrowInner = document.getElementById("vehicle-arrow-icon");
@@ -207,17 +200,6 @@ function startGPSWatcher() {
       const heading = pos.coords.heading || null;
 
       currentPosition = { lat, lon, speedMph, heading };
-
-      // Dynamic Speed Threshold (Default 88 MPH for 80 MPH highways)
-      const speedThreshold = Math.max(currentPostedSpeedLimit + 8, 88);
-
-      // Update Speedometer UI
-      if (speedDisplay) speedDisplay.textContent = `${speedMph}`;
-      if (speedWarning) {
-        speedWarning.style.display = speedMph > speedThreshold ? "block" : "none";
-      }
-
-      // Speeding indicator updated on visual badge above
 
       // Update Vehicle Marker on Map
       if (vehicleMarker && map) {
@@ -943,8 +925,6 @@ function scrubVehicleAlongRoute(pct: number) {
   }
 
   currentPosition = { lat, lon, speedMph: isAutoDriving ? 55 : 35, heading };
-
-  if (speedDisplay) speedDisplay.textContent = `${currentPosition.speedMph}`;
 
   if (vehicleMarker && map) {
     vehicleMarker.setLngLat([lon, lat]);
