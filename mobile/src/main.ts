@@ -261,8 +261,8 @@ function updateNavigationMetrics() {
       }
     }
 
-    // Check Waypoint Arrival Threshold (< 300 feet = 0.06 miles)
-    if (distToNext < 0.06 && currentWaypointIndex < validWaypoints.length) {
+    // Check Waypoint Arrival Threshold (< 80 feet = 0.015 miles)
+    if (distToNext < 0.015 && currentWaypointIndex < validWaypoints.length) {
       if (isShapingPoint(nextWp)) {
         // Shaping point: Pass right through without stopping
         currentWaypointIndex++;
