@@ -67,11 +67,12 @@ const dashRoutePct = document.getElementById("dash-route-pct");
 const dashProgressFill = document.getElementById("dash-progress-fill");
 
 const dashCurrTitle = document.getElementById("dash-curr-title");
-const dashCurrMeta = document.getElementById("dash-curr-meta");
+const dashCurrDepart = document.getElementById("dash-curr-depart");
+const dashCurrBudget = document.getElementById("dash-curr-budget");
 
 const dashNextTitle = document.getElementById("dash-next-title");
+const dashNextArrival = document.getElementById("dash-next-arrival");
 const dashNextPill = document.getElementById("dash-next-pill");
-const dashNextMeta = document.getElementById("dash-next-meta");
 
 const dashNotesText = document.getElementById("dash-notes-text");
 
@@ -350,10 +351,10 @@ function renderDashboardDeck(focusMap = false) {
 
   // CURRENT LOCATION SECTION
   if (dashCurrTitle) dashCurrTitle.textContent = currWp.title || `Checkpoint #${currentWaypointIndex + 1}`;
-  if (dashCurrMeta) {
-    const departTime = currWp.departTime || "May 29 @ 09:57 PM";
+  if (dashCurrDepart) dashCurrDepart.textContent = currWp.departTime || "May 29 @ 09:57 PM";
+  if (dashCurrBudget) {
     const budgetVal = currWp.budget !== undefined ? currWp.budget : "10.00";
-    dashCurrMeta.innerHTML = `<span>DEPARTING AT ${departTime}</span> <span class="dash-budget-tag">BUDGET $${budgetVal}</span>`;
+    dashCurrBudget.textContent = `$${budgetVal}`;
   }
 
   // NEXT DESTINATION SECTION
@@ -365,7 +366,7 @@ function renderDashboardDeck(focusMap = false) {
     }
   }
 
-  // Distance & Duration calculation for pill badge
+  // Distance & Duration calculation for pill badge (e.g. 37.4mi • 47m)
   if (currentPosition && nextWp && currentWaypointIndex < valid.length - 1) {
     const distMiles = haversineDistance(currentPosition.lat, currentPosition.lon, nextWp.lat, nextWp.lon);
     const estMinutes = Math.round((distMiles / 45) * 60);
@@ -374,9 +375,8 @@ function renderDashboardDeck(focusMap = false) {
     dashNextPill.textContent = "0.0mi • 0m";
   }
 
-  if (dashNextMeta) {
-    const estArr = (nextWp && nextWp.eta) ? nextWp.eta : "May 29 @ 10:44 PM";
-    dashNextMeta.innerHTML = `<span>EST. ARRIVAL ${estArr}</span>`;
+  if (dashNextArrival) {
+    dashNextArrival.textContent = (nextWp && nextWp.eta) ? nextWp.eta : "May 29 @ 10:44 PM";
   }
 
   // BRIEFING / NOTES BOX

@@ -82,27 +82,34 @@
         <div class="dash-section">
           <div class="dash-section-label">CURRENT LOCATION</div>
           <h2 class="dash-location-title" id="dash-curr-title">No Expedition Active</h2>
-          <div class="dash-meta-row" id="dash-curr-meta">
-            <span>DEPARTING AT --</span>
-            <span class="dash-budget-tag" id="dash-curr-budget">BUDGET $0.00</span>
+          <div class="dash-meta-grid">
+            <div class="dash-meta-item">
+              <span class="meta-item-label">DEPARTING AT</span>
+              <span class="meta-item-val" id="dash-curr-depart">--</span>
+            </div>
+            <div class="dash-meta-item meta-item-right">
+              <span class="meta-item-label">BUDGET</span>
+              <span class="meta-item-val" id="dash-curr-budget">$0.00</span>
+            </div>
           </div>
         </div>
 
         <!-- NEXT DESTINATION SECTION -->
         <div class="dash-section dash-section-next">
           <div class="dash-section-label">NEXT DESTINATION</div>
-          <div class="dash-next-header">
-            <h2 class="dash-location-title" id="dash-next-title">Load Route to Start</h2>
+          <h2 class="dash-location-title" id="dash-next-title">Load Route to Start</h2>
+          <div class="dash-next-meta-row">
+            <div class="dash-meta-item">
+              <span class="meta-item-label">EST. ARRIVAL</span>
+              <span class="meta-item-val" id="dash-next-arrival">--</span>
+            </div>
             <div class="dash-pill-badge" id="dash-next-pill">0.0mi • 0m</div>
-          </div>
-          <div class="dash-meta-row" id="dash-next-meta">
-            <span>EST. ARRIVAL --</span>
           </div>
         </div>
 
         <!-- BRIEFING / NOTES BOX -->
         <div class="dash-notes-box" id="dash-notes-box">
-          <div class="dash-notes-text" id="dash-notes-text">Load an expedition route from the logbook to view checkpoint briefings and launch Google Maps navigation.</div>
+          <div class="dash-notes-text" id="dash-notes-text">Select an expedition route from the logbook to start tracking legs and launching Google Maps navigation.</div>
         </div>
       </div>
 
