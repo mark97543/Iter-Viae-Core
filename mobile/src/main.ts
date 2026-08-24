@@ -19,6 +19,7 @@ let autoFollowVehicle: boolean = true;
 let currentDeviceHeading: number = 0;
 let debugMode: boolean = false;
 let lastSpokenTurnCategory: string = "";
+let lastSpokenTurnKey: string = "";
 let activeRouteCoordinates: [number, number][] = [];
 let autoDriveInterval: any = null;
 let isAutoDriving: boolean = false;
@@ -261,20 +262,19 @@ function updateNavigationMetrics() {
 
     if (turnIcon) turnIcon.textContent = arrowSymbol;
 
-    const distPhrase = formatSpokenDistance(distToNext);
+    const { phrase: distPhrase, key: milestoneKey } = getDistanceMilestoneKey(distToNext);
     let turnAction = "continue straight";
     if (turnCategory === "turn_right") turnAction = "turn right";
     else if (turnCategory === "turn_left") turnAction = "turn left";
     else if (turnCategory === "turn_uturn") turnAction = "make a U-turn";
 
     const customTurnSpeech = `${distPhrase}, ${turnAction}.`;
+    const turnKey = `${currentWaypointIndex}_${turnCategory}_${milestoneKey}`;
 
-    // Spoken turn announcement on approach, turn category change, or Debugger click
-    if (debugMode || turnCategory !== lastSpokenTurnCategory || distToNext < 1.5) {
-      if (turnCategory !== lastSpokenTurnCategory || debugMode) {
-        lastSpokenTurnCategory = turnCategory;
-        assholeVoice.trigger(turnCategory, customTurnSpeech, true);
-      }
+    // Spoken turn announcement: Trigger ONCE per milestone per waypoint
+    if (turnKey !== lastSpokenTurnKey && milestoneKey !== "far") {
+      lastSpokenTurnKey = turnKey;
+      assholeVoice.trigger(turnCategory, customTurnSpeech, true);
     }
 
     // Check Waypoint Arrival Threshold (< 80 feet = 0.015 miles)
@@ -324,15 +324,15 @@ function updateNavigationMetrics() {
   }
 }
 
-// Format spoken distance phrase (e.g. "In 500 feet", "In half a mile")
-function formatSpokenDistance(miles: number): string {
+// Format spoken distance phrase and milestone key (e.g. "In 500 feet", "500ft")
+function getDistanceMilestoneKey(miles: number): { phrase: string; key: string } {
   const feet = Math.round(miles * 5280);
-  if (feet < 300) return "In 200 feet";
-  if (feet < 700) return "In 500 feet";
-  if (feet < 1500) return "In 1000 feet";
-  if (miles < 0.8) return "In half a mile";
-  if (miles < 1.3) return "In 1 mile";
-  return `In ${Math.round(miles)} miles`;
+  if (feet < 350) return { phrase: "In 200 feet", key: "200ft" };
+  if (feet < 850) return { phrase: "In 500 feet", key: "500ft" };
+  if (feet < 1800) return { phrase: "In 1000 feet", key: "1000ft" };
+  if (miles < 0.8) return { phrase: "In half a mile", key: "half_mile" };
+  if (miles < 1.4) return { phrase: "In 1 mile", key: "1mile" };
+  return { phrase: `In ${Math.round(miles)} miles`, key: "far" };
 }
 
 // Helper: Check if waypoint is a Shaping Point
