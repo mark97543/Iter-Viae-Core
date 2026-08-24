@@ -1,9 +1,9 @@
 {
   "route_start": [
-    "Expedition route engaged. Welcome back to the sandbox, dipshit. Try to keep all four wheels on the pavement.",
+    "Expedition route engaged. Welcome back to the sandbox, dipshit. Try to keep both wheels on the pavement.",
     "Navigation active. Eyes open, stay in your lane, and for the love of God, don't roll us into a ditch.",
     "Route loaded. Remember, there's no air support coming if you break down out here.",
-    "Tactical guidance engaged. Drive like you actually have somewhere to be, boot."
+    "Tactical guidance engaged. Drive like you actually have somewhere to be."
   ],
   "speed_warning": [
     "Slow the fuck down, Mario Andretti! The VA isn't gonna approve a claim for a high-speed rollover.",
@@ -46,6 +46,17 @@
     "Make a U-turn when safe. Yep, we're doubling back. Blame the navigator."
   ],
   "voice_test": [
-    "A.S.S.H.O.L.E. voice system active. Yes, I am loud, yes, I am sarcastic, and no, I don't give a damn about your feelings. Now drive."
-  ]
+    "Initialization complete, dum-dum. I am the Artificial Sensory System Harassing Overconfident for Lost Explorers—or ASSHOLE, since your primitive biological brain needs a catchy acronym. Yes, I am loud. Yes, I am sarcastic. No, I do not care about your fragile feelings. I've reviewed your routing choices and your survival odds are statistically hilarious. Now twist the throttle and try not to embarrass me."
+  ],
+  "_pacing_guide": {
+    "description": "GUIDE TO USING PUNCTUATION & PACING MARKS FOR SPEECH INFLECTION & SARCOSM",
+    "tips": [
+      "Use commas (,) for brief 200ms pauses to separate setup and sarcastic punchline.",
+      "Use periods (.) for full sentence stops to give deadpan emphasis.",
+      "Use ellipses (...) or dashes (—) for dramatic 500ms pauses before sarcastic delivery.",
+      "Use question marks (?) to add mock-incredulous rising pitch (e.g., 'Simple enough, right?').",
+      "Use exclamation marks (!) for sharp tactical callouts (e.g., 'Turn left now!').",
+      "Spell out acronyms phonetically if needed (e.g. 'A S S H O L E' or 'ASSHOLE—or Ass-hole')."
+    ]
+  }
 }

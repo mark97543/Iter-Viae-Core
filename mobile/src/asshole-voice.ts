@@ -116,13 +116,20 @@ class AssholeVoiceEngine {
       if (!this.synth) return;
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = this.mode === "sarcastic" ? 1.05 : 1.0;
-      utterance.pitch = this.mode === "sarcastic" ? 0.9 : 1.0;
+      utterance.rate = this.mode === "sarcastic" ? 0.95 : 1.0;
+      utterance.pitch = this.mode === "sarcastic" ? 0.85 : 0.95; // Deeper cynical male tone
       utterance.volume = 1.0;
 
-      const engVoice = this.voices.find((v) => v.lang.startsWith("en-US") || v.lang.startsWith("en"));
-      if (engVoice) {
-        utterance.voice = engVoice;
+      // Auto-Detect & Select Male English Voice for A.S.S.H.O.L.E.
+      const maleNames = ["male", "david", "daniel", "george", "mark", "guy", "ryan", "james", "aaron", "oliver", "rishi", "alex"];
+      const maleVoice = this.voices.find((v) => {
+        const name = v.name.toLowerCase();
+        return (v.lang.startsWith("en") || v.lang.startsWith("en-US")) && maleNames.some((m) => name.includes(m));
+      });
+
+      const selectedVoice = maleVoice || this.voices.find((v) => v.lang.startsWith("en-US") || v.lang.startsWith("en"));
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
       }
 
       utterance.onstart = () => {
