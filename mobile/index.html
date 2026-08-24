@@ -25,6 +25,10 @@
         </div>
       </div>
       <div class="hud-meta-group">
+        <button id="btn-open-glove-controls" class="hud-chip chip-glove" title="Open Large Glove Touch Controls Modal">
+          <span>🧤</span>
+          <span>CONTROLS</span>
+        </button>
         <button id="btn-fullscreen-toggle" class="hud-chip chip-fullscreen" title="Toggle Fullscreen Mode (Hide Browser Bars)">
           <span>📺</span>
           <span>FULL</span>
@@ -199,5 +203,59 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script type="module" src="/src/main.ts"></script>
+    <!-- Motorcycle Glove Touch Quick Controls Modal -->
+    <div class="modal-overlay" id="mobile-glove-modal" style="display: none;">
+      <div class="modal-card glove-modal-card">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">🧤 GLOVE TOUCH CONTROLS</h2>
+            <p class="modal-subtitle">Giant target buttons designed for motorcycle riding gloves</p>
+          </div>
+          <button class="btn-icon" id="glove-modal-close">&times;</button>
+        </div>
+        <div class="modal-body glove-modal-grid">
+          <button id="glove-btn-gmaps" class="glove-action-btn glove-btn-red">
+            <span class="glove-btn-icon">🗺️</span>
+            <div class="glove-btn-text">
+              <span class="glove-btn-title">NAVIGATE LEG IN GOOGLE MAPS</span>
+              <span class="glove-btn-sub">Open live turn navigation to target stop</span>
+            </div>
+          </button>
+
+          <div class="glove-btn-row">
+            <button id="glove-btn-prev" class="glove-action-btn glove-btn-dark">
+              <span class="glove-btn-icon">⏪</span>
+              <span>PREV STOP</span>
+            </button>
+            <button id="glove-btn-next" class="glove-action-btn glove-btn-green">
+              <span class="glove-btn-icon">⏩</span>
+              <span>NEXT STOP</span>
+            </button>
+          </div>
+
+          <div class="glove-btn-row">
+            <button id="glove-btn-full" class="glove-action-btn glove-btn-cyan">
+              <span class="glove-btn-icon">📺</span>
+              <span>FULLSCREEN</span>
+            </button>
+            <button id="glove-btn-theme" class="glove-action-btn glove-btn-amber">
+              <span class="glove-btn-icon">☀️</span>
+              <span>DAY / NIGHT</span>
+            </button>
+          </div>
+
+          <div class="glove-btn-row">
+            <button id="glove-btn-trips" class="glove-action-btn glove-btn-blue">
+              <span class="glove-btn-icon">📂</span>
+              <span>LOGBOOK</span>
+            </button>
+            <button id="glove-btn-recenter" class="glove-action-btn glove-btn-white">
+              <span class="glove-btn-icon">🎯</span>
+              <span>RECENTER</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

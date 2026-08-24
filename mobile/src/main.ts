@@ -947,14 +947,83 @@ if (dashDeckEl) {
 
     if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
       if (diffX < 0) {
-        // Swipe Left -> Next Leg
         if (btnDashNext) (btnDashNext as HTMLElement).click();
       } else {
-        // Swipe Right -> Previous Leg
         if (btnDashPrev) (btnDashPrev as HTMLElement).click();
       }
     }
   }, { passive: true });
+}
+
+// Glove Touch Quick Controls Modal Handlers
+const mobileGloveModal = document.getElementById("mobile-glove-modal");
+const btnOpenGloveControls = document.getElementById("btn-open-glove-controls");
+const gloveModalClose = document.getElementById("glove-modal-close");
+
+const gloveBtnGmaps = document.getElementById("glove-btn-gmaps");
+const gloveBtnPrev = document.getElementById("glove-btn-prev");
+const gloveBtnNext = document.getElementById("glove-btn-next");
+const gloveBtnFull = document.getElementById("glove-btn-full");
+const gloveBtnTheme = document.getElementById("glove-btn-theme");
+const gloveBtnTrips = document.getElementById("glove-btn-trips");
+const gloveBtnRecenter = document.getElementById("glove-btn-recenter");
+
+if (btnOpenGloveControls) {
+  btnOpenGloveControls.addEventListener("click", () => {
+    if (mobileGloveModal) mobileGloveModal.style.display = "flex";
+  });
+}
+
+if (gloveModalClose) {
+  gloveModalClose.addEventListener("click", () => {
+    if (mobileGloveModal) mobileGloveModal.style.display = "none";
+  });
+}
+
+if (gloveBtnGmaps) {
+  gloveBtnGmaps.addEventListener("click", () => {
+    if (mobileGloveModal) mobileGloveModal.style.display = "none";
+    if (btnDashGmaps) (btnDashGmaps as HTMLElement).click();
+  });
+}
+
+if (gloveBtnPrev) {
+  gloveBtnPrev.addEventListener("click", () => {
+    if (btnDashPrev) (btnDashPrev as HTMLElement).click();
+  });
+}
+
+if (gloveBtnNext) {
+  gloveBtnNext.addEventListener("click", () => {
+    if (btnDashNext) (btnDashNext as HTMLElement).click();
+  });
+}
+
+if (gloveBtnFull) {
+  gloveBtnFull.addEventListener("click", () => {
+    if (mobileGloveModal) mobileGloveModal.style.display = "none";
+    if (btnFullscreenToggle) (btnFullscreenToggle as HTMLElement).click();
+  });
+}
+
+if (gloveBtnTheme) {
+  gloveBtnTheme.addEventListener("click", () => {
+    if (btnThemeToggle) (btnThemeToggle as HTMLElement).click();
+  });
+}
+
+if (gloveBtnTrips) {
+  gloveBtnTrips.addEventListener("click", () => {
+    if (mobileGloveModal) mobileGloveModal.style.display = "none";
+    if (btnOpenTrips) (btnOpenTrips as HTMLElement).click();
+  });
+}
+
+if (gloveBtnRecenter) {
+  gloveBtnRecenter.addEventListener("click", () => {
+    if (mobileGloveModal) mobileGloveModal.style.display = "none";
+    if (btnRecenter) (btnRecenter as HTMLElement).click();
+  });
 }
 
 // Initialize Application
