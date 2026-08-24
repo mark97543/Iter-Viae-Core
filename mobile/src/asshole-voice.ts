@@ -120,16 +120,29 @@ class AssholeVoiceEngine {
       utterance.pitch = this.mode === "sarcastic" ? 0.85 : 0.95; // Deeper cynical male tone
       utterance.volume = 1.0;
 
-      // Auto-Detect & Select Male English Voice for A.S.S.H.O.L.E.
-      const maleNames = ["male", "david", "daniel", "george", "mark", "guy", "ryan", "james", "aaron", "oliver", "rishi", "alex"];
-      const maleVoice = this.voices.find((v) => {
+      // Auto-Detect & Select USA Male English Voice (en-US) for A.S.S.H.O.L.E.
+      const maleUsNames = ["google us english male", "microsoft david", "microsoft mark", "guy", "ryan", "aaron", "alex", "tom", "david", "mark", "male"];
+
+      let selectedVoice = this.voices.find((v) => {
         const name = v.name.toLowerCase();
-        return (v.lang.startsWith("en") || v.lang.startsWith("en-US")) && maleNames.some((m) => name.includes(m));
+        const isUs = v.lang.toLowerCase().startsWith("en-us") || name.includes("united states") || name.includes("us english");
+        return isUs && maleUsNames.some((m) => name.includes(m));
       });
 
-      const selectedVoice = maleVoice || this.voices.find((v) => v.lang.startsWith("en-US") || v.lang.startsWith("en"));
+      if (!selectedVoice) {
+        selectedVoice = this.voices.find((v) => v.lang.toLowerCase().startsWith("en-us"));
+      }
+
+      if (!selectedVoice) {
+        selectedVoice = this.voices.find((v) => {
+          const name = v.name.toLowerCase();
+          return v.lang.toLowerCase().startsWith("en") && maleUsNames.some((m) => name.includes(m));
+        });
+      }
+
       if (selectedVoice) {
         utterance.voice = selectedVoice;
+        console.log(`[A.S.S.H.O.L.E. Voice] Selected Voice: ${selectedVoice.name} (${selectedVoice.lang})`);
       }
 
       utterance.onstart = () => {
