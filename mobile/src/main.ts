@@ -19,6 +19,9 @@ let autoFollowVehicle: boolean = true;
 let currentDeviceHeading: number = 0;
 let debugMode: boolean = false;
 let lastSpokenTurnCategory: string = "";
+let activeRouteCoordinates: [number, number][] = [];
+let autoDriveInterval: any = null;
+let isAutoDriving: boolean = false;
 
 // DOM Elements
 const speedDisplay = document.getElementById("speed-display");
@@ -61,6 +64,11 @@ const arrivalWpNotes = document.getElementById("arrival-wp-notes");
 const btnReadNotes = document.getElementById("btn-read-notes");
 const btnCompleteWaypoint = document.getElementById("btn-complete-waypoint");
 let activeArrivalWp: any = null;
+// Debugger Route Scrubber Elements
+const debugSliderPanel = document.getElementById("debug-slider-panel");
+const debugSliderMetrics = document.getElementById("debug-slider-metrics");
+const btnDebugPlay = document.getElementById("btn-debug-play");
+const debugRouteSlider = document.getElementById("debug-route-slider") as HTMLInputElement | null;
 
 const btnDebugToggle = document.getElementById("btn-debug-toggle");
 const btnVoiceMode = document.getElementById("btn-voice-mode");
@@ -379,6 +387,7 @@ async function renderActiveRouteOnMap() {
     });
 
     if (coordinates.length > 0) {
+      activeRouteCoordinates = coordinates;
       if (map.getSource("mobile-route")) {
         (map.getSource("mobile-route") as maplibregl.GeoJSONSource).setData({
           type: "Feature",
@@ -746,15 +755,108 @@ if (mobileLoginForm) {
   });
 }
 
+// Scrub Vehicle Location Along Active Valhalla Polyline
+function scrubVehicleAlongRoute(pct: number) {
+  if (activeRouteCoordinates.length === 0) return;
+
+  const totalPoints = activeRouteCoordinates.length;
+  const idx = Math.min(
+    Math.floor((pct / 100) * (totalPoints - 1)),
+    totalPoints - 1
+  );
+
+  const pt = activeRouteCoordinates[idx];
+  if (!pt) return;
+
+  const lon = pt[0];
+  const lat = pt[1];
+
+  let heading = currentPosition ? currentPosition.heading || 0 : 0;
+  if (idx < totalPoints - 1) {
+    const nextPt = activeRouteCoordinates[idx + 1];
+    heading = Math.round(calculateBearing(lat, lon, nextPt[1], nextPt[0]));
+  }
+
+  currentPosition = { lat, lon, speedMph: isAutoDriving ? 55 : 35, heading };
+
+  if (speedDisplay) speedDisplay.textContent = `${currentPosition.speedMph}`;
+
+  if (vehicleMarker && map) {
+    vehicleMarker.setLngLat([lon, lat]);
+    const arrowInner = document.getElementById("vehicle-arrow-icon");
+    if (arrowInner && heading !== null) {
+      arrowInner.style.transform = `rotate(${heading}deg)`;
+    }
+    if (autoFollowVehicle) {
+      map.easeTo({ center: [lon, lat], duration: 250 });
+    }
+  }
+
+  if (debugSliderMetrics) {
+    debugSliderMetrics.textContent = `${pct.toFixed(0)}% • LAT: ${lat.toFixed(3)}`;
+  }
+
+  updateNavigationMetrics();
+  renderActiveRouteOnMap();
+}
+
 if (btnDebugToggle) {
   btnDebugToggle.addEventListener("click", () => {
     debugMode = !debugMode;
     btnDebugToggle.classList.toggle("active", debugMode);
+
+    if (debugSliderPanel) {
+      debugSliderPanel.style.display = debugMode ? "flex" : "none";
+    }
+
+    if (!debugMode && isAutoDriving) {
+      clearInterval(autoDriveInterval);
+      isAutoDriving = false;
+      if (btnDebugPlay) btnDebugPlay.textContent = "▶";
+    }
+
     showToast(
       debugMode
-        ? "🐛 GPS Debugger ON: Tap anywhere on map to set vehicle location!"
+        ? "🐛 GPS Debugger ON: Use slider or click map to simulate navigation!"
         : "GPS Debugger OFF"
     );
+  });
+}
+
+if (debugRouteSlider) {
+  debugRouteSlider.addEventListener("input", () => {
+    const val = parseFloat(debugRouteSlider.value);
+    scrubVehicleAlongRoute(val);
+  });
+}
+
+if (btnDebugPlay) {
+  btnDebugPlay.addEventListener("click", () => {
+    if (isAutoDriving) {
+      clearInterval(autoDriveInterval);
+      isAutoDriving = false;
+      btnDebugPlay.textContent = "▶";
+      showToast("Auto-Drive Paused.");
+    } else {
+      isAutoDriving = true;
+      btnDebugPlay.textContent = "⏸";
+      showToast("Auto-Drive Engaged (55 MPH).");
+
+      autoDriveInterval = setInterval(() => {
+        if (!debugRouteSlider) return;
+        let currVal = parseFloat(debugRouteSlider.value);
+        if (currVal >= 100) {
+          clearInterval(autoDriveInterval);
+          isAutoDriving = false;
+          btnDebugPlay.textContent = "▶";
+          showToast("Route simulation completed!");
+          return;
+        }
+        currVal = Math.min(currVal + 0.4, 100);
+        debugRouteSlider.value = currVal.toString();
+        scrubVehicleAlongRoute(currVal);
+      }, 350);
+    }
   });
 }
 
