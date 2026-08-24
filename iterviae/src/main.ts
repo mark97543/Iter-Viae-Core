@@ -417,16 +417,23 @@ function updateItineraryCalculations() {
   let totalBudget = 0;
   let currentDay = 1;
 
+  let validIdx = 0;
+
   waypoints.forEach((wp, idx) => {
     let legTravelSec = 0;
     let legDistanceMi = 0;
 
-    if (idx > 0) {
-      const legMetric = currentLegMetrics[idx - 1];
-      if (legMetric) {
-        legTravelSec = legMetric.durationSec;
-        legDistanceMi = legMetric.distanceMi;
+    const isPlaced = wp.lat !== null && wp.lon !== null;
+
+    if (isPlaced) {
+      if (validIdx > 0) {
+        const legMetric = currentLegMetrics[validIdx - 1];
+        if (legMetric) {
+          legTravelSec = legMetric.durationSec;
+          legDistanceMi = legMetric.distanceMi;
+        }
       }
+      validIdx++;
     }
 
     totalTravelSec += legTravelSec;
@@ -518,16 +525,23 @@ function renderItinerarySpreadsheet() {
 
   itineraryTableBody.innerHTML = "";
 
+  let validIdx = 0;
+
   waypoints.forEach((wp, idx) => {
     let legTravelSec = 0;
     let legDistanceMi = 0;
 
-    if (idx > 0) {
-      const legMetric = currentLegMetrics[idx - 1];
-      if (legMetric) {
-        legTravelSec = legMetric.durationSec;
-        legDistanceMi = legMetric.distanceMi;
+    const isPlaced = wp.lat !== null && wp.lon !== null;
+
+    if (isPlaced) {
+      if (validIdx > 0) {
+        const legMetric = currentLegMetrics[validIdx - 1];
+        if (legMetric) {
+          legTravelSec = legMetric.durationSec;
+          legDistanceMi = legMetric.distanceMi;
+        }
       }
+      validIdx++;
     }
 
     totalTravelSec += legTravelSec;
@@ -708,16 +722,23 @@ function exportItineraryCSV() {
 
   const csvRows: string[][] = [headers];
 
+  let validIdx = 0;
+
   waypoints.forEach((wp, idx) => {
     let legTravelSec = 0;
     let legDistanceMi = 0;
 
-    if (idx > 0) {
-      const legMetric = currentLegMetrics[idx - 1];
-      if (legMetric) {
-        legTravelSec = legMetric.durationSec;
-        legDistanceMi = legMetric.distanceMi;
+    const isPlaced = wp.lat !== null && wp.lon !== null;
+
+    if (isPlaced) {
+      if (validIdx > 0) {
+        const legMetric = currentLegMetrics[validIdx - 1];
+        if (legMetric) {
+          legTravelSec = legMetric.durationSec;
+          legDistanceMi = legMetric.distanceMi;
+        }
       }
+      validIdx++;
     }
 
     currentMillis += legTravelSec * 1000;
@@ -1131,9 +1152,21 @@ function updateWaypointCardTiming() {
   let currentMillis = Date.parse(expeditionStartTime);
   if (isNaN(currentMillis)) currentMillis = Date.now();
 
+  let validIdx = 0;
+
   waypoints.forEach((wp, idx) => {
     const arrEl = document.getElementById(`wp-arr-${wp.id}`);
     const depEl = document.getElementById(`wp-dep-${wp.id}`);
+
+    const isPlaced = wp.lat !== null && wp.lon !== null;
+    let legMetric: LegMetric | undefined = undefined;
+
+    if (isPlaced) {
+      if (validIdx > 0) {
+        legMetric = currentLegMetrics[validIdx - 1];
+      }
+      validIdx++;
+    }
 
     if (idx === 0) {
       const depDate = new Date(currentMillis);
@@ -1142,8 +1175,6 @@ function updateWaypointCardTiming() {
       return;
     }
 
-    const legIndex = idx - 1;
-    const legMetric = currentLegMetrics[legIndex];
     const travelSec = legMetric ? legMetric.durationSec : 0;
     currentMillis += travelSec * 1000;
     const etaDate = new Date(currentMillis);
@@ -1821,7 +1852,19 @@ function renderPrintManifest() {
   let currentMillis = startMillis;
   const processedWaypoints: any[] = [];
 
+  let validIdx = 0;
+
   waypoints.forEach((wp, idx) => {
+    const isPlaced = wp.lat !== null && wp.lon !== null;
+    let legMetric: LegMetric | undefined = undefined;
+
+    if (isPlaced) {
+      if (validIdx > 0) {
+        legMetric = currentLegMetrics[validIdx - 1];
+      }
+      validIdx++;
+    }
+
     const category = getCategoryForWaypoint(wp);
     const catDetail = CATEGORY_DETAILS[category];
     const categoryText = catDetail ? catDetail.label.toUpperCase() : "GENERAL";
@@ -1830,8 +1873,6 @@ function renderPrintManifest() {
     let depTime = "--:--";
 
     if (idx > 0) {
-      const legIndex = idx - 1;
-      const legMetric = currentLegMetrics[legIndex];
       const travelSec = legMetric ? legMetric.durationSec : 0;
       currentMillis += travelSec * 1000;
       const etaDate = new Date(currentMillis);
@@ -1857,8 +1898,8 @@ function renderPrintManifest() {
       depTime = formatTimeOnly(depDate);
     }
 
-    const legDist = idx > 0 && currentLegMetrics[idx - 1] 
-      ? `${currentLegMetrics[idx - 1].distanceMi.toFixed(1)} MI` 
+    const legDist = idx > 0 && legMetric 
+      ? `${legMetric.distanceMi.toFixed(1)} MI` 
       : "--";
 
     const coordsStr = (wp.lat !== null && wp.lon !== null) 

@@ -96,10 +96,24 @@ async function fetchSingleBatchRoute(locations: RouteLocation[]): Promise<RouteR
       const distanceMi = route.distance * 0.000621371;
       const durationSec = route.duration;
 
-      const legs: LegMetric[] = (route.legs || []).map((leg: any) => ({
-        distanceMi: leg.distance * 0.000621371,
-        durationSec: leg.duration
-      }));
+      const rawLegs = route.legs || [];
+      const legs: LegMetric[] = [];
+      const expectedLegsCount = locations.length - 1;
+
+      for (let i = 0; i < expectedLegsCount; i++) {
+        if (rawLegs[i] && typeof rawLegs[i].distance === "number" && rawLegs[i].distance > 0) {
+          legs.push({
+            distanceMi: rawLegs[i].distance * 0.000621371,
+            durationSec: rawLegs[i].duration
+          });
+        } else {
+          const start = locations[i];
+          const end = locations[i + 1];
+          const legDist = haversineDistance(start.lat, start.lon, end.lat, end.lon);
+          const legDur = (legDist / 50) * 3600;
+          legs.push({ distanceMi: legDist, durationSec: legDur });
+        }
+      }
 
       return { coordinates, distanceMi, durationSec, legs };
     }
