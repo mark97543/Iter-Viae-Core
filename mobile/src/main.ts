@@ -875,15 +875,18 @@ if (btnDashGmaps) {
   btnDashGmaps.addEventListener("click", () => {
     if (!activeTrip || !activeTrip.waypoints) return;
     const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
-    const currWp = valid[currentWaypointIndex];
-    const targetWp = valid[Math.min(currentWaypointIndex + 1, valid.length - 1)];
+    if (valid.length === 0) return;
+    
+    const targetWp = valid[currentWaypointIndex];
+    const prevWp = currentWaypointIndex > 0 ? valid[currentWaypointIndex - 1] : undefined;
+    
     if (targetWp && targetWp.lat !== null && targetWp.lon !== null) {
-      showToast(`Launching Google Maps navigation to ${targetWp.title || "Next Stop"}...`);
+      showToast(`Launching Google Maps navigation to ${targetWp.title || "Waypoint"}...`);
       openInGoogleMaps(
         targetWp.lat,
         targetWp.lon,
-        currWp && currWp.lat !== null ? currWp.lat : undefined,
-        currWp && currWp.lon !== null ? currWp.lon : undefined
+        prevWp && prevWp.lat !== null ? prevWp.lat : undefined,
+        prevWp && prevWp.lon !== null ? prevWp.lon : undefined
       );
     }
   });
