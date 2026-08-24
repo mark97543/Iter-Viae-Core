@@ -116,8 +116,8 @@ class AssholeVoiceEngine {
       if (!this.synth) return;
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = this.mode === "sarcastic" ? 0.95 : 1.0;
-      utterance.pitch = this.mode === "sarcastic" ? 0.75 : 0.85; // Deep US male voice pitch
+      utterance.rate = this.mode === "sarcastic" ? 1.05 : 1.0; // Fast condescending delivery
+      utterance.pitch = this.mode === "sarcastic" ? 0.78 : 0.88; // Deep US male voice pitch
       utterance.volume = 1.0;
 
       // Filter out female voices explicitly
