@@ -261,11 +261,19 @@ function updateNavigationMetrics() {
 
     if (turnIcon) turnIcon.textContent = arrowSymbol;
 
+    const distPhrase = formatSpokenDistance(distToNext);
+    let turnAction = "continue straight";
+    if (turnCategory === "turn_right") turnAction = "turn right";
+    else if (turnCategory === "turn_left") turnAction = "turn left";
+    else if (turnCategory === "turn_uturn") turnAction = "make a U-turn";
+
+    const customTurnSpeech = `${distPhrase}, ${turnAction}.`;
+
     // Spoken turn announcement on approach, turn category change, or Debugger click
     if (debugMode || turnCategory !== lastSpokenTurnCategory || distToNext < 1.5) {
       if (turnCategory !== lastSpokenTurnCategory || debugMode) {
         lastSpokenTurnCategory = turnCategory;
-        assholeVoice.trigger(turnCategory, undefined, true); // Force immediate spoken turn callout
+        assholeVoice.trigger(turnCategory, customTurnSpeech, true);
       }
     }
 
@@ -314,6 +322,17 @@ function updateNavigationMetrics() {
       assholeVoice.trigger("off_route");
     }
   }
+}
+
+// Format spoken distance phrase (e.g. "In 500 feet", "In half a mile")
+function formatSpokenDistance(miles: number): string {
+  const feet = Math.round(miles * 5280);
+  if (feet < 300) return "In 200 feet";
+  if (feet < 700) return "In 500 feet";
+  if (feet < 1500) return "In 1000 feet";
+  if (miles < 0.8) return "In half a mile";
+  if (miles < 1.3) return "In 1 mile";
+  return `In ${Math.round(miles)} miles`;
 }
 
 // Helper: Check if waypoint is a Shaping Point

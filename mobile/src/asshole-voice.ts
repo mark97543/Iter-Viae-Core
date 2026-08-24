@@ -88,7 +88,8 @@ class AssholeVoiceEngine {
       const lines = (dialogueData as any)[category] || [];
       if (lines.length > 0) {
         const randomIndex = Math.floor(Math.random() * lines.length);
-        textToSpeak = lines[randomIndex];
+        const sarcasticLine = lines[randomIndex];
+        textToSpeak = customTacticalText ? `${customTacticalText} ${sarcasticLine}` : sarcasticLine;
       } else {
         textToSpeak = customTacticalText || "Attention driver.";
       }
