@@ -25,25 +25,13 @@
         </div>
       </div>
       <div class="hud-meta-group">
-        <button id="btn-open-glove-controls" class="hud-chip chip-glove" title="Open Large Glove Touch Controls Modal">
-          <span>🧤</span>
-          <span>CONTROLS</span>
-        </button>
-        <button id="btn-fullscreen-toggle" class="hud-chip chip-fullscreen" title="Toggle Fullscreen Mode (Hide Browser Bars)">
-          <span>📺</span>
-          <span>FULL</span>
-        </button>
-        <button id="btn-theme-toggle" class="hud-chip chip-theme" title="Toggle Day / Night OLED Theme">
-          <span>☀️</span>
-          <span id="theme-label">DAY</span>
-        </button>
         <button id="btn-open-trips" class="hud-chip chip-load-route" title="Load Expedition Route">
           <span class="chip-icon">📂</span>
           <span>ROUTES</span>
         </button>
-        <button id="btn-mobile-auth" class="hud-chip chip-auth" title="PocketBase Account Sign In">
-          <span class="chip-icon">🔑</span>
-          <span id="auth-status-text">SIGN IN</span>
+        <button id="btn-open-glove-controls" class="hud-chip chip-glove" title="Cockpit Settings & Controls">
+          <span>⚙️</span>
+          <span>MENU</span>
         </button>
       </div>
     </header>
@@ -203,36 +191,17 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script type="module" src="/src/main.ts"></script>
-    <!-- Motorcycle Glove Touch Quick Controls Modal -->
+    <!-- Combined Cockpit Menu Modal -->
     <div class="modal-overlay" id="mobile-glove-modal" style="display: none;">
       <div class="modal-card glove-modal-card">
         <div class="modal-header">
           <div>
-            <h2 class="modal-title">🧤 GLOVE TOUCH CONTROLS</h2>
-            <p class="modal-subtitle">Giant target buttons designed for motorcycle riding gloves</p>
+            <h2 class="modal-title">⚙️ COCKPIT MENU</h2>
+            <p class="modal-subtitle">Quick settings & controls for expedition riding</p>
           </div>
           <button class="btn-icon" id="glove-modal-close">&times;</button>
         </div>
         <div class="modal-body glove-modal-grid">
-          <button id="glove-btn-gmaps" class="glove-action-btn glove-btn-red">
-            <span class="glove-btn-icon">🗺️</span>
-            <div class="glove-btn-text">
-              <span class="glove-btn-title">NAVIGATE LEG IN GOOGLE MAPS</span>
-              <span class="glove-btn-sub">Open live turn navigation to target stop</span>
-            </div>
-          </button>
-
-          <div class="glove-btn-row">
-            <button id="glove-btn-prev" class="glove-action-btn glove-btn-dark">
-              <span class="glove-btn-icon">⏪</span>
-              <span>PREV STOP</span>
-            </button>
-            <button id="glove-btn-next" class="glove-action-btn glove-btn-green">
-              <span class="glove-btn-icon">⏩</span>
-              <span>NEXT STOP</span>
-            </button>
-          </div>
-
           <div class="glove-btn-row">
             <button id="glove-btn-full" class="glove-action-btn glove-btn-cyan">
               <span class="glove-btn-icon">📺</span>
@@ -240,7 +209,7 @@
             </button>
             <button id="glove-btn-theme" class="glove-action-btn glove-btn-amber">
               <span class="glove-btn-icon">☀️</span>
-              <span>DAY / NIGHT</span>
+              <span id="glove-theme-label">DAY / NIGHT</span>
             </button>
           </div>
 
@@ -249,11 +218,16 @@
               <span class="glove-btn-icon">📂</span>
               <span>LOGBOOK</span>
             </button>
-            <button id="glove-btn-recenter" class="glove-action-btn glove-btn-white">
-              <span class="glove-btn-icon">🎯</span>
-              <span>RECENTER</span>
+            <button id="glove-btn-auth" class="glove-action-btn glove-btn-dark">
+              <span class="glove-btn-icon">🔑</span>
+              <span id="glove-auth-label">SIGN IN</span>
             </button>
           </div>
+
+          <button id="glove-btn-recenter" class="glove-action-btn glove-btn-white" style="height: 52px; font-size: 0.95rem;">
+            <span class="glove-btn-icon" style="font-size: 1.3rem;">🎯</span>
+            <span>RECENTER MAP CAMERA</span>
+          </button>
         </div>
       </div>
     </div>

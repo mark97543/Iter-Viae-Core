@@ -955,17 +955,15 @@ if (dashDeckEl) {
   }, { passive: true });
 }
 
-// Glove Touch Quick Controls Modal Handlers
+// Combined Cockpit Menu Modal Handlers
 const mobileGloveModal = document.getElementById("mobile-glove-modal");
 const btnOpenGloveControls = document.getElementById("btn-open-glove-controls");
 const gloveModalClose = document.getElementById("glove-modal-close");
 
-const gloveBtnGmaps = document.getElementById("glove-btn-gmaps");
-const gloveBtnPrev = document.getElementById("glove-btn-prev");
-const gloveBtnNext = document.getElementById("glove-btn-next");
 const gloveBtnFull = document.getElementById("glove-btn-full");
 const gloveBtnTheme = document.getElementById("glove-btn-theme");
 const gloveBtnTrips = document.getElementById("glove-btn-trips");
+const gloveBtnAuth = document.getElementById("glove-btn-auth");
 const gloveBtnRecenter = document.getElementById("glove-btn-recenter");
 
 if (btnOpenGloveControls) {
@@ -980,35 +978,28 @@ if (gloveModalClose) {
   });
 }
 
-if (gloveBtnGmaps) {
-  gloveBtnGmaps.addEventListener("click", () => {
-    if (mobileGloveModal) mobileGloveModal.style.display = "none";
-    if (btnDashGmaps) (btnDashGmaps as HTMLElement).click();
-  });
-}
-
-if (gloveBtnPrev) {
-  gloveBtnPrev.addEventListener("click", () => {
-    if (btnDashPrev) (btnDashPrev as HTMLElement).click();
-  });
-}
-
-if (gloveBtnNext) {
-  gloveBtnNext.addEventListener("click", () => {
-    if (btnDashNext) (btnDashNext as HTMLElement).click();
-  });
-}
-
 if (gloveBtnFull) {
   gloveBtnFull.addEventListener("click", () => {
     if (mobileGloveModal) mobileGloveModal.style.display = "none";
-    if (btnFullscreenToggle) (btnFullscreenToggle as HTMLElement).click();
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+      const docEl = document.documentElement as any;
+      if (docEl.requestFullscreen) docEl.requestFullscreen().catch(() => {});
+      else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+      showToast("📺 Fullscreen Engaged!");
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
+      showToast("Fullscreen Exited.");
+    }
   });
 }
 
 if (gloveBtnTheme) {
   gloveBtnTheme.addEventListener("click", () => {
-    if (btnThemeToggle) (btnThemeToggle as HTMLElement).click();
+    const isDay = document.body.classList.toggle("theme-day");
+    const labelEl = document.getElementById("glove-theme-label");
+    if (labelEl) labelEl.textContent = isDay ? "NIGHT OLED" : "SUNLIGHT DAY";
+    showToast(isDay ? "☀️ Sunlight Day Mode Engaged" : "🌙 Night OLED Mode Engaged");
   });
 }
 
@@ -1016,6 +1007,19 @@ if (gloveBtnTrips) {
   gloveBtnTrips.addEventListener("click", () => {
     if (mobileGloveModal) mobileGloveModal.style.display = "none";
     if (btnOpenTrips) (btnOpenTrips as HTMLElement).click();
+  });
+}
+
+if (gloveBtnAuth) {
+  gloveBtnAuth.addEventListener("click", () => {
+    if (mobileGloveModal) mobileGloveModal.style.display = "none";
+    if (pb.authStore.isValid) {
+      pb.authStore.clear();
+      updateAuthUI();
+      showToast("Signed out of PocketBase.");
+    } else {
+      if (mobileAuthModal) mobileAuthModal.style.display = "flex";
+    }
   });
 }
 
