@@ -117,32 +117,46 @@ class AssholeVoiceEngine {
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = this.mode === "sarcastic" ? 0.95 : 1.0;
-      utterance.pitch = this.mode === "sarcastic" ? 0.85 : 0.95; // Deeper cynical male tone
+      utterance.pitch = this.mode === "sarcastic" ? 0.75 : 0.85; // Deep US male voice pitch
       utterance.volume = 1.0;
 
-      // Auto-Detect & Select USA Male English Voice (en-US) for A.S.S.H.O.L.E.
-      const maleUsNames = ["google us english male", "microsoft david", "microsoft mark", "guy", "ryan", "aaron", "alex", "tom", "david", "mark", "male"];
+      // Filter out female voices explicitly
+      const femaleKeywords = ["female", "zira", "hazel", "susan", "catherine", "victoria", "samantha", "karen", "monica", "lisa", "jenny", "aria", "eva", "sonia"];
+      const maleKeywords = ["male", "david", "mark", "george", "guy", "ryan", "aaron", "alex", "tom", "james", "michael", "richard", "steven", "paul", "b", "d"];
 
+      // 1. Strict Search: US English Non-Female Male Voice
       let selectedVoice = this.voices.find((v) => {
         const name = v.name.toLowerCase();
-        const isUs = v.lang.toLowerCase().startsWith("en-us") || name.includes("united states") || name.includes("us english");
-        return isUs && maleUsNames.some((m) => name.includes(m));
+        const isUs = v.lang.toLowerCase().includes("en-us") || v.lang.toLowerCase().includes("en_us") || name.includes("us english") || name.includes("united states");
+        const isFemale = femaleKeywords.some((f) => name.includes(f));
+        const isMale = maleKeywords.some((m) => name.includes(m));
+        return isUs && !isFemale && isMale;
       });
 
-      if (!selectedVoice) {
-        selectedVoice = this.voices.find((v) => v.lang.toLowerCase().startsWith("en-us"));
-      }
-
+      // 2. Fallback: Any US English voice that is not female
       if (!selectedVoice) {
         selectedVoice = this.voices.find((v) => {
           const name = v.name.toLowerCase();
-          return v.lang.toLowerCase().startsWith("en") && maleUsNames.some((m) => name.includes(m));
+          const isUs = v.lang.toLowerCase().includes("en-us") || v.lang.toLowerCase().includes("en_us");
+          const isFemale = femaleKeywords.some((f) => name.includes(f));
+          return isUs && !isFemale;
+        });
+      }
+
+      // 3. Fallback: Any English voice that is not female
+      if (!selectedVoice) {
+        selectedVoice = this.voices.find((v) => {
+          const name = v.name.toLowerCase();
+          const isFemale = femaleKeywords.some((f) => name.includes(f));
+          return v.lang.toLowerCase().startsWith("en") && !isFemale;
         });
       }
 
       if (selectedVoice) {
         utterance.voice = selectedVoice;
         console.log(`[A.S.S.H.O.L.E. Voice] Selected Voice: ${selectedVoice.name} (${selectedVoice.lang})`);
+      } else {
+        console.log("[A.S.S.H.O.L.E. Voice] Available voices on system:", this.voices.map((v) => `${v.name} (${v.lang})`));
       }
 
       utterance.onstart = () => {
