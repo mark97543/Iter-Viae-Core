@@ -37,27 +37,12 @@
 
       <!-- Floating Map Control Buttons -->
       <div class="map-floating-controls">
-        <button id="btn-debug-toggle" class="floating-btn btn-debug" title="GPS Debugger (Click Map to Set Vehicle Location)">
-          <span>🐛</span>
-        </button>
         <button id="btn-recenter" class="floating-btn" title="Recenter Camera on GPS Vehicle">
           <span>🎯</span>
         </button>
         <button id="btn-compass-toggle" class="floating-btn" title="360° Compass Mode">
           <span>🧭</span>
         </button>
-      </div>
-
-      <!-- Floating Debugger Route Scrubber Panel (Visible in Debugger Mode) -->
-      <div class="debug-slider-panel" id="debug-slider-panel" style="display: none;">
-        <div class="debug-slider-header">
-          <span class="debug-label">🐛 ROUTE SCRUBBER & AUTO-DRIVE</span>
-          <span class="debug-metrics" id="debug-slider-metrics">0% • 0.0 MI</span>
-        </div>
-        <div class="debug-slider-controls">
-          <button id="btn-debug-play" class="btn-play-pause" title="Play/Pause Route Auto-Drive">▶</button>
-          <input type="range" id="debug-route-slider" min="0" max="100" value="0" step="0.2" class="route-range-input" />
-        </div>
       </div>
 
       <!-- 360° Tactical Compass Overlay (Hidden by default) -->
