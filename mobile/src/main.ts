@@ -366,11 +366,13 @@ function renderDashboardDeck(focusMap = false) {
     }
   }
 
-  // Distance & Duration calculation for pill badge (e.g. 37.4mi • 47m)
-  if (currentPosition && nextWp && currentWaypointIndex < valid.length - 1) {
-    const distMiles = haversineDistance(currentPosition.lat, currentPosition.lon, nextWp.lat, nextWp.lon);
-    const estMinutes = Math.round((distMiles / 45) * 60);
-    if (dashNextPill) dashNextPill.textContent = `${distMiles.toFixed(1)}mi • ${estMinutes}m`;
+  // Distance & Duration calculation for pill badge (Direct Leg from Current Stop -> Next Stop)
+  if (currWp && nextWp && currentWaypointIndex < valid.length - 1) {
+    const fromLat = currentPosition ? currentPosition.lat : currWp.lat!;
+    const fromLon = currentPosition ? currentPosition.lon : currWp.lon!;
+    const legMiles = haversineDistance(fromLat, fromLon, nextWp.lat!, nextWp.lon!);
+    const legMinutes = Math.round((legMiles / 45) * 60);
+    if (dashNextPill) dashNextPill.textContent = `${legMiles.toFixed(1)}mi • ${legMinutes}m`;
   } else if (dashNextPill) {
     dashNextPill.textContent = "0.0mi • 0m";
   }
