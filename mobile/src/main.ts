@@ -405,11 +405,13 @@ function renderDashboardDeck(focusMap = false) {
   }
 }
 
-// Deep-Link Navigation into Google Maps App for Selected Checkpoint
-function openInGoogleMaps(destLat: number, destLon: number) {
+// Deep-Link Navigation into Google Maps App from Current Location -> Next Destination
+function openInGoogleMaps(destLat: number, destLon: number, originLat?: number, originLon?: number) {
   let url = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLon}&travelmode=driving`;
   if (currentPosition) {
     url += `&origin=${currentPosition.lat},${currentPosition.lon}`;
+  } else if (originLat !== undefined && originLon !== undefined) {
+    url += `&origin=${originLat},${originLon}`;
   }
   window.open(url, "_blank");
 }
@@ -869,10 +871,16 @@ if (btnDashGmaps) {
   btnDashGmaps.addEventListener("click", () => {
     if (!activeTrip || !activeTrip.waypoints) return;
     const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
+    const currWp = valid[currentWaypointIndex];
     const targetWp = valid[Math.min(currentWaypointIndex + 1, valid.length - 1)];
     if (targetWp && targetWp.lat !== null && targetWp.lon !== null) {
       showToast(`Launching Google Maps navigation to ${targetWp.title || "Next Stop"}...`);
-      openInGoogleMaps(targetWp.lat, targetWp.lon);
+      openInGoogleMaps(
+        targetWp.lat,
+        targetWp.lon,
+        currWp && currWp.lat !== null ? currWp.lat : undefined,
+        currWp && currWp.lon !== null ? currWp.lon : undefined
+      );
     }
   });
 }
