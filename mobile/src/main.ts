@@ -94,6 +94,7 @@ function initMobileMap() {
           type: "raster",
           tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
           tileSize: 256,
+          maxzoom: 17,
           attribution: "&copy; OpenStreetMap contributors"
         }
       },
@@ -103,12 +104,14 @@ function initMobileMap() {
           type: "raster",
           source: "osm-tiles",
           minzoom: 0,
-          maxzoom: 19
+          maxzoom: 17
         }
       ]
     },
     center: [-111.9679844, 43.4704308], // Default Idaho Falls
     zoom: 13,
+    minZoom: 3,
+    maxZoom: 17,
     pitch: 45,
     attributionControl: false
   });

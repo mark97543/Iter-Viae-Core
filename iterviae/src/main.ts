@@ -197,7 +197,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
           "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
-        maxzoom: 19,
+        maxzoom: 17,
         attribution: "© Esri, HERE, Garmin, USGS, NGA, EPA, USDA, NPS"
       }
     },
@@ -207,7 +207,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
         type: "raster" as const,
         source: "esri-highways",
         minzoom: 0,
-        maxzoom: 19
+        maxzoom: 17
       }
     ]
   },
@@ -222,7 +222,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
           "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
         ],
         tileSize: 256,
-        maxzoom: 19,
+        maxzoom: 17,
         attribution: "© OpenStreetMap contributors, © CARTO"
       }
     },
@@ -232,7 +232,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
         type: "raster" as const,
         source: "carto-voyager",
         minzoom: 0,
-        maxzoom: 19
+        maxzoom: 17
       }
     ]
   },
@@ -272,7 +272,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
           "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
         ],
         tileSize: 256,
-        maxzoom: 19,
+        maxzoom: 17,
         attribution: "© OpenStreetMap contributors, © CARTO"
       }
     },
@@ -282,7 +282,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
         type: "raster" as const,
         source: "carto-dark",
         minzoom: 0,
-        maxzoom: 19
+        maxzoom: 17
       }
     ]
   },
@@ -295,7 +295,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
           "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
-        maxzoom: 19,
+        maxzoom: 17,
         attribution: "© Esri, Maxar, Earthstar Geographics, USDA, USGS"
       }
     },
@@ -305,7 +305,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
         type: "raster" as const,
         source: "esri-satellite",
         minzoom: 0,
-        maxzoom: 19
+        maxzoom: 17
       }
     ]
   }
@@ -2728,7 +2728,7 @@ function initializeMapSurface() {
     center: DEFAULT_CENTER,
     zoom: 13,
     minZoom: 3,
-    maxZoom: 18,
+    maxZoom: 17,
     pitch: 0,
     bearing: 0,
     attributionControl: false
