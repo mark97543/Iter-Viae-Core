@@ -1529,6 +1529,48 @@ function insertNewStopAt(insertIndex: number, lat?: number, lon?: number) {
   }
 }
 
+// Helper to insert a new stop at the end of the list and set it as the new Destination/End Point
+function insertNewEndStopAt(lat?: number, lon?: number) {
+  let targetLat: number | null = lat !== undefined ? lat : null;
+  let targetLon: number | null = lon !== undefined ? lon : null;
+
+  // 1. If Origin (waypoints[0]) is blank, populate Origin first
+  if (waypoints.length > 0 && waypoints[0].lat === null) {
+    waypoints[0].lat = targetLat;
+    waypoints[0].lon = targetLon;
+    renderWaypointsUI();
+    renderWaypointMapMarkers();
+    updateExpeditionRoute();
+    if (targetLat !== null && targetLon !== null) focusOnWaypoint(waypoints[0].id);
+    return;
+  }
+
+  // 2. Convert existing Destination to intermediate stop
+  waypoints.forEach((w) => {
+    if (w.type === "destination") {
+      w.type = "stop";
+    }
+  });
+
+  // 3. Append new End Point at the end of array
+  const newEndStop: Waypoint = {
+    id: `wp-dest-${Date.now()}`,
+    title: "",
+    lat: targetLat,
+    lon: targetLon,
+    type: "destination"
+  };
+
+  waypoints.push(newEndStop);
+  renderWaypointsUI();
+  renderWaypointMapMarkers();
+  updateExpeditionRoute();
+
+  if (targetLat !== null && targetLon !== null) {
+    focusOnWaypoint(newEndStop.id);
+  }
+}
+
 // Handlers for Waypoints UI Inputs, Remove, Auto-Select text, and Inline/End Add Buttons
 if (waypointsContainer) {
   // Auto-Select All Text on Focus in Waypoint Title / Coordinates Input
@@ -1554,9 +1596,9 @@ if (waypointsContainer) {
       return;
     }
 
-    // End Add Button
+    // End Add Button (Appends new stop at end of list & sets as new Destination)
     if (target.id === "add-end-stop-btn" || target.classList.contains("btn-add-end-stop")) {
-      insertNewStopAt(waypoints.length - 1);
+      insertNewEndStopAt();
       return;
     }
 
