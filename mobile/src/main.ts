@@ -368,11 +368,25 @@ function renderDashboardDeck(focusMap = false) {
 
   // Distance & Duration calculation for pill badge (Direct Leg from Current Stop -> Next Stop)
   if (currWp && nextWp && currentWaypointIndex < valid.length - 1) {
-    const fromLat = currentPosition ? currentPosition.lat : currWp.lat!;
-    const fromLon = currentPosition ? currentPosition.lon : currWp.lon!;
+    let fromLat = currWp.lat!;
+    let fromLon = currWp.lon!;
+    
+    // Use live GPS position only if vehicle is close to the active stop (< 5 miles)
+    if (currentPosition) {
+      const distToCurr = haversineDistance(currentPosition.lat, currentPosition.lon, currWp.lat!, currWp.lon!);
+      if (distToCurr < 5.0) {
+        fromLat = currentPosition.lat;
+        fromLon = currentPosition.lon;
+      }
+    }
+
     const legMiles = haversineDistance(fromLat, fromLon, nextWp.lat!, nextWp.lon!);
-    const legMinutes = Math.round((legMiles / 45) * 60);
-    if (dashNextPill) dashNextPill.textContent = `${legMiles.toFixed(1)}mi • ${legMinutes}m`;
+    const totalMinutes = Math.round((legMiles / 45) * 60);
+    const estHours = Math.floor(totalMinutes / 60);
+    const estMins = totalMinutes % 60;
+    const timeStr = estHours > 0 ? `${estHours}h ${estMins}m` : `${estMins}m`;
+
+    if (dashNextPill) dashNextPill.textContent = `${legMiles.toFixed(1)}mi • ${timeStr}`;
   } else if (dashNextPill) {
     dashNextPill.textContent = "0.0mi • 0m";
   }
