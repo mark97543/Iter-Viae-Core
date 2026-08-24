@@ -231,7 +231,30 @@ html, body {
 
 
 .floating-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
+}
+
+/* LIVE ZOOM DEBUGGER PILL (MOBILE) */
+.zoom-debug-pill {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 95;
+  background: rgba(9, 9, 11, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(239, 68, 68, 0.7);
+  color: #ff4d4d;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.05em;
+  pointer-events: none;
 }
 
 

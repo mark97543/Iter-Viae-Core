@@ -2742,6 +2742,16 @@ function initializeMapSurface() {
     });
   }
 
+  // Map Zoom Debugger Listener
+  const zoomValEl = document.getElementById("zoom-level-val");
+  const updateZoomDebugDisplay = () => {
+    if (map && zoomValEl) {
+      zoomValEl.textContent = map.getZoom().toFixed(2);
+    }
+  };
+  map.on("zoom", updateZoomDebugDisplay);
+  updateZoomDebugDisplay();
+
   // Add Navigation & Fullscreen Controls
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
   map.addControl(new maplibregl.FullscreenControl(), "bottom-right");
