@@ -23,6 +23,8 @@ let lastSpokenTurnKey: string = "";
 let activeRouteCoordinates: [number, number][] = [];
 let autoDriveInterval: any = null;
 let isAutoDriving: boolean = false;
+let lastSpeedWarningTime: number = 0;
+const SPEED_WARNING_COOLDOWN_MS: number = 5 * 60 * 1000; // 5-minute cooldown between speed warnings
 
 // DOM Elements
 const speedDisplay = document.getElementById("speed-display");
@@ -192,9 +194,13 @@ function startGPSWatcher() {
         speedWarning.style.display = speedMph > 75 ? "block" : "none";
       }
 
-      // Voice Speeding Alert
+      // Voice Speeding Alert (Warns ONCE, then stays quiet for 5 minutes)
       if (speedMph > 75) {
-        assholeVoice.trigger("speed_warning");
+        const now = Date.now();
+        if (now - lastSpeedWarningTime > SPEED_WARNING_COOLDOWN_MS) {
+          lastSpeedWarningTime = now;
+          assholeVoice.trigger("speed_warning");
+        }
       }
 
       // Update Vehicle Marker on Map
