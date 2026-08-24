@@ -77,17 +77,6 @@
 
       <!-- Expedition Dashboard Card Deck (Matches wade-usa.com Screenshot Exactly) -->
       <section class="dash-cockpit-deck" id="dash-cockpit-deck">
-        <!-- Progress Header Bar inside Deck -->
-        <div class="route-progress-bar-container">
-          <div class="route-progress-info">
-            <span class="route-progress-title" id="dash-route-title">SELECT AN EXPEDITION ROUTE</span>
-            <span class="route-progress-pct" id="dash-route-pct">0%</span>
-          </div>
-          <div class="route-progress-track">
-            <div class="route-progress-fill" id="dash-progress-fill" style="width: 0%;"></div>
-          </div>
-        </div>
-
         <div class="dash-card">
           <!-- CURRENT LOCATION SECTION -->
           <div class="dash-section">
@@ -131,6 +120,17 @@
           <button id="btn-dash-gmaps" class="btn-dash-blue" title="Open Leg in Google Maps">🗺️</button>
         </div>
       </section>
+    </div>
+
+    <!-- Status & Progress Bar Spanning Entire Bottom Beneath Everything -->
+    <div class="route-progress-bar-container">
+      <div class="route-progress-info">
+        <span class="route-progress-title" id="dash-route-title">SELECT AN EXPEDITION ROUTE</span>
+        <span class="route-progress-pct" id="dash-route-pct">0%</span>
+      </div>
+      <div class="route-progress-track">
+        <div class="route-progress-fill" id="dash-progress-fill" style="width: 0%;"></div>
+      </div>
     </div>
 
     <!-- Saved Trips Logbook Modal -->

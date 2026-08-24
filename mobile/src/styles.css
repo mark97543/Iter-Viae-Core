@@ -569,12 +569,14 @@ html, body {
   gap: 10px;
 }
 
-/* Progress Bar inside Dashboard Deck */
+/* Progress Bar at Very Bottom of Screen (Spans 100% Width Beneath Everything) */
 .route-progress-bar-container {
   width: 100%;
-  background: transparent;
-  padding: 0 0 4px 0;
-  margin-bottom: 2px;
+  z-index: 100;
+  background: #0d0d0f;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 14px 6px 14px;
+  flex-shrink: 0;
 }
 
 .route-progress-info {
@@ -892,8 +894,7 @@ body.theme-day .btn-dash-square {
     display: flex;
     flex-direction: row;
     width: 100%;
-    height: calc(100vh - 38px);
-    height: calc(100dvh - 38px);
+    flex: 1;
     overflow: hidden;
   }
 
