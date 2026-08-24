@@ -24,6 +24,7 @@ let activeRouteCoordinates: [number, number][] = [];
 let autoDriveInterval: any = null;
 let isAutoDriving: boolean = false;
 let lastSpeedWarningTime: number = 0;
+let currentPostedSpeedLimit: number = 80; // Default 80 MPH highway speed limit
 const SPEED_WARNING_COOLDOWN_MS: number = 5 * 60 * 1000; // 5-minute cooldown between speed warnings
 
 // DOM Elements
@@ -188,14 +189,17 @@ function startGPSWatcher() {
 
       currentPosition = { lat, lon, speedMph, heading };
 
+      // Dynamic Speed Threshold (Default 88 MPH for 80 MPH highways)
+      const speedThreshold = Math.max(currentPostedSpeedLimit + 8, 88);
+
       // Update Speedometer UI
       if (speedDisplay) speedDisplay.textContent = `${speedMph}`;
       if (speedWarning) {
-        speedWarning.style.display = speedMph > 75 ? "block" : "none";
+        speedWarning.style.display = speedMph > speedThreshold ? "block" : "none";
       }
 
       // Voice Speeding Alert (Warns ONCE, then stays quiet for 5 minutes)
-      if (speedMph > 75) {
+      if (speedMph > speedThreshold) {
         const now = Date.now();
         if (now - lastSpeedWarningTime > SPEED_WARNING_COOLDOWN_MS) {
           lastSpeedWarningTime = now;
