@@ -50,42 +50,45 @@ html, body {
   z-index: 100;
 }
 
-.turn-icon-box {
-  width: 48px;
-  height: 48px;
-  background: #1e293b;
-  border: 2px solid var(--accent-cyan);
-  border-radius: 12px;
+.dash-app-branding {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  color: var(--accent-cyan);
-  flex-shrink: 0;
+  gap: 10px;
+  flex-grow: 1;
 }
 
-.turn-info {
-  flex-grow: 1;
+.dash-app-logo {
+  font-size: 1.5rem;
+}
+
+.dash-app-titles {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
-.turn-distance {
-  font-family: var(--font-mono);
-  font-size: 1.35rem;
+.dash-app-name {
+  font-size: 1.1rem;
   font-weight: 900;
-  color: var(--accent-cyan);
-  line-height: 1.1;
+  color: #ffffff;
+  letter-spacing: 0.08em;
+  margin: 0;
+  line-height: 1;
 }
 
-.turn-instruction {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.dash-app-sub {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.chip-load-route {
+  background: #e50914 !important;
+  color: #ffffff !important;
+  border-color: #e50914 !important;
+  font-weight: 900 !important;
 }
 
 .hud-meta-group {

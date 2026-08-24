@@ -10,16 +10,20 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   </head>
   <body class="mobile-cockpit-body">
-    <!-- Top HUD Guidance Banner -->
+    <!-- Top Expedition Dashboard Header -->
     <header class="hud-banner">
-      <div class="turn-icon-box" id="turn-icon-container">
-        <span id="turn-icon">➔</span>
-      </div>
-      <div class="turn-info">
-        <div class="turn-distance" id="next-wp-distance">-- MI</div>
-        <div class="turn-instruction" id="next-wp-title">No Route Loaded</div>
+      <div class="dash-app-branding">
+        <span class="dash-app-logo">🧭</span>
+        <div class="dash-app-titles">
+          <h1 class="dash-app-name">ITER VIAE</h1>
+          <span class="dash-app-sub">EXPEDITION TRIP DASHBOARD</span>
+        </div>
       </div>
       <div class="hud-meta-group">
+        <button id="btn-open-trips" class="hud-chip chip-load-route" title="Load Expedition Route">
+          <span class="chip-icon">📂</span>
+          <span>ROUTES</span>
+        </button>
         <button id="btn-mobile-auth" class="hud-chip chip-auth" title="PocketBase Account Sign In">
           <span class="chip-icon">🔑</span>
           <span id="auth-status-text">SIGN IN</span>
@@ -28,9 +32,6 @@
           <span class="chip-icon">🤖</span>
           <span id="voice-mode-label">SARCASTIC</span>
         </button>
-        <div class="hud-chip chip-wakelock" id="wakelock-indicator" title="Screen Wake Lock Active">
-          <span class="wakelock-dot"></span> WAKE LOCK
-        </div>
       </div>
     </header>
 
@@ -138,36 +139,6 @@
         <button id="btn-dash-gmaps" class="btn-dash-blue" title="Open Leg in Google Maps">🗺️</button>
       </div>
     </section>
-
-    <!-- Bottom Tactical Cockpit Dock -->
-    <footer class="cockpit-dock">
-      <div class="dock-metrics-row">
-        <div class="metric-cell">
-          <div class="metric-label">REMAINING DIST</div>
-          <div class="metric-val" id="dock-dist-val">-- MI</div>
-        </div>
-        <div class="metric-cell">
-          <div class="metric-label">ETA COUNTDOWN</div>
-          <div class="metric-val" id="dock-eta-val">--H --M</div>
-        </div>
-        <div class="metric-cell">
-          <div class="metric-label">CURRENT TRIP</div>
-          <div class="metric-val trip-title-truncate" id="dock-trip-title">None</div>
-        </div>
-      </div>
-
-      <div class="dock-actions-row">
-        <button id="btn-open-trips" class="dock-btn btn-primary">
-          <span>📂</span> Load Route
-        </button>
-        <button id="btn-test-asshole" class="dock-btn btn-secondary">
-          <span>🗣️</span> Voice Test
-        </button>
-        <button id="btn-wakelock-toggle" class="dock-btn btn-secondary">
-          <span>💡</span> Screen Lock
-        </button>
-      </div>
-    </footer>
 
     <!-- Saved Trips Logbook Modal -->
     <div class="modal-overlay" id="mobile-trips-modal" style="display: none;">
