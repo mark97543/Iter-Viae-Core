@@ -1,7 +1,6 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, SavedTripRecord } from "./pocketbase";
-import { assholeVoice, VoiceMode, DialogueCategory } from "./asshole-voice";
 import { haversineDistance, formatDistance, formatDuration, fetchExpeditionRoute } from "./valhalla";
 
 console.log("ITER VIAE Mobile Tactical Cockpit initialized.");
@@ -218,14 +217,7 @@ function startGPSWatcher() {
         speedWarning.style.display = speedMph > speedThreshold ? "block" : "none";
       }
 
-      // Voice Speeding Alert (Warns ONCE, then stays quiet for 5 minutes)
-      if (speedMph > speedThreshold) {
-        const now = Date.now();
-        if (now - lastSpeedWarningTime > SPEED_WARNING_COOLDOWN_MS) {
-          lastSpeedWarningTime = now;
-          assholeVoice.trigger("speed_warning");
-        }
-      }
+      // Speeding indicator updated on visual badge above
 
       // Update Vehicle Marker on Map
       if (vehicleMarker && map) {
@@ -280,7 +272,7 @@ function updateNavigationMetrics() {
     const relBearing = (bearingToNext - (currentPosition.heading || 0) + 360) % 360;
 
     let arrowSymbol = "⬆️";
-    let turnCategory: DialogueCategory = "turn_straight";
+    let turnCategory: string = "turn_straight";
 
     if (relBearing > 30 && relBearing <= 75) { arrowSymbol = "↗️"; turnCategory = "turn_right"; }
     else if (relBearing > 75 && relBearing <= 115) { arrowSymbol = "➔"; turnCategory = "turn_right"; }
@@ -327,7 +319,6 @@ function updateNavigationMetrics() {
       // Spoken turn announcement: Trigger ONCE per approach milestone (1mile -> 1000ft -> 500ft -> 200ft)
       if (turnKey !== lastSpokenTurnKey) {
         lastSpokenTurnKey = turnKey;
-        assholeVoice.trigger(turnCategory, customTurnSpeech, true);
       }
     }
 
@@ -337,7 +328,6 @@ function updateNavigationMetrics() {
         // Shaping point: Pass right through without stopping
         currentWaypointIndex++;
         showToast(`Passed shaping point "${nextWp.title || `Point #${currentWaypointIndex}`}".`);
-        assholeVoice.speakRaw("Passing shaping point.");
         renderActiveRouteOnMap();
       } else {
         // Major Checkpoint / Stop: Open Arrival Screen Modal
@@ -348,7 +338,6 @@ function updateNavigationMetrics() {
           if (arrivalWpNotes) arrivalWpNotes.textContent = nextWp.notes || nextWp.description || nextWp.briefing || "No field notes or briefing provided for this checkpoint.";
           
           if (mobileArrivalModal) mobileArrivalModal.style.display = "flex";
-          assholeVoice.trigger("waypoint_arrival", `Arriving at checkpoint: ${nextWp.title}`);
         }
       }
     }
@@ -370,11 +359,6 @@ function updateNavigationMetrics() {
     if (dockDistVal) dockDistVal.textContent = formatDistance(totalRemainingDist);
     if (dockEtaVal) dockEtaVal.textContent = formatDuration(etaSeconds);
     if (compassWpTarget) compassWpTarget.textContent = `TARGET: ${nextWp.title || "Next Waypoint"}`;
-
-    // Off Route Check (> 0.25 miles from nearest leg)
-    if (distToNext > 5.0 && currentPosition.speedMph > 20) {
-      assholeVoice.trigger("off_route");
-    }
   }
 }
 
@@ -758,7 +742,6 @@ function setActiveTrip(record: SavedTripRecord) {
 
   renderActiveRouteOnMap();
   renderDashboardDeck(true);
-  assholeVoice.trigger("route_start");
   showToast(`Expedition "${record.title}" loaded into Mobile Cockpit!`);
 }
 
@@ -819,7 +802,7 @@ if (arrivalModalClose) {
 if (btnReadNotes) {
   btnReadNotes.addEventListener("click", () => {
     if (arrivalWpNotes && arrivalWpNotes.textContent) {
-      assholeVoice.speakRaw(arrivalWpNotes.textContent, true);
+      showToast(arrivalWpNotes.textContent);
     }
   });
 }
@@ -829,7 +812,6 @@ if (btnCompleteWaypoint) {
     currentWaypointIndex++;
     if (mobileArrivalModal) mobileArrivalModal.style.display = "none";
     showToast("Checkpoint completed! Route updated.");
-    assholeVoice.speakRaw("Checkpoint completed. Resuming expedition navigation.", true);
     renderActiveRouteOnMap();
   });
 }
@@ -923,7 +905,6 @@ if (btnDashNext) {
     if (valid.length === 0) return;
     currentWaypointIndex = Math.min(valid.length - 1, currentWaypointIndex + 1);
     renderDashboardDeck(true);
-    assholeVoice.trigger("waypoint_arrival");
   });
 }
 
@@ -1044,13 +1025,6 @@ if (btnDebugPlay) {
   });
 }
 
-if (btnVoiceMode) {
-  btnVoiceMode.addEventListener("click", () => {
-    const newMode = assholeVoice.toggleMode();
-    if (voiceModeLabel) voiceModeLabel.textContent = newMode.toUpperCase();
-  });
-}
-
 if (btnRecenter) {
   btnRecenter.addEventListener("click", () => {
     autoFollowVehicle = true;
@@ -1085,12 +1059,6 @@ if (tripsModalClose) {
   });
 }
 
-if (btnTestAsshole) {
-  btnTestAsshole.addEventListener("click", () => {
-    assholeVoice.trigger("voice_test", undefined, true);
-  });
-}
-
 if (btnWakelockToggle) {
   btnWakelockToggle.addEventListener("click", () => {
     requestScreenWakeLock();
@@ -1104,8 +1072,4 @@ document.addEventListener("DOMContentLoaded", () => {
   initCompassGyro();
   requestScreenWakeLock();
   updateAuthUI();
-
-  // Unlock Speech Synthesis on first user click/tap anywhere on page
-  document.addEventListener("click", () => assholeVoice.unlockSpeech());
-  document.addEventListener("touchstart", () => assholeVoice.unlockSpeech());
 });
