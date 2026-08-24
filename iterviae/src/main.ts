@@ -2728,7 +2728,7 @@ function initializeMapSurface() {
     center: DEFAULT_CENTER,
     zoom: 13,
     minZoom: 3,
-    maxZoom: 17,
+    maxZoom: 16.8,
     pitch: 0,
     bearing: 0,
     attributionControl: false

@@ -111,7 +111,7 @@ function initMobileMap() {
     center: [-111.9679844, 43.4704308], // Default Idaho Falls
     zoom: 13,
     minZoom: 3,
-    maxZoom: 17,
+    maxZoom: 16.8,
     pitch: 45,
     attributionControl: false
   });
