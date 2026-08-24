@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#e50914" />
+    <link rel="manifest" href="/manifest.json" />
     <title>ITER VIAE — Tactical Mobile Cockpit</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,6 +25,10 @@
         </div>
       </div>
       <div class="hud-meta-group">
+        <button id="btn-theme-toggle" class="hud-chip chip-theme" title="Toggle Day / Night OLED Theme">
+          <span>☀️</span>
+          <span id="theme-label">DAY</span>
+        </button>
         <button id="btn-open-trips" class="hud-chip chip-load-route" title="Load Expedition Route">
           <span class="chip-icon">📂</span>
           <span>ROUTES</span>
@@ -31,95 +40,98 @@
       </div>
     </header>
 
-    <!-- Navigation Map Canvas -->
-    <main class="map-viewport">
-      <div id="mobile-map" class="mobile-map-container"></div>
+    <!-- Main Content Area with Landscape Split Container -->
+    <div class="landscape-split-container">
+      <!-- Navigation Map Canvas -->
+      <main class="map-viewport">
+        <div id="mobile-map" class="mobile-map-container"></div>
 
-      <!-- Floating Map Control Buttons -->
-      <div class="map-floating-controls">
-        <button id="btn-recenter" class="floating-btn" title="Recenter Camera on GPS Vehicle">
-          <span>🎯</span>
-        </button>
-        <button id="btn-compass-toggle" class="floating-btn" title="360° Compass Mode">
-          <span>🧭</span>
-        </button>
+        <!-- Floating Map Control Buttons -->
+        <div class="map-floating-controls">
+          <button id="btn-recenter" class="floating-btn" title="Recenter Camera on GPS Vehicle">
+            <span>🎯</span>
+          </button>
+          <button id="btn-compass-toggle" class="floating-btn" title="360° Compass Mode">
+            <span>🧭</span>
+          </button>
+        </div>
+
+        <!-- 360° Tactical Compass Overlay (Hidden by default) -->
+        <div class="compass-overlay" id="compass-overlay" style="display: none;">
+          <div class="compass-ring-container">
+            <div class="compass-dial" id="compass-dial">
+              <span class="cardinal cardinal-n">N</span>
+              <span class="cardinal cardinal-e">E</span>
+              <span class="cardinal cardinal-s">S</span>
+              <span class="cardinal cardinal-w">W</span>
+            </div>
+            <div class="target-bearing-pointer" id="bearing-pointer">▲</div>
+            <div class="compass-readout">
+              <div class="heading-deg" id="heading-deg-display">000°</div>
+              <div class="target-wp-name" id="compass-wp-target">TARGET: --</div>
+            </div>
+          </div>
+          <button id="btn-close-compass" class="btn btn-outline btn-sm">Close Compass Mode</button>
+        </div>
+      </main>
+
+      <!-- Progress Header Bar under top bar -->
+      <div class="route-progress-bar-container">
+        <div class="route-progress-info">
+          <span class="route-progress-title" id="dash-route-title">SELECT AN EXPEDITION ROUTE</span>
+          <span class="route-progress-pct" id="dash-route-pct">0%</span>
+        </div>
+        <div class="route-progress-track">
+          <div class="route-progress-fill" id="dash-progress-fill" style="width: 0%;"></div>
+        </div>
       </div>
 
-      <!-- 360° Tactical Compass Overlay (Hidden by default) -->
-      <div class="compass-overlay" id="compass-overlay" style="display: none;">
-        <div class="compass-ring-container">
-          <div class="compass-dial" id="compass-dial">
-            <span class="cardinal cardinal-n">N</span>
-            <span class="cardinal cardinal-e">E</span>
-            <span class="cardinal cardinal-s">S</span>
-            <span class="cardinal cardinal-w">W</span>
+      <!-- Expedition Dashboard Card Deck (Matches wade-usa.com Screenshot Exactly) -->
+      <section class="dash-cockpit-deck" id="dash-cockpit-deck">
+        <div class="dash-card">
+          <!-- CURRENT LOCATION SECTION -->
+          <div class="dash-section">
+            <div class="dash-section-label">CURRENT LOCATION</div>
+            <h2 class="dash-location-title" id="dash-curr-title">No Expedition Active</h2>
+            <div class="dash-meta-grid">
+              <div class="dash-meta-item">
+                <span class="meta-item-label">DEPARTING AT</span>
+                <span class="meta-item-val" id="dash-curr-depart">--</span>
+              </div>
+              <div class="dash-meta-item meta-item-right">
+                <span class="meta-item-label">BUDGET</span>
+                <span class="meta-item-val" id="dash-curr-budget">$0.00</span>
+              </div>
+            </div>
           </div>
-          <div class="target-bearing-pointer" id="bearing-pointer">▲</div>
-          <div class="compass-readout">
-            <div class="heading-deg" id="heading-deg-display">000°</div>
-            <div class="target-wp-name" id="compass-wp-target">TARGET: --</div>
+
+          <!-- NEXT DESTINATION SECTION -->
+          <div class="dash-section dash-section-next">
+            <div class="dash-section-label">NEXT DESTINATION</div>
+            <h2 class="dash-location-title" id="dash-next-title">Load Route to Start</h2>
+            <div class="dash-next-meta-row">
+              <div class="dash-meta-item">
+                <span class="meta-item-label">EST. ARRIVAL</span>
+                <span class="meta-item-val" id="dash-next-arrival">--</span>
+              </div>
+              <div class="dash-pill-badge" id="dash-next-pill">0.0mi • 0m</div>
+            </div>
+          </div>
+
+          <!-- BRIEFING / NOTES BOX -->
+          <div class="dash-notes-box" id="dash-notes-box">
+            <div class="dash-notes-text" id="dash-notes-text">Select an expedition route from the logbook to start tracking legs and launching Google Maps navigation.</div>
           </div>
         </div>
-        <button id="btn-close-compass" class="btn btn-outline btn-sm">Close Compass Mode</button>
-      </div>
-    </main>
 
-    <!-- Progress Header Bar under top bar -->
-    <div class="route-progress-bar-container">
-      <div class="route-progress-info">
-        <span class="route-progress-title" id="dash-route-title">SELECT AN EXPEDITION ROUTE</span>
-        <span class="route-progress-pct" id="dash-route-pct">0%</span>
-      </div>
-      <div class="route-progress-track">
-        <div class="route-progress-fill" id="dash-progress-fill" style="width: 0%;"></div>
-      </div>
+        <!-- BOTTOM ACTION BAR MATCHING SCREENSHOT EXACTLY -->
+        <div class="dash-action-bar">
+          <button id="btn-dash-prev" class="btn-dash-square" title="Previous Leg">&larr;</button>
+          <button id="btn-dash-next" class="btn-dash-primary" title="Advance Leg">NEXT LEG</button>
+          <button id="btn-dash-gmaps" class="btn-dash-blue" title="Open Leg in Google Maps">🗺️</button>
+        </div>
+      </section>
     </div>
-
-    <!-- Expedition Dashboard Card Deck (Matches wade-usa.com Screenshot Exactly) -->
-    <section class="dash-cockpit-deck" id="dash-cockpit-deck">
-      <div class="dash-card">
-        <!-- CURRENT LOCATION SECTION -->
-        <div class="dash-section">
-          <div class="dash-section-label">CURRENT LOCATION</div>
-          <h2 class="dash-location-title" id="dash-curr-title">No Expedition Active</h2>
-          <div class="dash-meta-grid">
-            <div class="dash-meta-item">
-              <span class="meta-item-label">DEPARTING AT</span>
-              <span class="meta-item-val" id="dash-curr-depart">--</span>
-            </div>
-            <div class="dash-meta-item meta-item-right">
-              <span class="meta-item-label">BUDGET</span>
-              <span class="meta-item-val" id="dash-curr-budget">$0.00</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- NEXT DESTINATION SECTION -->
-        <div class="dash-section dash-section-next">
-          <div class="dash-section-label">NEXT DESTINATION</div>
-          <h2 class="dash-location-title" id="dash-next-title">Load Route to Start</h2>
-          <div class="dash-next-meta-row">
-            <div class="dash-meta-item">
-              <span class="meta-item-label">EST. ARRIVAL</span>
-              <span class="meta-item-val" id="dash-next-arrival">--</span>
-            </div>
-            <div class="dash-pill-badge" id="dash-next-pill">0.0mi • 0m</div>
-          </div>
-        </div>
-
-        <!-- BRIEFING / NOTES BOX -->
-        <div class="dash-notes-box" id="dash-notes-box">
-          <div class="dash-notes-text" id="dash-notes-text">Select an expedition route from the logbook to start tracking legs and launching Google Maps navigation.</div>
-        </div>
-      </div>
-
-      <!-- BOTTOM ACTION BAR MATCHING SCREENSHOT EXACTLY -->
-      <div class="dash-action-bar">
-        <button id="btn-dash-prev" class="btn-dash-square" title="Previous Leg">&larr;</button>
-        <button id="btn-dash-next" class="btn-dash-primary" title="Advance Leg">NEXT LEG</button>
-        <button id="btn-dash-gmaps" class="btn-dash-blue" title="Open Leg in Google Maps">🗺️</button>
-      </div>
-    </section>
 
     <!-- Saved Trips Logbook Modal -->
     <div class="modal-overlay" id="mobile-trips-modal" style="display: none;">

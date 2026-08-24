@@ -919,6 +919,63 @@ if (btnWakelockToggle) {
   });
 }
 
+// 1. Service Worker PWA Registration for Offline Caching
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then(
+      (reg) => console.log("Iter Viae ServiceWorker registered:", reg.scope),
+      (err) => console.warn("Iter Viae ServiceWorker registration failed:", err)
+    );
+  });
+}
+
+// 2. Sunlight / Night OLED Theme Toggle Logic
+const btnThemeToggle = document.getElementById("btn-theme-toggle");
+const themeLabel = document.getElementById("theme-label");
+
+if (btnThemeToggle) {
+  btnThemeToggle.addEventListener("click", () => {
+    const isDay = document.body.classList.toggle("theme-day");
+    if (themeLabel) {
+      themeLabel.textContent = isDay ? "NIGHT" : "DAY";
+    }
+    const icon = btnThemeToggle.querySelector("span");
+    if (icon) {
+      icon.textContent = isDay ? "🌙" : "☀️";
+    }
+    showToast(isDay ? "☀️ Sunlight Day Mode Engaged" : "🌙 Night OLED Mode Engaged");
+  });
+}
+
+// 3. Glove-Friendly Touch Swipe Gestures on Dashboard Deck
+const dashDeckEl = document.getElementById("dash-cockpit-deck");
+let touchStartX = 0;
+let touchStartY = 0;
+
+if (dashDeckEl) {
+  dashDeckEl.addEventListener("touchstart", (e: TouchEvent) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  dashDeckEl.addEventListener("touchend", (e: TouchEvent) => {
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX < 0) {
+        // Swipe Left -> Next Leg
+        if (btnDashNext) (btnDashNext as HTMLElement).click();
+      } else {
+        // Swipe Right -> Previous Leg
+        if (btnDashPrev) (btnDashPrev as HTMLElement).click();
+      }
+    }
+  }, { passive: true });
+}
+
 // Initialize Application
 document.addEventListener("DOMContentLoaded", () => {
   initMobileMap();
