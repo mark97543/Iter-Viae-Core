@@ -1,4 +1,4 @@
-// Routing Service with Multi-Engine Fallback (OSRM + Valhalla + Haversine Geodesic)
+// Routing Service with Multi-Engine Fallback & Unlimited Waypoint Batching
 
 export interface RouteLocation {
   lat: number;
@@ -49,7 +49,6 @@ function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
     const legDuration = (dist / 50) * 3600;
     legs.push({ distanceMi: dist, durationSec: legDuration });
 
-    // Subdivide into 15 intermediate points per leg for smooth curve rendering
     const steps = 15;
     for (let s = 0; s <= steps; s++) {
       const frac = s / steps;
@@ -70,38 +69,32 @@ function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
 }
 
 /**
- * Main Routing Engine Fetcher:
- * Tries OSRM turn-by-turn routing with extended search radii (2km -> unlimited), falls back to Geodesic line
+ * Single batch fetcher (max 25 locations per request)
  */
-export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<RouteResult> {
+async function fetchSingleBatchRoute(locations: RouteLocation[]): Promise<RouteResult> {
   if (locations.length < 2) {
     return { coordinates: [], distanceMi: 0, durationSec: 0, legs: [] };
   }
 
   const locString = locations.map((loc) => `${loc.lon},${loc.lat}`).join(";");
-  
-  // Standard OSRM Route Request (OSRM automatically snaps any off-road/house coordinate to the nearest road node)
   const standardUrl = `https://router.project-osrm.org/route/v1/driving/${locString}?overview=full&geometries=geojson&continue_straight=false`;
 
   try {
-    console.log("Fetching Turn-by-Turn Route from Routing Engine (auto road snapping):", standardUrl);
     let res = await fetch(standardUrl);
     let data = res.ok ? await res.json() : null;
 
-    // Fallback attempt with explicit unlimited radii
     if (!data || data.code !== "Ok" || !data.routes || data.routes.length === 0) {
       const unlimitedRadii = locations.map(() => "unlimited").join(";");
       const fallbackUrl = `https://router.project-osrm.org/route/v1/driving/${locString}?overview=full&geometries=geojson&radiuses=${unlimitedRadii}&continue_straight=false`;
-      console.warn("Standard snapping returned no route, retrying with UNLIMITED radii:", fallbackUrl);
       res = await fetch(fallbackUrl);
       data = res.ok ? await res.json() : null;
     }
 
     if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
       const route = data.routes[0];
-      const coordinates: [number, number][] = route.geometry.coordinates; // [[lon, lat], ...]
-      const distanceMi = route.distance * 0.000621371; // meters to miles
-      const durationSec = route.duration; // seconds
+      const coordinates: [number, number][] = route.geometry.coordinates;
+      const distanceMi = route.distance * 0.000621371;
+      const durationSec = route.duration;
 
       const legs: LegMetric[] = (route.legs || []).map((leg: any) => ({
         distanceMi: leg.distance * 0.000621371,
@@ -111,10 +104,60 @@ export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<
       return { coordinates, distanceMi, durationSec, legs };
     }
   } catch (err) {
-    console.warn("OSRM Route fetch failed, falling back to Geodesic path:", err);
+    console.warn("Batch OSRM fetch failed, using geodesic segment:", err);
   }
 
-  // Fallback to Smooth Geodesic Route if OSRM is unavailable or fails completely
-  console.log("Using Geodesic Fallback Path Engine...");
   return generateGeodesicFallback(locations);
+}
+
+/**
+ * Main Infinite Routing Engine Fetcher:
+ * Automatically batches locations into chunks of 25 to support unlimited waypoints
+ */
+export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<RouteResult> {
+  if (locations.length < 2) {
+    return { coordinates: [], distanceMi: 0, durationSec: 0, legs: [] };
+  }
+
+  const MAX_BATCH_SIZE = 25;
+
+  if (locations.length <= MAX_BATCH_SIZE) {
+    return fetchSingleBatchRoute(locations);
+  }
+
+  console.log(`Unlimited Batch Routing: Splitting ${locations.length} waypoints into batches of ${MAX_BATCH_SIZE}...`);
+  const batches: RouteLocation[][] = [];
+  let index = 0;
+
+  while (index < locations.length - 1) {
+    const end = Math.min(index + MAX_BATCH_SIZE, locations.length);
+    batches.push(locations.slice(index, end));
+    index = end - 1;
+  }
+
+  const results = await Promise.all(batches.map((batch) => fetchSingleBatchRoute(batch)));
+
+  const combinedCoordinates: [number, number][] = [];
+  let totalDistanceMi = 0;
+  let totalDurationSec = 0;
+  const combinedLegs: LegMetric[] = [];
+
+  results.forEach((res, idx) => {
+    totalDistanceMi += res.distanceMi;
+    totalDurationSec += res.durationSec;
+    combinedLegs.push(...res.legs);
+
+    if (idx === 0) {
+      combinedCoordinates.push(...res.coordinates);
+    } else {
+      combinedCoordinates.push(...res.coordinates.slice(1));
+    }
+  });
+
+  return {
+    coordinates: combinedCoordinates,
+    distanceMi: totalDistanceMi,
+    durationSec: totalDurationSec,
+    legs: combinedLegs
+  };
 }
