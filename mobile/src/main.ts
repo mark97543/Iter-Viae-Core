@@ -934,6 +934,30 @@ if (btnWakelockToggle) {
   });
 }
 
+// Fullscreen API Toggle Handler (Hide Chrome URL Bar & Navigation Chrome)
+const btnFullscreenToggle = document.getElementById("btn-fullscreen-toggle");
+
+if (btnFullscreenToggle) {
+  btnFullscreenToggle.addEventListener("click", () => {
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+      const docEl = document.documentElement as any;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch(() => {});
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      }
+      showToast("📺 Fullscreen Engaged! Chrome URL bar hidden.");
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+      showToast("Fullscreen Exited.");
+    }
+  });
+}
+
 // 1. Service Worker PWA Registration for Offline Caching
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
