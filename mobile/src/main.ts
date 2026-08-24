@@ -34,12 +34,6 @@ const dockTripTitle = document.getElementById("dock-trip-title");
 const mobileTripsModal = document.getElementById("mobile-trips-modal");
 const mobileTripsList = document.getElementById("mobile-trips-list");
 const tripsLoadingSpinner = document.getElementById("trips-loading-spinner");
-const compassOverlay = document.getElementById("compass-overlay");
-const compassDial = document.getElementById("compass-dial");
-const bearingPointer = document.getElementById("bearing-pointer");
-const headingDegDisplay = document.getElementById("heading-deg-display");
-const compassWpTarget = document.getElementById("compass-wp-target");
-
 // Buttons & Auth Elements
 const btnMobileAuth = document.getElementById("btn-mobile-auth");
 const authStatusText = document.getElementById("auth-status-text");
@@ -81,8 +75,6 @@ const btnDashNext = document.getElementById("btn-dash-next");
 const btnDashGmaps = document.getElementById("btn-dash-gmaps");
 
 const btnRecenter = document.getElementById("btn-recenter");
-const btnCompassToggle = document.getElementById("btn-compass-toggle");
-const btnCloseCompass = document.getElementById("btn-close-compass");
 const btnOpenTrips = document.getElementById("btn-open-trips");
 const btnTestAsshole = document.getElementById("btn-test-asshole");
 const btnWakelockToggle = document.getElementById("btn-wakelock-toggle");
@@ -301,7 +293,7 @@ function updateNavigationMetrics() {
 
     if (dockDistVal) dockDistVal.textContent = formatDistance(totalRemainingDist);
     if (dockEtaVal) dockEtaVal.textContent = formatDuration(etaSeconds);
-    if (compassWpTarget) compassWpTarget.textContent = `TARGET: ${nextWp.title || "Next Waypoint"}`;
+
   }
 }
 
@@ -560,46 +552,6 @@ async function requestScreenWakeLock() {
     }
   } else {
     showToast("Wake Lock API not supported in this browser.");
-  }
-}
-
-// 360° Compass & Gyro Tracking
-function initCompassGyro() {
-  if (window.DeviceOrientationEvent) {
-    window.addEventListener("deviceorientation", (e) => {
-      let heading = e.alpha || 0;
-      if ((e as any).webkitCompassHeading) {
-        heading = (e as any).webkitCompassHeading; // iOS Safari
-      }
-
-      currentDeviceHeading = Math.round(heading);
-
-      if (headingDegDisplay) {
-        headingDegDisplay.textContent = `${String(currentDeviceHeading).padStart(3, "0")}°`;
-      }
-
-      if (compassDial) {
-        compassDial.style.transform = `rotate(${-currentDeviceHeading}deg)`;
-      }
-
-      // Calculate Target Bearing Pointer to next waypoint
-      if (activeTrip && currentPosition) {
-        const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
-        const nextWp = valid[currentWaypointIndex];
-        if (nextWp) {
-          const bearingToWp = calculateBearing(
-            currentPosition.lat,
-            currentPosition.lon,
-            nextWp.lat,
-            nextWp.lon
-          );
-          const relativePointerDeg = bearingToWp - currentDeviceHeading;
-          if (bearingPointer) {
-            bearingPointer.style.transform = `rotate(${relativePointerDeg}deg)`;
-          }
-        }
-      }
-    });
   }
 }
 
@@ -903,17 +855,7 @@ if (btnRecenter) {
   });
 }
 
-if (btnCompassToggle) {
-  btnCompassToggle.addEventListener("click", () => {
-    if (compassOverlay) compassOverlay.style.display = "flex";
-  });
-}
 
-if (btnCloseCompass) {
-  btnCloseCompass.addEventListener("click", () => {
-    if (compassOverlay) compassOverlay.style.display = "none";
-  });
-}
 
 if (btnOpenTrips) {
   btnOpenTrips.addEventListener("click", () => {
@@ -1019,7 +961,6 @@ if (dashDeckEl) {
 document.addEventListener("DOMContentLoaded", () => {
   initMobileMap();
   startGPSWatcher();
-  initCompassGyro();
   requestScreenWakeLock();
   updateAuthUI();
 });
