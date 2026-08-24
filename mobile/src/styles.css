@@ -969,6 +969,24 @@ body.theme-day .btn-dash-square {
     font-size: 0.95rem;
     border-radius: 12px;
   }
+
+  /* Ultra-Lean Progress Bar in Landscape Mode: 3px line at very bottom, text hidden */
+  .route-progress-bar-container {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    height: 3px !important;
+    min-height: 3px !important;
+  }
+
+  .route-progress-info {
+    display: none !important;
+  }
+
+  .route-progress-track {
+    height: 3px !important;
+    border-radius: 0 !important;
+  }
 }
 
 @keyframes fadeIn {
