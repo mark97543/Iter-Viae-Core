@@ -400,8 +400,12 @@ function renderDashboardDeck(focusMap = false) {
     dashNotesText.textContent = currWp.notes || currWp.description || currWp.briefing || currWp.title || "No field notes provided for this stop.";
   }
 
-  if (focusMap && map && currWp.lat && currWp.lon) {
-    map.easeTo({ center: [currWp.lon, currWp.lat], zoom: 14, duration: 400 });
+  if (focusMap && map) {
+    if (currentPosition) {
+      map.easeTo({ center: [currentPosition.lon, currentPosition.lat], zoom: 14, duration: 400 });
+    } else if (currWp.lat && currWp.lon) {
+      map.easeTo({ center: [currWp.lon, currWp.lat], zoom: 14, duration: 400 });
+    }
   }
 }
 
