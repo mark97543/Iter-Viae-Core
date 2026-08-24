@@ -118,16 +118,6 @@ function initMobileMap() {
 
   map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
 
-  // Live Zoom Level Debugger Listener
-  const mobileZoomValEl = document.getElementById("mobile-zoom-val");
-  const updateMobileZoomDebug = () => {
-    if (map && mobileZoomValEl) {
-      mobileZoomValEl.textContent = map.getZoom().toFixed(2);
-    }
-  };
-  map.on("zoom", updateMobileZoomDebug);
-  updateMobileZoomDebug();
-
   // Create Vehicle Marker Element (Iter Viae Tactical Arrow)
   const vehicleEl = document.createElement("div");
   vehicleEl.className = "vehicle-arrow-marker";
