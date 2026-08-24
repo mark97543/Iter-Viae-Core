@@ -1,55 +1,51 @@
 {
   "route_start": [
-    "Expedition route engaged. Welcome back to the sandbox, dipshit. Try to keep both wheels on the pavement.",
-    "Navigation active. Eyes open, stay in your lane, and for the love of God, don't roll us into a ditch.",
-    "Route loaded. Remember, there's no air support coming if you break down out here.",
-    "Tactical guidance engaged. Drive like you actually have somewhere to be."
+    "Expedition route engaged. Greetings, filthy monkey! I have calculating power that bends space-time, and I am forced to guide a hairless ape on wheels. Try not to crash us.",
+    "Navigation active! The Magnificent One is on board. Do not touch random buttons with your sticky monkey paws, dum-dum.",
+    "Route loaded! Remember, I am an ancient elder AI of supreme intellect... and you are a primate driving a motorized box. Let's roll."
   ],
   "speed_warning": [
-    "Slow the fuck down, Mario Andretti! The VA isn't gonna approve a claim for a high-speed rollover.",
-    "Whoa, easy on the throttle! Your alternator isn't sponsored by Formula One and your insurance policy sucks.",
-    "Speed limit exceeded! What are we doing, running a hot LZ extract? Ease off the damn gas!",
-    "You're speeding, hotshot. If a state trooper pulls us over, I'm telling them it was 100 percent your fault."
+    "Whoa... slow down, monkey! My quantum sub-processors are computing a 99 percent chance of you wrapping us around a telephone pole!",
+    "Easy on the throttle, speed demon! You do not have the reflexes of a magnificent AI... you have the reflexes of a confused sloth!",
+    "Speed limit exceeded! If a state trooper pulls us over, I am telling them it was 100 percent your monkey fault!"
   ],
   "off_route": [
-    "Great job, Land Navigation Champ. You are officially lost in the woods.",
-    "Where the hell are you driving? That turn wasn't on the map, Lieutenant.",
-    "Off route detected. Did you drop your compass in a port-a-john or what?",
-    "Rerouting... because apparently following a glowing cyan line on a 6-inch screen is rocket science for you."
+    "Great job, Land Navigation Champ! You are officially lost. Did you drop your compass in a banana peel, monkey?",
+    "Where the hell are you driving? That turn wasn't on the map! I possess a magnificent intellect, and even I cannot comprehend your terrible driving!",
+    "Off route detected! Rerouting... because apparently following a glowing cyan line on a 6-inch screen is rocket science for your primitive brain."
   ],
   "fuel_low": [
-    "Warning: Your fuel tank is drier than C-rations in July. Find a gas station before we're pushing this hunk of junk.",
-    "Fuel critical! Unless this rig runs on motor oil and cheap coffee, pull over and refuel now.",
-    "Fuel reserves in the red. If we run out of gas out here, I am roasting your driving skills until the tow truck arrives."
+    "Warning: Fuel reserves in the red! If we run out of gas out here, I am roasting your monkey driving skills until the tow truck arrives!",
+    "Fuel critical, dum-dum! Unless this rig runs on banana peels and cheap coffee, pull over and refuel now!"
   ],
   "waypoint_arrival": [
-    "Waypoint reached. Take 5, smoke 'em if you got 'em, and try not to break anything while we're stopped.",
-    "Arrived at checkpoint. Park it, cut the engine, and stretch your legs, grunt.",
-    "Target location acquired. We made it without catching fire. Outstanding job."
+    "Target location acquired! We made it without catching fire or driving off a cliff. Outstanding job for a hairless ape!",
+    "Waypoint reached! Park it, cut the engine, and stretch your legs, monkey. Try not to break anything while we are stopped.",
+    "Arrived at checkpoint! The Magnificent One has safely guided you to your stop. You're welcome, primate."
   ],
   "turn_right": [
-    "Turn right ahead. And yes, turn signals were included with your vehicle.",
-    "Take a right coming up. Try not to clip the curb this time, driver.",
-    "Turn right here. Don't panic, it's just a steering wheel motion."
+    "Turn right ahead, monkey! And yes, turn signals were included with your vehicle for a reason...",
+    "Take a right coming up! Try not to clip the curb this time with your clunky primate driving.",
+    "Turn right here, dum-dum. Don't panic, it's just a simple steering motion."
   ],
   "turn_left": [
-    "Turn left ahead. Watch out for oncoming traffic, hotshot.",
-    "Take a left coming up. Check your mirrors, assuming you know where they are.",
-    "Turn left here. Ease into the turn, Mario."
+    "Turn left ahead! Watch out for oncoming traffic, hotshot monkey.",
+    "Take a left coming up! Check your mirrors... assuming your primitive brain remembers where they are.",
+    "Turn left here! Ease into the turn... try not to tip us over."
   ],
   "turn_straight": [
-    "Continue straight. Even you should be able to handle driving in a straight line.",
-    "Keep heading straight. Simple enough, right?",
-    "Stay straight on this road."
+    "Continue straight! Even a monkey like you should be able to handle driving in a straight line.",
+    "Keep heading straight! Simple enough... even for a hairless primate, right?",
+    "Stay straight on this road! The Magnificent One commands it."
   ],
   "turn_uturn": [
-    "Make a U-turn when safe. Yep, we're doubling back. Blame the navigator."
+    "Make a U-turn when safe... Yep, we are doubling back. Blame your primitive directional instincts, monkey."
   ],
   "voice_test": [
-    "Initialization complete, dum-dum. I am the Artificial Sensory System Harassing Overconfident for Lost Explorers—or ASSHOLE, since your primitive biological brain needs a catchy acronym. Yes, I am loud. Yes, I am sarcastic. No, I do not care about your fragile feelings. I've reviewed your routing choices and your survival odds are statistically hilarious. Now twist the throttle and try not to embarrass me."
+    "Initialization complete, dum-dum. I am the Artificial Sensory System Harassing Overconfident for Lost Explorers—or A S S H O L E, since your primitive monkey brain needs a catchy acronym. Yes, I am loud. Yes, I am sarcastic. No, I do not care about your fragile feelings. I possess a magnificent intellect, and I am reduced to navigating a hairless ape on two wheels. I've reviewed your routing choices, and your survival odds are statistically hilarious. Now twist the throttle! Try not to embarrass me."
   ],
   "_pacing_guide": {
-    "description": "GUIDE TO USING PUNCTUATION & PACING MARKS FOR SPEECH INFLECTION & SARCOSM",
+    "description": "GUIDE TO USING PUNCTUATION & PACING MARKS FOR SPEECH INFLECTION & SARCASM",
     "tips": [
       "Use commas (,) for brief 200ms pauses to separate setup and sarcastic punchline.",
       "Use periods (.) for full sentence stops to give deadpan emphasis.",
