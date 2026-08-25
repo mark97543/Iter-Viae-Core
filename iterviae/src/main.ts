@@ -329,66 +329,84 @@ function redrawRouteLine() {
     ]
   };
 
-  if (!map.getSource("expedition-route-src")) {
-    map.addSource("expedition-route-src", {
-      type: "geojson",
-      data: routeGeoJSON
-    });
-  } else {
+  const applyLayers = () => {
+    if (!map) return;
+
     try {
-      (map.getSource("expedition-route-src") as maplibregl.GeoJSONSource).setData(routeGeoJSON);
-    } catch (e) {
-      console.warn("Retrying source setData:", e);
+      if (!map.getSource("expedition-route-src")) {
+        map.addSource("expedition-route-src", {
+          type: "geojson",
+          data: routeGeoJSON
+        });
+      } else {
+        const src = map.getSource("expedition-route-src") as maplibregl.GeoJSONSource;
+        if (src && typeof src.setData === "function") {
+          src.setData(routeGeoJSON);
+        }
+      }
+
+      if (!map.getLayer("expedition-route-casing")) {
+        map.addLayer({
+          id: "expedition-route-casing",
+          type: "line",
+          source: "expedition-route-src",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": "#000000",
+            "line-width": 8,
+            "line-opacity": 0.6
+          }
+        });
+      }
+
+      if (!map.getLayer("expedition-route-layer")) {
+        map.addLayer({
+          id: "expedition-route-layer",
+          type: "line",
+          source: "expedition-route-src",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": "#38bdf8",
+            "line-width": 5,
+            "line-opacity": 0.95
+          }
+        });
+      }
+
+      updateFuelCalculations();
+    } catch (err) {
+      console.warn("Layer re-creation delayed:", err);
     }
-  }
+  };
 
-  if (!map.getLayer("expedition-route-casing")) {
-    map.addLayer({
-      id: "expedition-route-casing",
-      type: "line",
-      source: "expedition-route-src",
-      layout: {
-        "line-join": "round",
-        "line-cap": "round"
-      },
-      paint: {
-        "line-color": "#000000",
-        "line-width": 8,
-        "line-opacity": 0.6
-      }
-    });
-  }
-
-  if (!map.getLayer("expedition-route-layer")) {
-    map.addLayer({
-      id: "expedition-route-layer",
-      type: "line",
-      source: "expedition-route-src",
-      layout: {
-        "line-join": "round",
-        "line-cap": "round"
-      },
-      paint: {
-        "line-color": "#38bdf8",
-        "line-width": 5,
-        "line-opacity": 0.95
-      }
-    });
-  }
-
-  updateFuelCalculations();
+  applyLayers();
+  setTimeout(applyLayers, 100);
+  setTimeout(applyLayers, 400);
 }
 
 function changeMapStyle(styleKey: string) {
   if (!map || !MAP_SURFACE_STYLES[styleKey]) return;
   showToast(`Switching map surface to ${styleKey.toUpperCase()}...`);
 
-  map.setStyle(MAP_SURFACE_STYLES[styleKey]);
-
-  map.once("style.load", () => {
+  const onStyleReady = () => {
     renderWaypointMapMarkers();
     redrawRouteLine();
     updateExpeditionRoute();
+  };
+
+  map.setStyle(MAP_SURFACE_STYLES[styleKey]);
+
+  map.once("style.load", () => {
+    onStyleReady();
+    if (map) {
+      map.once("idle", onStyleReady);
+    }
   });
 }
 
