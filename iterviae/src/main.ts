@@ -924,14 +924,33 @@ async function updateExpeditionRoute() {
       ]
     };
 
-    if (map.getSource("expedition-route-src")) {
-      (map.getSource("expedition-route-src") as maplibregl.GeoJSONSource).setData(routeGeoJSON);
-    } else {
+    if (!map.getSource("expedition-route-src")) {
       map.addSource("expedition-route-src", {
         type: "geojson",
         data: routeGeoJSON
       });
+    } else {
+      (map.getSource("expedition-route-src") as maplibregl.GeoJSONSource).setData(routeGeoJSON);
+    }
 
+    if (!map.getLayer("expedition-route-casing")) {
+      map.addLayer({
+        id: "expedition-route-casing",
+        type: "line",
+        source: "expedition-route-src",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round"
+        },
+        paint: {
+          "line-color": "#000000",
+          "line-width": 8,
+          "line-opacity": 0.6
+        }
+      });
+    }
+
+    if (!map.getLayer("expedition-route-layer")) {
       map.addLayer({
         id: "expedition-route-layer",
         type: "line",
@@ -943,7 +962,7 @@ async function updateExpeditionRoute() {
         paint: {
           "line-color": "#38bdf8",
           "line-width": 5,
-          "line-opacity": 0.9
+          "line-opacity": 0.95
         }
       });
     }
@@ -1084,14 +1103,16 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
     ] : []
   };
 
-  if (map.getSource("expedition-empty-route-src")) {
-    (map.getSource("expedition-empty-route-src") as maplibregl.GeoJSONSource).setData(emptyGeoJSON);
-  } else {
+  if (!map.getSource("expedition-empty-route-src")) {
     map.addSource("expedition-empty-route-src", {
       type: "geojson",
       data: emptyGeoJSON
     });
+  } else {
+    (map.getSource("expedition-empty-route-src") as maplibregl.GeoJSONSource).setData(emptyGeoJSON);
+  }
 
+  if (!map.getLayer("expedition-empty-route-layer")) {
     map.addLayer({
       id: "expedition-empty-route-layer",
       type: "line",
