@@ -311,13 +311,83 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
   }
 };
 
+// Synchronously redraw stored route line & fuel line on map surface
+function redrawRouteLine() {
+  if (!map || !lastRouteCoordinates || lastRouteCoordinates.length < 2) return;
+
+  const routeGeoJSON: GeoJSON.FeatureCollection = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: lastRouteCoordinates
+        }
+      }
+    ]
+  };
+
+  if (!map.getSource("expedition-route-src")) {
+    map.addSource("expedition-route-src", {
+      type: "geojson",
+      data: routeGeoJSON
+    });
+  } else {
+    try {
+      (map.getSource("expedition-route-src") as maplibregl.GeoJSONSource).setData(routeGeoJSON);
+    } catch (e) {
+      console.warn("Retrying source setData:", e);
+    }
+  }
+
+  if (!map.getLayer("expedition-route-casing")) {
+    map.addLayer({
+      id: "expedition-route-casing",
+      type: "line",
+      source: "expedition-route-src",
+      layout: {
+        "line-join": "round",
+        "line-cap": "round"
+      },
+      paint: {
+        "line-color": "#000000",
+        "line-width": 8,
+        "line-opacity": 0.6
+      }
+    });
+  }
+
+  if (!map.getLayer("expedition-route-layer")) {
+    map.addLayer({
+      id: "expedition-route-layer",
+      type: "line",
+      source: "expedition-route-src",
+      layout: {
+        "line-join": "round",
+        "line-cap": "round"
+      },
+      paint: {
+        "line-color": "#38bdf8",
+        "line-width": 5,
+        "line-opacity": 0.95
+      }
+    });
+  }
+
+  updateFuelCalculations();
+}
+
 function changeMapStyle(styleKey: string) {
   if (!map || !MAP_SURFACE_STYLES[styleKey]) return;
   showToast(`Switching map surface to ${styleKey.toUpperCase()}...`);
 
   map.setStyle(MAP_SURFACE_STYLES[styleKey]);
+
   map.once("style.load", () => {
     renderWaypointMapMarkers();
+    redrawRouteLine();
     updateExpeditionRoute();
   });
 }
@@ -909,66 +979,7 @@ async function updateExpeditionRoute() {
     if (metricDistance) metricDistance.textContent = `${distanceMi.toFixed(1)} MI`;
     if (metricDuration) metricDuration.textContent = formatDuration(durationSec);
 
-    // Create GeoJSON Feature
-    const routeGeoJSON: GeoJSON.FeatureCollection = {
-      type: "FeatureCollection",
-      features: [
-        {
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: coordinates
-          }
-        }
-      ]
-    };
-
-    if (!map.getSource("expedition-route-src")) {
-      map.addSource("expedition-route-src", {
-        type: "geojson",
-        data: routeGeoJSON
-      });
-    } else {
-      (map.getSource("expedition-route-src") as maplibregl.GeoJSONSource).setData(routeGeoJSON);
-    }
-
-    if (!map.getLayer("expedition-route-casing")) {
-      map.addLayer({
-        id: "expedition-route-casing",
-        type: "line",
-        source: "expedition-route-src",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round"
-        },
-        paint: {
-          "line-color": "#000000",
-          "line-width": 8,
-          "line-opacity": 0.6
-        }
-      });
-    }
-
-    if (!map.getLayer("expedition-route-layer")) {
-      map.addLayer({
-        id: "expedition-route-layer",
-        type: "line",
-        source: "expedition-route-src",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round"
-        },
-        paint: {
-          "line-color": "#38bdf8",
-          "line-width": 5,
-          "line-opacity": 0.95
-        }
-      });
-    }
-
-    // Update Leg Badges UI & Fuel Range Calculations (after route source added)
-    updateFuelCalculations();
+    redrawRouteLine();
   } catch (err) {
     console.error("Expedition Route calculation error:", err);
   }
