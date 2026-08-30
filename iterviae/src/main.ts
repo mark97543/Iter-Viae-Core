@@ -214,6 +214,7 @@ let currentLegMetrics: LegMetric[] = [];
 let currentRouteLegs: RouteLeg[] = [];
 let lastRouteCoordinates: [number, number][] = [];
 let currentTripId: string | null = null; // Tracks active PocketBase saved trip ID
+let currentFileHandle: any = null; // Tracks active local FileSystemFileHandle for direct overwrite saves
 
 // Multi-Day Accordions & View Mode State References
 const toggleViewModeBtn = document.getElementById("toggle-view-mode-btn");
@@ -3352,6 +3353,7 @@ function resetTripToNewWorkspace() {
   }
 
   currentTripId = null;
+  currentFileHandle = null;
   currentTripTitle = "MY EXPEDITION ROUTE";
   currentTripSummary = "";
   lastRouteCoordinates = [];
@@ -3452,7 +3454,7 @@ function exportExpeditionToGPX() {
 }
 
 // Export Trip as Local .iterviae JSON File directly to user disk (Zero Server Needed)
-function exportLocalTripFile() {
+async function exportLocalTripFile() {
   const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
   if (validWaypoints.length === 0) {
     alert("No valid waypoints to save. Please add waypoints to your expedition route first.");
@@ -3460,6 +3462,7 @@ function exportLocalTripFile() {
   }
 
   const sanitizedTitle = currentTripTitle.replace(/[^\w\s-]/gi, "").trim() || "Expedition_Route";
+  const defaultFilename = `${sanitizedTitle.replace(/\s+/g, "_")}.iterviae`;
   const encodedPolyline = encodePolyline6(lastRouteCoordinates);
   const compactLegs = currentRouteLegs.map((leg) => ({
     startLat: Number(leg.startLat.toFixed(5)),
@@ -3487,17 +3490,47 @@ function exportLocalTripFile() {
   };
 
   const jsonStr = JSON.stringify(fileData, null, 2);
+
+  // Modern File System Access API: Enables direct file overwrite without duplicate files
+  if ("showSaveFilePicker" in window) {
+    try {
+      if (!currentFileHandle) {
+        currentFileHandle = await (window as any).showSaveFilePicker({
+          suggestedName: defaultFilename,
+          types: [
+            {
+              description: "Iter Viae Expedition File",
+              accept: { "application/json": [".iterviae", ".json"] }
+            }
+          ]
+        });
+      }
+
+      const writable = await currentFileHandle.createWritable();
+      await writable.write(jsonStr);
+      await writable.close();
+
+      const fileName = currentFileHandle.name || defaultFilename;
+      showToast(`Overwrote ${fileName} on local disk 💾`);
+      return;
+    } catch (err: any) {
+      if (err.name === "AbortError") return; // User cancelled file picker
+      // Fall through to fallback download if permission denied
+    }
+  }
+
+  // Classic Browser Fallback Download
   const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${sanitizedTitle.replace(/\s+/g, "_")}.iterviae`;
+  a.download = defaultFilename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  showToast(`Saved ${sanitizedTitle}.iterviae to local disk 💾`);
+  showToast(`Saved ${defaultFilename} to local disk 💾`);
 }
 
 // Load Trip directly from a Local .iterviae or .json File
