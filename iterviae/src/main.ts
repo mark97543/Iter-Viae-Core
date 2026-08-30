@@ -1637,7 +1637,7 @@ function renderWaypointMapMarkers() {
       indexString = "B";
     }
 
-    // Create custom DOM element for Draggable Pin Marker
+    // Create custom DOM element for Draggable Pin Marker (No CSS transitions to prevent map pan lag!)
     const el = document.createElement("div");
     el.className = "custom-draggable-marker";
     el.style.width = "30px";
@@ -1654,7 +1654,7 @@ function renderWaypointMapMarkers() {
     el.style.border = "2px solid #ffffff";
     el.style.boxShadow = `0 0 12px ${markerColor}99, 0 4px 10px rgba(0,0,0,0.5)`;
     el.style.cursor = "grab";
-    el.style.transition = "transform 0.15s ease";
+    el.style.willChange = "transform";
     el.title = `Drag to move ${wp.title || 'Waypoint'} [Click for details]`;
     el.innerText = indexString;
 
@@ -1668,12 +1668,12 @@ function renderWaypointMapMarkers() {
 
     marker.on("dragstart", () => {
       el.style.cursor = "grabbing";
-      el.style.transform = "scale(1.25)";
+      el.style.boxShadow = `0 0 22px ${markerColor}, 0 6px 14px rgba(0,0,0,0.6)`;
     });
 
     marker.on("dragend", async () => {
       el.style.cursor = "grab";
-      el.style.transform = "scale(1)";
+      el.style.boxShadow = `0 0 12px ${markerColor}99, 0 4px 10px rgba(0,0,0,0.5)`;
       const lngLat = marker.getLngLat();
       const newLat = Number(lngLat.lat.toFixed(6));
       const newLon = Number(lngLat.lng.toFixed(6));
