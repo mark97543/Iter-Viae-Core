@@ -1568,7 +1568,7 @@ function createMarkerPopupHtml(wp: Waypoint, idx: number, markerColor: string, i
 
 const markerImageDataCache = new Map<string, ImageData>();
 
-function createVectorMarkerImageData(color: string, text: string): ImageData {
+export function createVectorMarkerImageData(color: string, text: string): ImageData {
   const cacheKey = `${color}_${text}`;
   if (markerImageDataCache.has(cacheKey)) {
     return markerImageDataCache.get(cacheKey)!;
@@ -1617,12 +1617,8 @@ function renderWaypointMapMarkers() {
     .filter(({ wp }) => wp.lat !== null && wp.lon !== null);
 
   if (validWaypoints.length === 0) {
-    if (map.getLayer("waypoints-symbols-pins")) map.removeLayer("waypoints-symbols-pins");
-    if (map.getSource("waypoints-symbols-src")) map.removeSource("waypoints-symbols-src");
     return;
   }
-
-  const symbolFeatures: GeoJSON.Feature[] = [];
 
   validWaypoints.forEach(({ wp, idx }) => {
     const isFirst = idx === 0;
@@ -1641,84 +1637,70 @@ function renderWaypointMapMarkers() {
       indexString = "B";
     }
 
-    const iconId = `marker-icon-${markerColor.replace("#", "")}-${indexString}`;
-    if (map && !map.hasImage(iconId)) {
-      const imageData = createVectorMarkerImageData(markerColor, indexString);
-      map.addImage(iconId, imageData);
-    }
+    // Create custom DOM element for Draggable Pin Marker
+    const el = document.createElement("div");
+    el.className = "custom-draggable-marker";
+    el.style.width = "30px";
+    el.style.height = "30px";
+    el.style.borderRadius = "50%";
+    el.style.backgroundColor = markerColor;
+    el.style.color = "#ffffff";
+    el.style.fontWeight = "800";
+    el.style.fontSize = "12px";
+    el.style.fontFamily = "var(--font-mono, monospace)";
+    el.style.display = "flex";
+    el.style.alignItems = "center";
+    el.style.justifyContent = "center";
+    el.style.border = "2px solid #ffffff";
+    el.style.boxShadow = `0 0 12px ${markerColor}99, 0 4px 10px rgba(0,0,0,0.5)`;
+    el.style.cursor = "grab";
+    el.style.transition = "transform 0.15s ease";
+    el.title = `Drag to move ${wp.title || 'Waypoint'} [Click for details]`;
+    el.innerText = indexString;
 
-    symbolFeatures.push({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [wp.lon!, wp.lat!]
-      },
-      properties: {
-        id: wp.id,
-        index: idx + 1,
-        indexString: indexString,
-        title: wp.title || `Stop #${idx + 1}`,
-        iconId: iconId,
-        color: markerColor
-      }
+    const popupHtml = createMarkerPopupHtml(wp, idx, markerColor, `STOP #${indexString} • ${catDetails ? catDetails.icon : "📍"}`);
+    const popup = new maplibregl.Popup({ offset: 18, closeButton: true }).setHTML(popupHtml);
+
+    const marker = new maplibregl.Marker({ element: el, draggable: true })
+      .setLngLat([wp.lon!, wp.lat!])
+      .setPopup(popup)
+      .addTo(map!);
+
+    marker.on("dragstart", () => {
+      el.style.cursor = "grabbing";
+      el.style.transform = "scale(1.25)";
     });
+
+    marker.on("dragend", async () => {
+      el.style.cursor = "grab";
+      el.style.transform = "scale(1)";
+      const lngLat = marker.getLngLat();
+      const newLat = Number(lngLat.lat.toFixed(6));
+      const newLon = Number(lngLat.lng.toFixed(6));
+
+      wp.lat = newLat;
+      wp.lon = newLon;
+
+      // Quick reverse-geocode to update location label if generic
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${newLat}&lon=${newLon}&format=json`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.display_name) {
+            const shortName = data.display_name.split(",")[0].toUpperCase();
+            if (shortName) wp.title = shortName;
+          }
+        }
+      } catch (e) {}
+
+      renderWaypointsUI();
+      renderWaypointMapMarkers();
+      updateExpeditionRoute();
+      showToast(`Moved "${wp.title || 'Waypoint'}" to [${newLat.toFixed(4)}, ${newLon.toFixed(4)}] & recalculating route 📍`);
+    });
+
+    waypointMapMarkers.push({ id: wp.id, marker });
   });
-
-  const symbolGeoJSON: GeoJSON.FeatureCollection = {
-    type: "FeatureCollection",
-    features: symbolFeatures
-  };
-
-  const src = map.getSource("waypoints-symbols-src") as maplibregl.GeoJSONSource;
-  if (src) {
-    src.setData(symbolGeoJSON);
-  } else {
-    map.addSource("waypoints-symbols-src", {
-      type: "geojson",
-      data: symbolGeoJSON
-    });
-
-    map.addLayer({
-      id: "waypoints-symbols-pins",
-      type: "symbol",
-      source: "waypoints-symbols-src",
-      layout: {
-        "icon-image": ["get", "iconId"],
-        "icon-allow-overlap": true,
-        "icon-ignore-placement": true,
-        "icon-anchor": "center"
-      }
-    });
-
-    // Move WebGL symbol layer to top of layer stack so markers float ABOVE route lines
-    if (map.getLayer("expedition-route-layer")) {
-      map.moveLayer("waypoints-symbols-pins");
-    }
-
-    // Interactive Click Popups on WebGL Vector Symbol Layer
-    map.on("click", "waypoints-symbols-pins", (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const feat = e.features[0];
-      const props = feat.properties as any;
-      const wp = waypoints.find((w) => w.id === props.id);
-      if (wp && map) {
-        const catDetails = CATEGORY_DETAILS[getCategoryForWaypoint(wp)];
-        const popupHtml = createMarkerPopupHtml(wp, props.index - 1, props.color, `STOP #${props.indexString} • ${catDetails ? catDetails.icon : "📍"}`);
-        new maplibregl.Popup({ offset: 15, closeButton: true })
-          .setLngLat((feat.geometry as GeoJSON.Point).coordinates as [number, number])
-          .setHTML(popupHtml)
-          .addTo(map);
-      }
-    });
-
-    map.on("mouseenter", "waypoints-symbols-pins", () => {
-      if (map) map.getCanvas().style.cursor = "pointer";
-    });
-
-    map.on("mouseleave", "waypoints-symbols-pins", () => {
-      if (map) map.getCanvas().style.cursor = "";
-    });
-  }
 }
 
 // Global Category Dropdown Change Listener (Popup, Table, Waypoint Card)
@@ -2250,13 +2232,13 @@ if (waypointsContainer) {
 
     const wp = waypoints.find((w) => w.id === id);
     if (wp) {
-      geocodeWaypointIfNeeded(wp);
+      geocodeWaypointIfNeeded(wp, true);
     }
   });
 }
 
 // Auto-Geocode Waypoint Title when user finishes typing (Blur or Enter key)
-async function geocodeWaypointIfNeeded(wp: Waypoint) {
+async function geocodeWaypointIfNeeded(wp: Waypoint, forceGeocode: boolean = false) {
   const query = wp.title.trim();
   if (!query) return;
 
@@ -2275,8 +2257,8 @@ async function geocodeWaypointIfNeeded(wp: Waypoint) {
     }
   }
 
-  // If lat/lon are missing, geocode via Nominatim API
-  if (wp.lat === null || wp.lon === null) {
+  // If lat/lon are missing OR if title was updated (forceGeocode = true), geocode via Nominatim API
+  if (forceGeocode || wp.lat === null || wp.lon === null) {
     try {
       showToast(`Finding location for "${query}"... 🔍`);
       const center = map ? map.getCenter() : { lng: -104.9903, lat: 39.7392 };
@@ -2297,7 +2279,7 @@ async function geocodeWaypointIfNeeded(wp: Waypoint) {
           renderWaypointMapMarkers();
           updateExpeditionRoute();
           focusOnWaypoint(wp.id);
-          showToast(`Set "${wp.title}" to [${lat.toFixed(4)}, ${lon.toFixed(4)}] 📍`);
+          showToast(`Set "${wp.title}" to [${lat.toFixed(4)}, ${lon.toFixed(4)}] & recalculating route 📍`);
           return;
         }
       }
