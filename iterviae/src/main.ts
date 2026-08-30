@@ -1108,7 +1108,24 @@ function focusOnWaypoint(wpId: string) {
   }
 }
 
-// Spatial algorithm: Finds nearest waypoint by distance and inserts new stop right next to it
+// Perpendicular distance squared from point P to line segment AB
+function distanceToSegmentSq(p: [number, number], a: [number, number], b: [number, number]): number {
+  const x = a[0], y = a[1];
+  const dx = b[0] - x, dy = b[1] - y;
+
+  if (dx !== 0 || dy !== 0) {
+    const t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
+    if (t > 1) {
+      return Math.hypot(p[0] - b[0], p[1] - b[1]);
+    } else if (t > 0) {
+      return Math.hypot(p[0] - (x + dx * t), p[1] - (y + dy * t));
+    }
+  }
+
+  return Math.hypot(p[0] - x, p[1] - y);
+}
+
+// Spatial algorithm: Finds the exact route leg segment the user clicked on and inserts stop right between w1 and w2
 function findOptimalInsertionIndex(lat: number, lon: number): number {
   const validItems = waypoints
     .map((w, index) => ({ w, index }))
@@ -1118,52 +1135,34 @@ function findOptimalInsertionIndex(lat: number, lon: number): number {
   if (N === 0) return 0;
   if (N === 1) return waypoints.length;
 
-  // 1. Find the single closest existing waypoint by Euclidean distance
-  let closestItem = validItems[0];
-  let minDistance = Math.hypot(closestItem.w.lat! - lat, closestItem.w.lon! - lon);
+  let bestInsertIndex = N;
+  let minDistance = Infinity;
 
-  for (let i = 1; i < N; i++) {
-    const item = validItems[i];
-    const dist = Math.hypot(item.w.lat! - lat, item.w.lon! - lon);
+  // Evaluate perpendicular distance to every route leg segment (w_i -> w_{i+1})
+  for (let i = 0; i < N - 1; i++) {
+    const w1 = validItems[i];
+    const w2 = validItems[i + 1];
+
+    const dist = distanceToSegmentSq(
+      [lon, lat],
+      [w1.w.lon!, w1.w.lat!],
+      [w2.w.lon!, w2.w.lat!]
+    );
+
     if (dist < minDistance) {
       minDistance = dist;
-      closestItem = item;
+      bestInsertIndex = w2.index; // Inserts right between w1 and w2!
     }
   }
 
-  const closestIdx = closestItem.index;
-
-  // 2. Decide whether to insert BEFORE or AFTER closestItem based on neighbor proximity
-  if (closestIdx === 0) {
-    return 1; // Insert right after Origin
+  // Safeguard: Check if point is beyond the destination
+  const lastItem = validItems[N - 1];
+  const distToLast = Math.hypot(lastItem.w.lon! - lon, lastItem.w.lat! - lat);
+  if (distToLast < minDistance * 0.5) {
+    bestInsertIndex = waypoints.length;
   }
 
-  if (closestIdx === waypoints.length - 1) {
-    const prevWp = waypoints[closestIdx - 1];
-    if (prevWp && prevWp.lat !== null && prevWp.lon !== null) {
-      const distToPrev = Math.hypot(prevWp.lat - lat, prevWp.lon - lon);
-      if (distToPrev < minDistance) {
-        return closestIdx; // Insert right before Destination
-      }
-    }
-    return waypoints.length; // Append at end as new Destination
-  }
-
-  const prevWp = waypoints[closestIdx - 1];
-  const nextWp = waypoints[closestIdx + 1];
-
-  let distToPrev = Infinity;
-  let distToNext = Infinity;
-
-  if (prevWp && prevWp.lat !== null && prevWp.lon !== null) {
-    distToPrev = Math.hypot(prevWp.lat - lat, prevWp.lon - lon);
-  }
-  if (nextWp && nextWp.lat !== null && nextWp.lon !== null) {
-    distToNext = Math.hypot(nextWp.lat - lat, nextWp.lon - lon);
-  }
-
-  // Insert after closestItem if closer to next, or before closestItem if closer to prev
-  return distToNext <= distToPrev ? closestIdx + 1 : closestIdx;
+  return bestInsertIndex;
 }
 
 // Fetch turn-by-turn route line geometry & update metrics
