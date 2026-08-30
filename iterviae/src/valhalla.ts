@@ -169,7 +169,6 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
  * EXCLUSIVELY uses user production dedicated server (https://valhalla.wade-usa.com/route).
  */
 const VALHALLA_SERVERS = [
-  "https://valhalla.wade-usa.com/route",
   "/valhalla-proxy/route"
 ];
 
