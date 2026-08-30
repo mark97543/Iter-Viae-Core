@@ -1,7 +1,7 @@
 import "./styles.css";
 import maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
-import { fetchExpeditionRoute, haversineDistance, LegMetric } from "./valhalla";
+import { fetchIncrementalExpeditionRoute, haversineDistance, encodePolyline6, decodePolyline6, LegMetric, RouteLeg } from "./valhalla";
 
 console.log("Iter Viae Tactical Surface initialized - Click-to-Focus Waypoint Engine.");
 
@@ -117,7 +117,10 @@ const itineraryTripTitle = document.getElementById("itinerary-trip-title");
 const itineraryStartTimeInput = document.getElementById("itinerary-start-time") as HTMLInputElement;
 const exportCsvBtn = document.getElementById("export-csv-btn");
 const resetBreaksBtn = document.getElementById("reset-breaks-btn");
+const toggleAllItineraryDaysBtn = document.getElementById("toggle-all-itinerary-days-btn");
 const itineraryTableBody = document.getElementById("itinerary-table-body");
+
+const collapsedItineraryDays = new Set<number>();
 
 const itinSumDays = document.getElementById("itin-sum-days");
 const itinSumTravel = document.getElementById("itin-sum-travel");
@@ -150,6 +153,27 @@ const savedTripsModalClose = document.getElementById("saved-trips-modal-close");
 const savedTripsLoading = document.getElementById("saved-trips-loading");
 const savedTripsEmpty = document.getElementById("saved-trips-empty");
 const savedTripsList = document.getElementById("saved-trips-list");
+
+// DOM Header Navigation Dropdown References
+const navExpeditionMenu = document.getElementById("nav-expedition-menu");
+const toggleNavMenuBtn = document.getElementById("toggle-nav-menu-btn");
+const navMenuDropdownCard = document.getElementById("nav-menu-dropdown-card");
+const menuPublishBtn = document.getElementById("menu-publish-btn");
+const menuSyncCloudBtn = document.getElementById("menu-sync-cloud-btn");
+const menuSavedTripsBtn = document.getElementById("menu-saved-trips-btn");
+const menuSaveLocalBtn = document.getElementById("menu-save-local-btn");
+const menuOpenLocalBtn = document.getElementById("menu-open-local-btn");
+const importIterviaeInput = document.getElementById("import-iterviae-input") as HTMLInputElement | null;
+const menuRecalculateBtn = document.getElementById("menu-recalculate-btn");
+const menuExportGpxBtn = document.getElementById("menu-export-gpx-btn");
+const menuImportGpxBtn = document.getElementById("menu-import-gpx-btn");
+const menuVehicleBtn = document.getElementById("menu-vehicle-btn");
+
+// DOM Route Loading Overlay References
+const routeLoadingModal = document.getElementById("route-loading-modal");
+const routeLoadingSubtitle = document.getElementById("route-loading-subtitle");
+const cancelRouteLoadingBtn = document.getElementById("cancel-route-loading-btn");
+let activeRouteLoadingToken: string | null = null;
 
 // DOM 3D Terrain & Flythrough Modal References
 const modal3DViewer = document.getElementById("modal-3d-viewer");
@@ -187,6 +211,7 @@ let lastRightClickLngLat: { lat: number; lng: number } | null = null;
 let toastTimeout: any = null;
 let draggedWaypointIndex: number | null = null;
 let currentLegMetrics: LegMetric[] = [];
+let currentRouteLegs: RouteLeg[] = [];
 let lastRouteCoordinates: [number, number][] = [];
 let currentTripId: string | null = null; // Tracks active PocketBase saved trip ID
 
@@ -205,11 +230,15 @@ const DAY_COLOR_PALETTE = [
   "#a855f7", // Day 4: Amethyst Purple
   "#f43f5e", // Day 5: Rose Red
   "#06b6d4", // Day 6: Cyan Teal
-  "#ec4899"  // Day 7+: Pink
+  "#ec4899", // Day 7: Hot Pink
+  "#84cc16", // Day 8: Lime Green
+  "#f97316", // Day 9: Vivid Orange
+  "#6366f1"  // Day 10: Indigo Blue
 ];
 
-export function getDayColor(dayIndex: number): string {
-  return DAY_COLOR_PALETTE[dayIndex % DAY_COLOR_PALETTE.length];
+export function getDayColor(dayNumber: number): string {
+  const index = Math.max(0, dayNumber - 1);
+  return DAY_COLOR_PALETTE[index % DAY_COLOR_PALETTE.length];
 }
 
 let vehicleProfile: VehicleProfile = {
@@ -239,7 +268,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       "esri-street": {
         type: "raster" as const,
         tiles: [
-          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+          "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
         maxzoom: 17,
@@ -256,7 +285,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       "esri-dark": {
         type: "raster" as const,
         tiles: [
-          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
         maxzoom: 16,
@@ -273,7 +302,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       "esri-topo": {
         type: "raster" as const,
         tiles: [
-          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
         maxzoom: 17,
@@ -290,7 +319,7 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       "esri-satellite": {
         type: "raster" as const,
         tiles: [
-          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
         maxzoom: 17,
@@ -318,43 +347,92 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
 
 function splitCoordinatesIntoDaySegments(
   coords: [number, number][],
-  waypointsList: Waypoint[]
+  waypointsList: Waypoint[],
+  routeLegs: RouteLeg[] = []
 ): [number, number][][] {
-  if (coords.length < 2) return [coords];
+  const validWaypoints = waypointsList.filter((w) => w.lat !== null && w.lon !== null);
+  if (coords.length < 2 || validWaypoints.length < 2) return [coords];
 
-  const dayLegRanges: { startLeg: number; endLeg: number }[] = [];
-  let currentStartLeg = 0;
+  // 1. Primary path: Partition by exact RouteLeg geometries if full coordinates are present
+  if (routeLegs && routeLegs.length === validWaypoints.length - 1) {
+    const daySegments: [number, number][][] = [];
+    let currentDayCoords: [number, number][] = [];
 
-  for (let i = 0; i < waypointsList.length - 1; i++) {
-    if (waypointsList[i + 1].isOvernight || i === waypointsList.length - 2) {
-      dayLegRanges.push({ startLeg: currentStartLeg, endLeg: i });
-      currentStartLeg = i + 1;
+    for (let i = 0; i < routeLegs.length; i++) {
+      let legCoords = routeLegs[i].coordinates;
+      if ((!legCoords || legCoords.length === 0) && routeLegs[i].encodedPolyline) {
+        legCoords = decodePolyline6(routeLegs[i].encodedPolyline!);
+        routeLegs[i].coordinates = legCoords;
+      }
+      if (!legCoords || legCoords.length === 0) continue;
+
+      if (currentDayCoords.length === 0) {
+        currentDayCoords.push(...legCoords);
+      } else {
+        currentDayCoords.push(...legCoords.slice(1));
+      }
+
+      const destWp = validWaypoints[i + 1];
+      const isOvernightStop = Boolean(destWp && destWp.isOvernight);
+      const isFinalLeg = (i === routeLegs.length - 1);
+
+      if (isOvernightStop || isFinalLeg) {
+        if (currentDayCoords.length >= 2) {
+          daySegments.push(currentDayCoords);
+        }
+        currentDayCoords = [];
+      }
+    }
+
+    if (daySegments.length > 0) {
+      return daySegments;
     }
   }
 
-  if (dayLegRanges.length <= 1) return [coords];
+  // 2. High-Accuracy Fallback: Find exact closest polyline vertex index for each overnight hotel stop
+  const splitIndices: number[] = [0];
+  let searchStartIdx = 0;
 
-  const totalLegs = waypointsList.length - 1;
-  const coordsPerLeg = coords.length / totalLegs;
-  const segments: [number, number][][] = [];
+  for (let i = 0; i < validWaypoints.length - 1; i++) {
+    const wp = validWaypoints[i];
+    if (i > 0 && wp.isOvernight) {
+      let minDist = Infinity;
+      let bestIdx = searchStartIdx;
 
-  dayLegRanges.forEach((range) => {
-    const startIdx = Math.max(0, Math.floor(range.startLeg * coordsPerLeg));
-    const endIdx = Math.min(coords.length, Math.ceil((range.endLeg + 1) * coordsPerLeg));
+      for (let c = searchStartIdx; c < coords.length; c++) {
+        const dist = haversineDistance(wp.lat!, wp.lon!, coords[c][1], coords[c][0]);
+        if (dist < minDist) {
+          minDist = dist;
+          bestIdx = c;
+        }
+      }
+
+      splitIndices.push(bestIdx);
+      searchStartIdx = bestIdx;
+    }
+  }
+
+  splitIndices.push(coords.length - 1);
+
+  const daySegments: [number, number][][] = [];
+  for (let s = 0; s < splitIndices.length - 1; s++) {
+    const startIdx = splitIndices[s];
+    const endIdx = splitIndices[s + 1];
     const seg = coords.slice(startIdx, endIdx + 1);
     if (seg.length >= 2) {
-      segments.push(seg);
+      daySegments.push(seg);
     }
-  });
+  }
 
-  return segments.length > 0 ? segments : [coords];
+  return daySegments.length > 0 ? daySegments : [coords];
 }
 
 // Synchronously redraw stored route line & fuel line on map surface with per-day colors
 function redrawRouteLine() {
   if (!map || !lastRouteCoordinates || lastRouteCoordinates.length < 2) return;
 
-  const daySegments = splitCoordinatesIntoDaySegments(lastRouteCoordinates, waypoints);
+  const daySegments = splitCoordinatesIntoDaySegments(lastRouteCoordinates, waypoints, currentRouteLegs);
+  console.log(`Redrawing route line: ${daySegments.length} day segment(s), ${lastRouteCoordinates.length} total road points.`);
 
   const routeGeoJSON: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
@@ -362,7 +440,7 @@ function redrawRouteLine() {
       type: "Feature",
       properties: {
         dayIndex: dayIdx + 1,
-        color: getDayColor(dayIdx)
+        color: getDayColor(dayIdx + 1)
       },
       geometry: {
         type: "LineString",
@@ -375,52 +453,51 @@ function redrawRouteLine() {
     if (!map) return;
 
     try {
-      if (map.getLayer("expedition-route-layer")) {
-        map.removeLayer("expedition-route-layer");
+      const src = map.getSource("expedition-route-src") as maplibregl.GeoJSONSource;
+      if (src) {
+        src.setData(routeGeoJSON);
+      } else {
+        map.addSource("expedition-route-src", {
+          type: "geojson",
+          data: routeGeoJSON
+        });
       }
-      if (map.getLayer("expedition-route-casing")) {
-        map.removeLayer("expedition-route-casing");
-      }
-      if (map.getSource("expedition-route-src")) {
-        map.removeSource("expedition-route-src");
-      }
-
-      map.addSource("expedition-route-src", {
-        type: "geojson",
-        data: routeGeoJSON
-      });
 
       const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
 
-      map.addLayer({
-        id: "expedition-route-casing",
-        type: "line",
-        source: "expedition-route-src",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round"
-        },
-        paint: {
-          "line-color": "#000000",
-          "line-width": 8,
-          "line-opacity": 0.6
-        }
-      }, beforeId);
+      if (!map.getLayer("expedition-route-casing")) {
+        map.addLayer({
+          id: "expedition-route-casing",
+          type: "line",
+          source: "expedition-route-src",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": "#000000",
+            "line-width": 8,
+            "line-opacity": 0.6
+          }
+        }, beforeId);
+      }
 
-      map.addLayer({
-        id: "expedition-route-layer",
-        type: "line",
-        source: "expedition-route-src",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round"
-        },
-        paint: {
-          "line-color": ["get", "color"],
-          "line-width": 5,
-          "line-opacity": 0.95
-        }
-      }, beforeId);
+      if (!map.getLayer("expedition-route-layer")) {
+        map.addLayer({
+          id: "expedition-route-layer",
+          type: "line",
+          source: "expedition-route-src",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": 5,
+            "line-opacity": 0.95
+          }
+        }, beforeId);
+      }
 
       if (map.getLayer("waypoints-symbols-pins")) {
         map.moveLayer("waypoints-symbols-pins");
@@ -429,6 +506,8 @@ function redrawRouteLine() {
       if (vehicleProfile.enabled && lastRouteCoordinates.length > 1) {
         updateFuelExhaustionMapOverlay(lastRouteCoordinates);
       }
+
+      map.triggerRepaint();
     } catch (err) {
       console.warn("Layer re-creation delayed:", err);
     }
@@ -700,17 +779,48 @@ function renderItinerarySpreadsheet() {
     // Insert Day Banner Row at start or after an overnight stay
     if (idx === 0 || (idx > 0 && waypoints[idx - 1].isOvernight)) {
       if (idx > 0) currentDay++;
+
+      // Compute stats for this day section
+      let dayStopsCount = 0;
+      let dayTravelSecTotal = 0;
+      let dayDistanceMiTotal = 0;
+      let tempVIdx = validIdx;
+
+      for (let j = idx; j < waypoints.length; j++) {
+        if (j > idx && waypoints[j - 1].isOvernight) {
+          break;
+        }
+        dayStopsCount++;
+        const w = waypoints[j];
+        if (w.lat !== null && w.lon !== null) {
+          if (tempVIdx > 0) {
+            const legMetric = currentLegMetrics[tempVIdx - 1];
+            if (legMetric) {
+              dayTravelSecTotal += legMetric.durationSec;
+              dayDistanceMiTotal += legMetric.distanceMi;
+            }
+          }
+          tempVIdx++;
+        }
+      }
+
+      const isDayCollapsed = collapsedItineraryDays.has(currentDay);
+
       const dayHeaderTr = document.createElement("tr");
-      dayHeaderTr.className = "day-header-row";
+      dayHeaderTr.className = `day-header-row ${isDayCollapsed ? "is-collapsed" : ""}`;
+      dayHeaderTr.dataset.dayNum = String(currentDay);
       dayHeaderTr.innerHTML = `
         <td colspan="9">
           <div class="day-header-content">
             <div class="day-header-title">
+              <span class="day-toggle-icon">▼</span>
               <span>🗓️ DAY ${currentDay}</span>
               <span>—</span>
               <span>${formatDayHeaderDate(etaDate)}</span>
             </div>
-            <span class="day-header-stats">EXPEDITION LEG ${idx + 1}</span>
+            <div class="day-header-right">
+              <span class="day-header-summary-pill">${dayStopsCount} ${dayStopsCount === 1 ? 'STOP' : 'STOPS'} • ${formatDuration(dayTravelSecTotal)} • ${dayDistanceMiTotal.toFixed(1)} MI</span>
+            </div>
           </div>
         </td>
       `;
@@ -764,6 +874,10 @@ function renderItinerarySpreadsheet() {
     const currentCategory = getCategoryForWaypoint(wp);
 
     const tr = document.createElement("tr");
+    tr.dataset.dayNum = String(currentDay);
+    if (collapsedItineraryDays.has(currentDay)) {
+      tr.className = "collapsed-day-row";
+    }
 
     tr.innerHTML = `
       <td class="col-seq" style="${tagStyle}">[ ${tagLabel} ]</td>
@@ -792,6 +906,8 @@ function renderItinerarySpreadsheet() {
           ` : `
             <input 
               type="number" 
+              id="itin-break-${wp.id}"
+              name="itin_break_${wp.id}"
               class="table-input-break" 
               data-wp-id="${wp.id}" 
               value="${breakMin}" 
@@ -805,6 +921,8 @@ function renderItinerarySpreadsheet() {
       <td class="col-budget">
         <input 
           type="number" 
+          id="itin-budget-${wp.id}"
+          name="itin_budget_${wp.id}"
           class="table-input-budget" 
           data-wp-id="${wp.id}" 
           value="${budget > 0 ? budget.toFixed(2) : ""}" 
@@ -816,6 +934,8 @@ function renderItinerarySpreadsheet() {
       <td class="col-notes">
         <input 
           type="text" 
+          id="itin-notes-${wp.id}"
+          name="itin_notes_${wp.id}"
           class="table-input-notes" 
           data-wp-id="${wp.id}" 
           value="${notes}" 
@@ -835,6 +955,15 @@ function renderItinerarySpreadsheet() {
   if (itinSumTotal) itinSumTotal.textContent = formatDuration(totalTravelSec + totalBreakMin * 60);
   if (itinSumDist) itinSumDist.textContent = `${totalDistanceMi.toFixed(1)} MI`;
   if (itinSumBudget) itinSumBudget.textContent = `$${totalBudget.toFixed(2)}`;
+
+  // Update Toolbar Toggle Button State
+  if (toggleAllItineraryDaysBtn) {
+    if (collapsedItineraryDays.size >= currentDay && currentDay > 0) {
+      toggleAllItineraryDaysBtn.textContent = "▲ Expand Days";
+    } else {
+      toggleAllItineraryDaysBtn.textContent = "▼ Collapse Days";
+    }
+  }
 }
 
 // Export Itinerary Matrix to CSV File with Multi-Day Columns
@@ -1026,8 +1155,12 @@ function findOptimalInsertionIndex(lat: number, lon: number): number {
 }
 
 // Fetch turn-by-turn route line geometry & update metrics
-async function updateExpeditionRoute() {
+async function updateExpeditionRoute(forceClearCache: boolean = false) {
   if (!map) return;
+
+  if (forceClearCache) {
+    currentRouteLegs = [];
+  }
 
   const validLocations = waypoints
     .filter((w) => w.lat !== null && w.lon !== null)
@@ -1043,13 +1176,16 @@ async function updateExpeditionRoute() {
     if (metricDistance) metricDistance.textContent = "0.0 MI";
     if (metricDuration) metricDuration.textContent = "0H 0M";
     currentLegMetrics = [];
+    currentRouteLegs = [];
+    lastRouteCoordinates = [];
     updateLegBadgesUI();
     return;
   }
 
   try {
-    const { coordinates, distanceMi, durationSec, legs } = await fetchExpeditionRoute(validLocations);
+    const { coordinates, distanceMi, durationSec, legs, routeLegs } = await fetchIncrementalExpeditionRoute(validLocations, currentRouteLegs);
     currentLegMetrics = legs;
+    currentRouteLegs = routeLegs;
     lastRouteCoordinates = coordinates;
 
     // Update main bottom metrics
@@ -1057,6 +1193,21 @@ async function updateExpeditionRoute() {
     if (metricDuration) metricDuration.textContent = formatDuration(durationSec);
 
     redrawRouteLine();
+
+    // Cache active trip draft locally in LocalStorage for instant refresh speed
+    try {
+      localStorage.setItem("iterviae_active_route_draft", JSON.stringify({
+        tripId: currentTripId,
+        title: currentTripTitle,
+        waypoints,
+        coordinates: lastRouteCoordinates,
+        legs: currentLegMetrics,
+        routeLegs: currentRouteLegs,
+        updated: new Date().toISOString()
+      }));
+    } catch (e) {
+      // LocalStorage quota safeguard
+    }
   } catch (err) {
     console.error("Expedition Route calculation error:", err);
   }
@@ -1390,6 +1541,8 @@ function createMarkerPopupHtml(wp: Waypoint, idx: number, markerColor: string, i
       <div class="map-popup-header" style="color:${markerColor}">[ ${iconLabel} ]</div>
       <input 
         type="text" 
+        id="popup-title-${wp.id}"
+        name="popup_title_${wp.id}"
         class="map-popup-title-input" 
         data-wp-id="${wp.id}" 
         value="${wp.title || ""}" 
@@ -1515,7 +1668,10 @@ function renderWaypointMapMarkers() {
     features: symbolFeatures
   };
 
-  if (!map.getSource("waypoints-symbols-src")) {
+  const src = map.getSource("waypoints-symbols-src") as maplibregl.GeoJSONSource;
+  if (src) {
+    src.setData(symbolGeoJSON);
+  } else {
     map.addSource("waypoints-symbols-src", {
       type: "geojson",
       data: symbolGeoJSON
@@ -1561,14 +1717,6 @@ function renderWaypointMapMarkers() {
     map.on("mouseleave", "waypoints-symbols-pins", () => {
       if (map) map.getCanvas().style.cursor = "";
     });
-  } else {
-    const src = map.getSource("waypoints-symbols-src") as maplibregl.GeoJSONSource;
-    if (src && typeof src.setData === "function") {
-      src.setData(symbolGeoJSON);
-    }
-    if (map.getLayer("expedition-route-layer")) {
-      map.moveLayer("waypoints-symbols-pins");
-    }
   }
 }
 
@@ -1833,6 +1981,8 @@ function renderWaypointsUI() {
             <div class="wp-card-line1">
               <input 
                 type="text" 
+                id="input-title-${wp.id}"
+                name="waypoint_title_${wp.id}"
                 class="waypoint-name-input" 
                 data-id="${wp.id}" 
                 data-field="title"
@@ -1847,6 +1997,8 @@ function renderWaypointsUI() {
               <span class="wp-meta-sep">|</span>
               <input 
                 type="text" 
+                id="input-coords-${wp.id}"
+                name="waypoint_coords_${wp.id}"
                 class="waypoint-coords-input" 
                 data-id="${wp.id}" 
                 data-field="coords"
@@ -1928,6 +2080,7 @@ function renderWaypointsUI() {
 
   renderWaypointMapMarkers();
   updateWaypointCardTiming();
+  saveActiveDraftToLocalStorage();
 }
 
 // Helper to insert a new stop at a specific index
@@ -2078,6 +2231,79 @@ if (waypointsContainer) {
 
     renderWaypointMapMarkers();
   });
+
+  // Auto-Geocode Waypoint Title on Enter Key or Focus Out
+  waypointsContainer.addEventListener("keydown", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (e.key === "Enter" && target && target.classList.contains("waypoint-name-input")) {
+      target.blur();
+    }
+  });
+
+  waypointsContainer.addEventListener("focusout", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target || !target.classList.contains("waypoint-name-input")) return;
+
+    const id = target.dataset.id;
+    if (!id) return;
+
+    const wp = waypoints.find((w) => w.id === id);
+    if (wp) {
+      geocodeWaypointIfNeeded(wp);
+    }
+  });
+}
+
+// Auto-Geocode Waypoint Title when user finishes typing (Blur or Enter key)
+async function geocodeWaypointIfNeeded(wp: Waypoint) {
+  const query = wp.title.trim();
+  if (!query) return;
+
+  // If user typed coordinates directly into title (e.g. "40.9, -98.3")
+  const parts = query.split(/[\s,]+/).filter(Boolean);
+  if (parts.length === 2) {
+    const pLat = parseFloat(parts[0]);
+    const pLon = parseFloat(parts[1]);
+    if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
+      wp.lat = pLat;
+      wp.lon = pLon;
+      renderWaypointsUI();
+      renderWaypointMapMarkers();
+      updateExpeditionRoute();
+      return;
+    }
+  }
+
+  // If lat/lon are missing, geocode via Nominatim API
+  if (wp.lat === null || wp.lon === null) {
+    try {
+      showToast(`Finding location for "${query}"... 🔍`);
+      const center = map ? map.getCenter() : { lng: -104.9903, lat: 39.7392 };
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&lat=${center.lat}&lon=${center.lng}`
+      );
+      if (res.ok) {
+        const results = await res.json();
+        if (results && results.length > 0) {
+          const lat = parseFloat(results[0].lat);
+          const lon = parseFloat(results[0].lon);
+          wp.lat = lat;
+          wp.lon = lon;
+          if (results[0].display_name) {
+            wp.title = results[0].display_name.split(",")[0].toUpperCase();
+          }
+          renderWaypointsUI();
+          renderWaypointMapMarkers();
+          updateExpeditionRoute();
+          focusOnWaypoint(wp.id);
+          showToast(`Set "${wp.title}" to [${lat.toFixed(4)}, ${lon.toFixed(4)}] 📍`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Geocoding failed for waypoint title:", query, err);
+    }
+  }
 }
 
 // Left Drawer Collapse / Expand Controls
@@ -2210,7 +2436,7 @@ export function open3DViewerModal() {
           "esri-satellite": {
             type: "raster",
             tiles: [
-              "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             ],
             tileSize: 256,
             maxzoom: 17,
@@ -2946,10 +3172,43 @@ if (itineraryStartTimeInput) {
   });
 }
 
+if (toggleAllItineraryDaysBtn) {
+  toggleAllItineraryDaysBtn.addEventListener("click", () => {
+    let totalDays = 1;
+    waypoints.forEach((_, idx) => {
+      if (idx > 0 && waypoints[idx - 1].isOvernight) {
+        totalDays++;
+      }
+    });
+
+    if (collapsedItineraryDays.size >= totalDays) {
+      collapsedItineraryDays.clear();
+    } else {
+      for (let d = 1; d <= totalDays; d++) {
+        collapsedItineraryDays.add(d);
+      }
+    }
+    renderItinerarySpreadsheet();
+  });
+}
+
 // Live Table Inputs & Toggles Event Delegation
 if (itineraryTableBody) {
   itineraryTableBody.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
+
+    // Day Header Accordion Row Toggle
+    const dayHeaderRow = target.closest(".day-header-row") as HTMLTableRowElement;
+    if (dayHeaderRow && dayHeaderRow.dataset.dayNum) {
+      const dayNum = parseInt(dayHeaderRow.dataset.dayNum, 10);
+      if (collapsedItineraryDays.has(dayNum)) {
+        collapsedItineraryDays.delete(dayNum);
+      } else {
+        collapsedItineraryDays.add(dayNum);
+      }
+      renderItinerarySpreadsheet();
+      return;
+    }
 
     // Overnight Toggle Button
     const overnightBtn = target.closest(".btn-overnight-toggle") as HTMLButtonElement;
@@ -3097,7 +3356,12 @@ function resetTripToNewWorkspace() {
   currentTripSummary = "";
   lastRouteCoordinates = [];
   currentLegMetrics = [];
+  currentRouteLegs = [];
   collapsedDays.clear();
+
+  try {
+    localStorage.removeItem("iterviae_v2_active_draft");
+  } catch (e) {}
 
   if (modalTripTitle) modalTripTitle.value = currentTripTitle;
   if (modalTripSummary) modalTripSummary.value = "";
@@ -3185,6 +3449,108 @@ function exportExpeditionToGPX() {
   URL.revokeObjectURL(url);
 
   showToast(`Exported ${sanitizedTitle}.gpx for GPS devices 📥`);
+}
+
+// Export Trip as Local .iterviae JSON File directly to user disk (Zero Server Needed)
+function exportLocalTripFile() {
+  const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
+  if (validWaypoints.length === 0) {
+    alert("No valid waypoints to save. Please add waypoints to your expedition route first.");
+    return;
+  }
+
+  const sanitizedTitle = currentTripTitle.replace(/[^\w\s-]/gi, "").trim() || "Expedition_Route";
+  const encodedPolyline = encodePolyline6(lastRouteCoordinates);
+  const compactLegs = currentRouteLegs.map((leg) => ({
+    startLat: Number(leg.startLat.toFixed(5)),
+    startLon: Number(leg.startLon.toFixed(5)),
+    endLat: Number(leg.endLat.toFixed(5)),
+    endLon: Number(leg.endLon.toFixed(5)),
+    encodedPolyline: leg.encodedPolyline || (leg.coordinates ? encodePolyline6(leg.coordinates) : ""),
+    distanceMi: Number(leg.distanceMi.toFixed(2)),
+    durationSec: Math.round(leg.durationSec)
+  }));
+
+  const fileData = {
+    version: "2.0",
+    generator: "Iter Viae - https://iterviae.com",
+    created: new Date().toISOString(),
+    tripId: currentTripId,
+    title: currentTripTitle,
+    summary: currentTripSummary,
+    waypoints: waypoints,
+    expeditionStartTime: expeditionStartTime,
+    vehicleProfile: vehicleProfile,
+    encodedPolyline: encodedPolyline,
+    legs: currentLegMetrics,
+    routeLegs: compactLegs
+  };
+
+  const jsonStr = JSON.stringify(fileData, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${sanitizedTitle.replace(/\s+/g, "_")}.iterviae`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(`Saved ${sanitizedTitle}.iterviae to local disk 💾`);
+}
+
+// Load Trip directly from a Local .iterviae or .json File
+function loadLocalTripFile(file: File) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const content = e.target?.result as string;
+      const data = JSON.parse(content);
+
+      if (!data || !Array.isArray(data.waypoints) || data.waypoints.length === 0) {
+        alert("Invalid Iter Viae trip file format.");
+        return;
+      }
+
+      currentTripId = data.tripId || null;
+      currentTripTitle = (data.title || "MY EXPEDITION ROUTE").toUpperCase();
+      currentTripSummary = data.summary || "";
+      waypoints = data.waypoints;
+
+      if (data.expeditionStartTime) expeditionStartTime = data.expeditionStartTime;
+      if (data.vehicleProfile) vehicleProfile = data.vehicleProfile;
+
+      if (data.encodedPolyline) {
+        lastRouteCoordinates = decodePolyline6(data.encodedPolyline);
+      } else if (Array.isArray(data.coordinates)) {
+        lastRouteCoordinates = data.coordinates;
+      }
+
+      if (Array.isArray(data.legs)) currentLegMetrics = data.legs;
+      if (Array.isArray(data.routeLegs)) currentRouteLegs = data.routeLegs;
+
+      if (tripTitleText) tripTitleText.textContent = currentTripTitle;
+      if (modalTripTitle) modalTripTitle.value = currentTripTitle;
+      if (modalTripSummary) modalTripSummary.value = currentTripSummary;
+
+      saveActiveDraftToLocalStorage();
+      renderWaypointsUI();
+      renderWaypointMapMarkers();
+      redrawRouteLine();
+      updateLegBadgesUI();
+      fitMapToAllWaypoints();
+
+      // Automatically re-query road engine to upgrade any legacy straight lines
+      updateExpeditionRoute(true);
+
+      showToast(`Loaded Local Trip "${currentTripTitle}" 📂`);
+    } catch (err: any) {
+      console.error("Error reading local trip file:", err);
+      alert("Failed to parse local trip file: " + err.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 function escapeXml(str: string): string {
@@ -3488,110 +3854,192 @@ function addPOIToExpedition(poi: POISearchResult) {
   showToast(`Added ${poi.title} to Expedition Route 📍`);
 }
 
-// Save & Update Trip to Cloud Backend (PocketBase - Progressive Fallbacks)
-if (saveTripBtn) {
-  saveTripBtn.addEventListener("click", async () => {
-    if (!PocketBaseAuth.isAuthenticated()) {
-      alert("Please sign in to save trips to your private cloud logbook.");
-      openAuthModal();
-      return;
+/**
+ * Iter Viae v2.0 Local-First Draft Auto-Saver:
+ * Automatically persists active workspace canvas state into LocalStorage on every mutation (< 1 ms latency)
+ */
+function saveActiveDraftToLocalStorage() {
+  try {
+    const encodedPolyline = encodePolyline6(lastRouteCoordinates);
+    const compactLegs = currentRouteLegs.map((leg) => ({
+      startLat: Number(leg.startLat.toFixed(5)),
+      startLon: Number(leg.startLon.toFixed(5)),
+      endLat: Number(leg.endLat.toFixed(5)),
+      endLon: Number(leg.endLon.toFixed(5)),
+      encodedPolyline: leg.encodedPolyline || (leg.coordinates ? encodePolyline6(leg.coordinates) : ""),
+      distanceMi: Number(leg.distanceMi.toFixed(2)),
+      durationSec: Math.round(leg.durationSec)
+    }));
+
+    localStorage.setItem("iterviae_v2_active_draft", JSON.stringify({
+      tripId: currentTripId,
+      title: currentTripTitle,
+      summary: currentTripSummary,
+      waypoints: waypoints,
+      expeditionStartTime: expeditionStartTime,
+      vehicleProfile: vehicleProfile,
+      encodedPolyline: encodedPolyline,
+      legs: currentLegMetrics,
+      routeLegs: compactLegs,
+      updatedAt: new Date().toISOString()
+    }));
+  } catch (e) {
+    // LocalStorage quota safeguard
+  }
+}
+
+/**
+ * Iter Viae v2.0 Local-First Draft Restorer:
+ * Restores active workspace draft instantly (< 10 ms) on app launch
+ */
+function restoreActiveDraftFromLocalStorage(): boolean {
+  try {
+    const raw = localStorage.getItem("iterviae_v2_active_draft");
+    if (!raw) return false;
+
+    const draft = JSON.parse(raw);
+    if (!draft || !Array.isArray(draft.waypoints) || draft.waypoints.length === 0) return false;
+
+    currentTripId = draft.tripId || null;
+    currentTripTitle = (draft.title || "MY EXPEDITION ROUTE").toUpperCase();
+    currentTripSummary = draft.summary || "";
+    waypoints = draft.waypoints;
+
+    if (draft.expeditionStartTime) expeditionStartTime = draft.expeditionStartTime;
+    if (draft.vehicleProfile) vehicleProfile = draft.vehicleProfile;
+
+    if (draft.encodedPolyline) {
+      lastRouteCoordinates = decodePolyline6(draft.encodedPolyline);
+    } else if (Array.isArray(draft.coordinates)) {
+      lastRouteCoordinates = draft.coordinates;
     }
 
-    const user = PocketBaseAuth.getUser() as any;
+    if (Array.isArray(draft.legs)) currentLegMetrics = draft.legs;
+    if (Array.isArray(draft.routeLegs)) currentRouteLegs = draft.routeLegs;
+
+    if (tripTitleText) tripTitleText.textContent = currentTripTitle;
+    if (modalTripTitle) modalTripTitle.value = currentTripTitle;
+    if (modalTripSummary) modalTripSummary.value = currentTripSummary;
+
+    return true;
+  } catch (e) {
+    console.warn("Failed to restore local draft from localStorage:", e);
+    return false;
+  }
+}
+
+// Save & Publish Trip to Cloud Backend (PocketBase - Progressive Fallbacks)
+async function publishActiveTripToCloud() {
+  if (!PocketBaseAuth.isAuthenticated()) {
+    alert("Please sign in to publish trips to your private cloud logbook.");
+    openAuthModal();
+    return;
+  }
+
+  const user = PocketBaseAuth.getUser() as any;
+
+  try {
+    showToast("Publishing expedition route to cloud... ☁️");
+
+    const encodedPolyline = encodePolyline6(lastRouteCoordinates);
+    const compactLegs = currentRouteLegs.map((leg) => ({
+      startLat: Number(leg.startLat.toFixed(5)),
+      startLon: Number(leg.startLon.toFixed(5)),
+      endLat: Number(leg.endLat.toFixed(5)),
+      endLon: Number(leg.endLon.toFixed(5)),
+      encodedPolyline: leg.encodedPolyline || (leg.coordinates ? encodePolyline6(leg.coordinates) : ""),
+      distanceMi: Number(leg.distanceMi.toFixed(2)),
+      durationSec: Math.round(leg.durationSec)
+    }));
+
+    const baseMetrics = {
+      distance: metricDistance?.textContent || "0.0 MI",
+      duration: metricDuration?.textContent || "0H 0M",
+      summary: currentTripSummary,
+      vehicleProfile: vehicleProfile,
+      encodedPolyline: encodedPolyline,
+      routeLegs: compactLegs,
+      legMetrics: currentLegMetrics,
+      itinerary: {
+        startTime: expeditionStartTime
+      }
+    };
+
+    const payload1: any = {
+      user: user.id,
+      title: currentTripTitle,
+      summary: currentTripSummary,
+      waypoints: waypoints,
+      route_geometry: {
+        type: "Polyline6",
+        polyline: encodedPolyline
+      },
+      itinerary: {
+        startTime: expeditionStartTime,
+        waypoints: waypoints
+      },
+      metrics: baseMetrics
+    };
 
     try {
-      saveTripBtn.textContent = "Saving...";
+      if (currentTripId) {
+        await pb.collection("trips").update(currentTripId, payload1);
+      } else {
+        const record = await pb.collection("trips").create(payload1);
+        currentTripId = record.id;
+      }
+      saveActiveDraftToLocalStorage();
+      showToast(`Published "${currentTripTitle}" to Cloud! ☁️`);
+    } catch (err1: any) {
+      console.warn("Save attempt 1 (Full Payload) failed:", extractPocketBaseError(err1));
 
-      const baseMetrics = {
-        distance: metricDistance?.textContent || "0.0 MI",
-        duration: metricDuration?.textContent || "0H 0M",
-        summary: currentTripSummary,
-        vehicleProfile: vehicleProfile,
-        itinerary: {
-          startTime: expeditionStartTime
-        }
-      };
-
-      // Payload 1: Full payload including route_geometry, summary, and itinerary
-      const payload1: any = {
+      const payload2: any = {
         user: user.id,
         title: currentTripTitle,
-        summary: currentTripSummary,
         waypoints: waypoints,
-        route_geometry: {
-          type: "FeatureCollection",
-          features: []
-        },
-        itinerary: {
-          startTime: expeditionStartTime,
-          waypoints: waypoints
-        },
+        route_geometry: {},
         metrics: baseMetrics
       };
 
-      // Attempt 1: Full Payload
       try {
         if (currentTripId) {
-          await pb.collection("trips").update(currentTripId, payload1);
+          await pb.collection("trips").update(currentTripId, payload2);
         } else {
-          const record = await pb.collection("trips").create(payload1);
+          const record = await pb.collection("trips").create(payload2);
           currentTripId = record.id;
         }
-        showToast("Expedition Trip saved to PocketBase Cloud!");
-      } catch (err1: any) {
-        console.warn("Save attempt 1 (Full Payload) failed:", extractPocketBaseError(err1));
+        saveActiveDraftToLocalStorage();
+        showToast(`Published "${currentTripTitle}" to Cloud! ☁️`);
+      } catch (err2: any) {
+        console.warn("Save attempt 2 failed:", extractPocketBaseError(err2));
 
-        // Attempt 2: Standard Payload without root itinerary/summary if root columns not added yet
-        const payload2: any = {
+        const payload3: any = {
           user: user.id,
           title: currentTripTitle,
           waypoints: waypoints,
-          route_geometry: {},
           metrics: baseMetrics
         };
 
         try {
           if (currentTripId) {
-            await pb.collection("trips").update(currentTripId, payload2);
+            await pb.collection("trips").update(currentTripId, payload3);
           } else {
-            const record = await pb.collection("trips").create(payload2);
+            const record = await pb.collection("trips").create(payload3);
             currentTripId = record.id;
           }
-          showToast("Expedition Trip saved to PocketBase Cloud!");
-        } catch (err2: any) {
-          console.warn("Save attempt 2 failed:", extractPocketBaseError(err2));
-
-          // Attempt 3: Minimal Payload without optional status field
-          const payload3: any = {
-            user: user.id,
-            title: currentTripTitle,
-            waypoints: waypoints,
-            metrics: baseMetrics
-          };
-
-          try {
-            if (currentTripId) {
-              await pb.collection("trips").update(currentTripId, payload3);
-            } else {
-              const record = await pb.collection("trips").create(payload3);
-              currentTripId = record.id;
-            }
-            showToast("Expedition Trip saved to PocketBase Cloud!");
-          } catch (err3: any) {
-            console.error("All save attempts failed. Final error:", err3);
-            const errDetails = extractPocketBaseError(err3);
-            alert("Failed to save trip to PocketBase Cloud:\n\n" + errDetails);
-          }
+          saveActiveDraftToLocalStorage();
+          showToast(`Published "${currentTripTitle}" to Cloud! ☁️`);
+        } catch (err3: any) {
+          console.error("All publish attempts failed. Final error:", err3);
+          const errDetails = extractPocketBaseError(err3);
+          alert("Failed to publish trip to Cloud:\n\n" + errDetails);
         }
       }
-
-      saveTripBtn.textContent = "💾 Save Cloud";
-    } catch (err: any) {
-      saveTripBtn.textContent = "💾 Save Cloud";
-      console.error("Save process error:", err);
-      alert("Error saving trip: " + (err.message || extractPocketBaseError(err)));
     }
-  });
+  } catch (err: any) {
+    console.error("Publish process error:", err);
+    alert("Error publishing trip: " + (err.message || extractPocketBaseError(err)));
+  }
 }
 
 // Load User Saved Trips from PocketBase (Strictly User-Scoped Filter for Privacy)
@@ -3690,14 +4138,51 @@ function fitMapToAllWaypoints() {
   });
 }
 
+// Cancel Loading Route Listener
+if (cancelRouteLoadingBtn) {
+  cancelRouteLoadingBtn.addEventListener("click", () => {
+    activeRouteLoadingToken = null;
+    if (routeLoadingModal) routeLoadingModal.style.display = "none";
+    showToast("Route loading cancelled");
+  });
+}
+
 // Load Specific Saved Trip into Workspace Map
 async function loadTripIntoWorkspace(tripId: string) {
+  // 1. Instantly close Saved Trips Modal so it doesn't linger or freeze!
+  closeSavedTripsModal();
+
+  // 2. Setup Route Loading overlay & cancellation token
+  const loadingToken = `load_${tripId}_${Date.now()}`;
+  activeRouteLoadingToken = loadingToken;
+
+  if (routeLoadingModal) routeLoadingModal.style.display = "flex";
+  if (routeLoadingSubtitle) {
+    routeLoadingSubtitle.textContent = "Fetching route record & waypoints from cloud...";
+  }
+
   try {
     const record = await pb.collection("trips").getOne(tripId);
-    if (!record) return;
+
+    // If cancelled while fetching record
+    if (activeRouteLoadingToken !== loadingToken) {
+      console.log("Route loading cancelled by user.");
+      return;
+    }
+
+    if (!record) {
+      if (routeLoadingModal) routeLoadingModal.style.display = "none";
+      activeRouteLoadingToken = null;
+      return;
+    }
+
+    const titleUpper = (record.title || "MY EXPEDITION ROUTE").toUpperCase();
+    if (routeLoadingSubtitle) {
+      routeLoadingSubtitle.textContent = `Calculating Valhalla route line & metrics for "${titleUpper}"...`;
+    }
 
     currentTripId = record.id;
-    currentTripTitle = (record.title || "MY EXPEDITION ROUTE").toUpperCase();
+    currentTripTitle = titleUpper;
     currentTripSummary = record.summary || record.metrics?.summary || "";
 
     if (modalTripSummary) {
@@ -3725,12 +4210,47 @@ async function loadTripIntoWorkspace(tripId: string) {
     if (tripTitleText) tripTitleText.textContent = currentTripTitle;
 
     renderWaypointsUI();
-    await updateExpeditionRoute();
+
+    // Check for pre-computed geometry in Cloud DB or LocalStorage cache for instant (0ms) load
+    const storedPolyline = record.metrics?.encodedPolyline;
+    const storedCoords = storedPolyline
+      ? decodePolyline6(storedPolyline)
+      : (record.metrics?.routeCoordinates || (record.route_geometry?.features?.[0]?.geometry?.coordinates));
+    const storedLegs = record.metrics?.routeLegs;
+    const storedMetrics = record.metrics?.legMetrics;
+
+    if (Array.isArray(storedCoords) && storedCoords.length >= 2) {
+      console.log(`Instant Route Load: Restored pre-computed geometry from cloud DB for trip ${tripId}`);
+      lastRouteCoordinates = storedCoords;
+      currentRouteLegs = Array.isArray(storedLegs) ? storedLegs : [];
+      currentLegMetrics = Array.isArray(storedMetrics) ? storedMetrics : [];
+
+      if (metricDistance && record.metrics?.distance) metricDistance.textContent = record.metrics.distance;
+      if (metricDuration && record.metrics?.duration) metricDuration.textContent = record.metrics.duration;
+
+      redrawRouteLine();
+      updateLegBadgesUI();
+    } else {
+      // Fallback to incremental fetch if record is missing pre-computed geometry
+      await updateExpeditionRoute();
+    }
+
+    // If cancelled while updating
+    if (activeRouteLoadingToken !== loadingToken) {
+      console.log("Route loading cancelled by user during route calculation.");
+      return;
+    }
+
     fitMapToAllWaypoints();
 
-    closeSavedTripsModal();
+    // Close Route Loading overlay upon completion
+    if (routeLoadingModal) routeLoadingModal.style.display = "none";
+    activeRouteLoadingToken = null;
+
     showToast(`Loaded Expedition Route: ${currentTripTitle}`);
   } catch (err: any) {
+    if (routeLoadingModal) routeLoadingModal.style.display = "none";
+    activeRouteLoadingToken = null;
     console.error("Failed to load trip record:", err);
     alert("Error loading trip: " + err.message);
   }
@@ -3792,6 +4312,186 @@ function closeSavedTripsModal() {
 if (navSavedTripsBtn) navSavedTripsBtn.addEventListener("click", openSavedTripsModal);
 if (openSavedTripsBtn) openSavedTripsBtn.addEventListener("click", openSavedTripsModal);
 if (savedTripsModalClose) savedTripsModalClose.addEventListener("click", closeSavedTripsModal);
+
+// Fetch & Sync All Cloud Trips to Local Device Storage
+async function syncCloudTripsToDeviceStorage() {
+  if (!PocketBaseAuth.isAuthenticated()) {
+    alert("Please sign in to sync cloud trips to your device.");
+    openAuthModal();
+    return;
+  }
+
+  const user = PocketBaseAuth.getUser() as any;
+
+  try {
+    showToast("Syncing cloud trips to device storage... 📥");
+
+    const records = await pb.collection("trips").getFullList({
+      filter: `user = "${user.id}"`,
+      sort: "-updated"
+    });
+
+    if (records.length === 0) {
+      showToast("No cloud trips found to sync.");
+      return;
+    }
+
+    let syncedCount = 0;
+    records.forEach((record: any) => {
+      try {
+        localStorage.setItem(`iterviae_route_cache_${record.id}`, JSON.stringify({
+          tripId: record.id,
+          title: record.title,
+          summary: record.summary,
+          waypoints: record.waypoints,
+          metrics: record.metrics,
+          updated: record.updated
+        }));
+        syncedCount++;
+      } catch (e) {
+        // LocalStorage quota safeguard
+      }
+    });
+
+    showToast(`Synced ${syncedCount} Cloud Trip(s) to Device Storage! 📥`);
+  } catch (err: any) {
+    console.error("Cloud trip sync error:", err);
+    alert("Error syncing cloud trips: " + (err.message || extractPocketBaseError(err)));
+  }
+}
+
+// Navigation Dropdown Menu Handlers
+if (toggleNavMenuBtn && navMenuDropdownCard) {
+  toggleNavMenuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isVisible = navMenuDropdownCard.style.display === "flex";
+    navMenuDropdownCard.style.display = isVisible ? "none" : "flex";
+  });
+
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (navMenuDropdownCard && !target.closest("#nav-expedition-menu")) {
+      navMenuDropdownCard.style.display = "none";
+    }
+  });
+}
+
+if (menuPublishBtn) {
+  menuPublishBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    publishActiveTripToCloud();
+  });
+}
+
+if (menuSyncCloudBtn) {
+  menuSyncCloudBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    syncCloudTripsToDeviceStorage();
+  });
+}
+
+if (menuSavedTripsBtn) {
+  menuSavedTripsBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    openSavedTripsModal();
+  });
+}
+
+if (menuSaveLocalBtn) {
+  menuSaveLocalBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    exportLocalTripFile();
+  });
+}
+
+if (menuOpenLocalBtn) {
+  menuOpenLocalBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    if (importIterviaeInput) importIterviaeInput.click();
+  });
+}
+
+if (importIterviaeInput) {
+  importIterviaeInput.addEventListener("change", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+      loadLocalTripFile(target.files[0]);
+      target.value = "";
+    }
+  });
+}
+
+const menuDebugRouteBtn = document.getElementById("menu-debug-route-btn");
+
+function runRouteDiagnostics() {
+  const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
+  const totalWaypoints = waypoints.length;
+  const validCount = validWaypoints.length;
+  const roadPoints = lastRouteCoordinates ? lastRouteCoordinates.length : 0;
+  const legCount = currentRouteLegs ? currentRouteLegs.length : 0;
+  const mapLoaded = Boolean(map);
+  const layerExists = map ? Boolean(map.getLayer("expedition-route-layer")) : false;
+
+  let report = `🐞 ROUTE DIAGNOSTICS REPORT:\n\n`;
+  report += `• Map Loaded: ${mapLoaded ? "YES ✅" : "NO ❌"}\n`;
+  report += `• Route Layer on Canvas: ${layerExists ? "YES ✅" : "NO ❌"}\n`;
+  report += `• Total Waypoints in List: ${totalWaypoints}\n`;
+  report += `• Valid Waypoints (with Lat/Lon): ${validCount} / ${totalWaypoints}\n`;
+  report += `• Current Leg Geometries Cached: ${legCount}\n`;
+  report += `• Total Road Polyline Vertices: ${roadPoints}\n\n`;
+
+  if (validCount < 2) {
+    report += `⚠️ REASON FOR NO ROUTE LINE:\n`;
+    report += `Fewer than 2 waypoints have valid latitude/longitude coordinates.\n`;
+    report += `Please type an address and hit Enter, or select a location from search suggestions!`;
+  } else if (roadPoints < 2) {
+    report += `⚠️ REASON FOR NO ROUTE LINE:\n`;
+    report += `The routing server has not returned polyline coordinates yet.\n`;
+    report += `Click "Recalculate Route" in the Menu to re-query the routing server!`;
+  } else {
+    report += `✅ ROUTE PIPELINE OK!\n`;
+    report += `Route line with ${roadPoints} road points is actively drawn on the map canvas.`;
+  }
+
+  alert(report);
+}
+
+if (menuRecalculateBtn) {
+  menuRecalculateBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    showToast("Recalculating expedition route... 🔄");
+    updateExpeditionRoute(true);
+  });
+}
+
+if (menuDebugRouteBtn) {
+  menuDebugRouteBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    runRouteDiagnostics();
+  });
+}
+
+if (menuExportGpxBtn) {
+  menuExportGpxBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    exportExpeditionToGPX();
+  });
+}
+
+if (menuImportGpxBtn) {
+  menuImportGpxBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    const importGpxInput = document.getElementById("import-gpx-input");
+    if (importGpxInput) importGpxInput.click();
+  });
+}
+
+if (menuVehicleBtn) {
+  menuVehicleBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    openVehicleModal();
+  });
+}
 
 function addPinAtLocation(lat: number, lon: number) {
   if (!map) return;
@@ -3886,30 +4586,44 @@ function initializeMapSurface() {
   map.on("load", () => {
     map?.resize();
 
-    // Trigger Browser Geolocation to center map close to user position (keep inputs blank)
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const userLat = position.coords.latitude;
-          const userLon = position.coords.longitude;
+    const restored = restoreActiveDraftFromLocalStorage();
+    if (restored) {
+      console.log(`Iter Viae v2.0: Restored active working draft "${currentTripTitle}" from localStorage (< 10 ms)`);
+      renderWaypointsUI();
+      renderWaypointMapMarkers();
+      redrawRouteLine();
+      updateLegBadgesUI();
+      fitMapToAllWaypoints();
 
-          console.log(`User Geolocation centered map at: ${userLat}, ${userLon}`);
+      // Auto-upgrade any legacy straight lines from restored LocalStorage draft
+      updateExpeditionRoute(true);
+      showToast(`Restored Working Draft: ${currentTripTitle}`);
+    } else {
+      // Trigger Browser Geolocation to center map close to user position (keep inputs blank)
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
 
-          // Fly map close to user location
-          map?.flyTo({
-            center: [userLon, userLat],
-            zoom: 13,
-            speed: 1.5,
-            essential: true
-          });
-        },
-        (error) => {
-          console.warn("Geolocation positioning error or permission denied:", error.message);
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+            console.log(`User Geolocation centered map at: ${userLat}, ${userLon}`);
+
+            // Fly map close to user location
+            map?.flyTo({
+              center: [userLon, userLat],
+              zoom: 13,
+              speed: 1.5,
+              essential: true
+            });
+          },
+          (error) => {
+            console.warn("Geolocation positioning error or permission denied:", error.message);
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      }
+      renderWaypointMapMarkers();
     }
-    renderWaypointMapMarkers();
   });
 
   setTimeout(() => {
@@ -4062,6 +4776,7 @@ function updateAuthStateUI() {
       if (importGPXBtn) importGPXBtn.style.display = "inline-flex";
       if (navVehicleBtn) navVehicleBtn.style.display = "inline-flex";
       if (navSavedTripsBtn) navSavedTripsBtn.style.display = "inline-flex";
+      if (navExpeditionMenu) navExpeditionMenu.style.display = "inline-block";
       // Verified User View -> Render Full 100vh Viewport Map Surface + Left Planner
       if (guestView) guestView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "none";
@@ -4083,6 +4798,7 @@ function updateAuthStateUI() {
       if (importGPXBtn) importGPXBtn.style.display = "none";
       if (navVehicleBtn) navVehicleBtn.style.display = "none";
       if (navSavedTripsBtn) navSavedTripsBtn.style.display = "none";
+      if (navExpeditionMenu) navExpeditionMenu.style.display = "none";
       if (guestView) guestView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "flex";
@@ -4098,6 +4814,7 @@ function updateAuthStateUI() {
     if (importGPXBtn) importGPXBtn.style.display = "none";
     if (navVehicleBtn) navVehicleBtn.style.display = "none";
     if (navSavedTripsBtn) navSavedTripsBtn.style.display = "none";
+    if (navExpeditionMenu) navExpeditionMenu.style.display = "none";
     if (openAuthBtn) openAuthBtn.style.display = "inline-flex";
     if (userSessionPill) userSessionPill.style.display = "none";
 

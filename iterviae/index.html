@@ -23,34 +23,73 @@
           <img src="/logo.png" alt="Iter Viae Logo" class="brand-logo-img" />
           <div class="brand-text">
             <span class="brand-name">Iter Viae</span>
-            <span class="brand-version">v1.0</span>
+            <span class="brand-version">v2.0</span>
           </div>
         </div>
 
         <div class="nav-actions">
-          <!-- Quick Access Toolbar Buttons -->
+          <!-- Primary Actions -->
           <button id="new-trip-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Start a New Blank Expedition Route">
             ➕ New Trip
           </button>
           <button id="open-itinerary-btn" class="btn btn-emerald btn-sm" style="display: none; margin-right: 6px;" title="Open Detailed Itinerary">
             📊 Itinerary
           </button>
-          <button id="save-trip-btn" class="btn btn-primary btn-sm" style="display: none; margin-right: 6px;" title="Save Trip to Cloud">
-            💾 Save
-          </button>
-          <button id="export-gpx-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Export Route as GPX for Garmin / GPS Devices">
-            📥 Export GPX
-          </button>
-          <button id="import-gpx-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Import GPX or KML File">
-            📤 Import GPX/KML
-          </button>
           <input type="file" id="import-gpx-input" accept=".gpx,.kml" style="display: none;" />
-          <button id="nav-vehicle-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Vehicle Specs & Fuel Calculator">
-            ⛽ Vehicle Specs
-          </button>
-          <button id="nav-saved-trips-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 8px;">
-            📁 Saved Trips
-          </button>
+          <input type="file" id="import-iterviae-input" accept=".iterviae,.json" style="display: none;" />
+          <!-- Expedition Command Dropdown Menu -->
+          <div id="nav-expedition-menu" class="nav-dropdown-wrapper" style="display: none; margin-right: 8px;">
+            <button id="toggle-nav-menu-btn" class="btn btn-outline btn-sm dropdown-trigger-btn" title="Expedition Cloud & Tools Menu">
+              ☰ Menu ▾
+            </button>
+            <div id="nav-menu-dropdown-card" class="dropdown-menu-card" style="display: none;">
+              <div class="dropdown-header-title">CLOUD SYNC & BACKUP</div>
+              <button id="menu-publish-btn" class="dropdown-menu-item" title="Publish Active Route to Cloud Logbook">
+                <span class="dropdown-icon">☁️</span>
+                <span>Publish Active Route to Cloud</span>
+              </button>
+              <button id="menu-sync-cloud-btn" class="dropdown-menu-item" title="Fetch & Sync All Cloud Trips to Device Storage">
+                <span class="dropdown-icon">📥</span>
+                <span>Sync Cloud Trips to Device</span>
+              </button>
+              <button id="menu-saved-trips-btn" class="dropdown-menu-item" title="Open Cloud Logbook">
+                <span class="dropdown-icon">📁</span>
+                <span>Saved Trips Logbook</span>
+              </button>
+              <div class="dropdown-menu-divider"></div>
+              <div class="dropdown-header-title">LOCAL FILE STORAGE</div>
+              <button id="menu-save-local-btn" class="dropdown-menu-item" title="Save Trip File Directly to Local Disk">
+                <span class="dropdown-icon">💾</span>
+                <span>Save Local Trip File (.iterviae)</span>
+              </button>
+              <button id="menu-open-local-btn" class="dropdown-menu-item" title="Open Trip File Directly from Local Disk">
+                <span class="dropdown-icon">📂</span>
+                <span>Open Local Trip File (.iterviae)</span>
+              </button>
+              <div class="dropdown-menu-divider"></div>
+              <div class="dropdown-header-title">TOOLS & EXPORTS</div>
+              <button id="menu-recalculate-btn" class="dropdown-menu-item" title="Force Recalculate Expedition Route & Legs">
+                <span class="dropdown-icon">🔄</span>
+                <span>Recalculate Route</span>
+              </button>
+              <button id="menu-debug-route-btn" class="dropdown-menu-item" title="Run Route Diagnostics & Debugging">
+                <span class="dropdown-icon">🐞</span>
+                <span>Route Diagnostics</span>
+              </button>
+              <button id="menu-export-gpx-btn" class="dropdown-menu-item">
+                <span class="dropdown-icon">📥</span>
+                <span>Export GPX / KML</span>
+              </button>
+              <button id="menu-import-gpx-btn" class="dropdown-menu-item">
+                <span class="dropdown-icon">📤</span>
+                <span>Import GPX / KML</span>
+              </button>
+              <button id="menu-vehicle-btn" class="dropdown-menu-item">
+                <span class="dropdown-icon">⛽</span>
+                <span>Vehicle & Fuel Specs</span>
+              </button>
+            </div>
+          </div>
           <!-- User Auth Controls -->
           <div id="user-auth-controls">
             <button id="open-auth-btn" class="btn btn-primary" onclick="openAuthModal()">
@@ -200,6 +239,7 @@
               <input 
                 type="text" 
                 id="coord-search-input" 
+                name="search_query"
                 class="search-input"
                 placeholder="Search place, city, or Lat, Lon (e.g. 39.7392, -104.9903)" 
                 autocomplete="off" 
@@ -327,6 +367,9 @@
               <input type="datetime-local" id="itinerary-start-time" class="datetime-input" />
             </div>
             <div class="itinerary-toolbar-actions">
+              <button id="toggle-all-itinerary-days-btn" class="btn btn-outline btn-sm" title="Expand or Collapse All Days in Itinerary">
+                ▼ Collapse Days
+              </button>
               <button id="print-manifest-btn" class="btn btn-primary btn-sm" title="Print Clean Expedition Manifest Document or Save to PDF">
                 🖨️ Print Manifest
               </button>
@@ -416,6 +459,29 @@
 
         <div id="saved-trips-list" class="saved-trips-list">
           <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Route Loading Progress Overlay Modal -->
+    <div id="route-loading-modal" class="modal-overlay" style="display: none; z-index: 10000;">
+      <div class="modal-card route-loading-card">
+        <div class="route-loading-spinner-wrapper">
+          <div class="tactical-spinner"></div>
+        </div>
+        <div class="route-loading-header">
+          <h2 id="route-loading-title" class="route-loading-heading">LOADING EXPEDITION ROUTE</h2>
+          <p id="route-loading-subtitle" class="route-loading-subtitle">
+            Fetching route geometry & turn-by-turn metrics...
+          </p>
+        </div>
+        <div class="route-loading-bar-container">
+          <div class="route-loading-bar-glow"></div>
+        </div>
+        <div class="route-loading-actions">
+          <button id="cancel-route-loading-btn" class="btn btn-outline btn-sm" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);">
+            ⛔ Cancel Loading
+          </button>
         </div>
       </div>
     </div>
