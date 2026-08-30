@@ -1422,6 +1422,26 @@ function updateFuelCalculations() {
   }
 }
 
+// Synchronize vehicleProfile object to UI DOM inputs and update calculations
+export function syncVehicleProfileToUI(profile: Partial<VehicleProfile>) {
+  if (!profile) return;
+  const mpg = profile.mpg || 18;
+  const tank = profile.tankCapacityGal || 20;
+  const price = profile.fuelPricePerGal || 3.65;
+  const reserve = profile.reserveGal || 2;
+  const enabled = profile.enabled !== false;
+
+  vehicleProfile = { mpg, tankCapacityGal: tank, fuelPricePerGal: price, reserveGal: reserve, enabled };
+
+  if (fuelMpgInput) fuelMpgInput.value = mpg.toString();
+  if (tankCapacityInput) tankCapacityInput.value = tank.toString();
+  if (fuelPriceInput) fuelPriceInput.value = price.toString();
+  if (reserveGalInput) reserveGalInput.value = reserve.toString();
+  if (fuelTrackingToggle) fuelTrackingToggle.checked = enabled;
+
+  updateFuelCalculations();
+}
+
 // Update Waypoint Card Line 2 Arrival & Departure Badges
 function updateWaypointCardTiming() {
   let currentMillis = Date.parse(expeditionStartTime);
@@ -3456,6 +3476,8 @@ async function exportLocalTripFile() {
     durationSec: Math.round(leg.durationSec)
   }));
 
+  updateFuelCalculations(); // Ensure vehicleProfile matches current DOM inputs
+
   const fileData = {
     version: "2.0",
     generator: "Iter Viae - https://iterviae.com",
@@ -3534,7 +3556,7 @@ function loadLocalTripFile(file: File) {
       waypoints = data.waypoints;
 
       if (data.expeditionStartTime) expeditionStartTime = data.expeditionStartTime;
-      if (data.vehicleProfile) vehicleProfile = data.vehicleProfile;
+      if (data.vehicleProfile) syncVehicleProfileToUI(data.vehicleProfile);
 
       if (data.encodedPolyline) {
         lastRouteCoordinates = decodePolyline6(data.encodedPolyline);
@@ -3921,7 +3943,7 @@ function restoreActiveDraftFromLocalStorage(): boolean {
     waypoints = draft.waypoints;
 
     if (draft.expeditionStartTime) expeditionStartTime = draft.expeditionStartTime;
-    if (draft.vehicleProfile) vehicleProfile = draft.vehicleProfile;
+    if (draft.vehicleProfile) syncVehicleProfileToUI(draft.vehicleProfile);
 
     if (draft.encodedPolyline) {
       lastRouteCoordinates = decodePolyline6(draft.encodedPolyline);
