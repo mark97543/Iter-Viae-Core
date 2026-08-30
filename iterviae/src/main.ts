@@ -2236,6 +2236,18 @@ if (waypointsContainer) {
 
     if (field === "title") {
       wp.title = target.value;
+      // If user typed coordinates directly into title (e.g. "41.25, -95.93"), parse coords
+      const parts = target.value.split(/[\s,]+/).filter(Boolean);
+      if (parts.length >= 2) {
+        const pLat = parseFloat(parts[0]);
+        const pLon = parseFloat(parts[1]);
+        if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
+          wp.lat = pLat;
+          wp.lon = pLon;
+          renderWaypointMapMarkers();
+          updateExpeditionRoute();
+        }
+      }
     } else if (field === "coords") {
       const parts = target.value.split(/[\s,]+/).filter(Boolean);
       if (parts.length >= 2) {
@@ -2263,79 +2275,6 @@ if (waypointsContainer) {
 
     renderWaypointMapMarkers();
   });
-
-  // Auto-Geocode Waypoint Title on Enter Key or Focus Out
-  waypointsContainer.addEventListener("keydown", (e) => {
-    const target = e.target as HTMLInputElement;
-    if (e.key === "Enter" && target && target.classList.contains("waypoint-name-input")) {
-      target.blur();
-    }
-  });
-
-  waypointsContainer.addEventListener("focusout", (e) => {
-    const target = e.target as HTMLInputElement;
-    if (!target || !target.classList.contains("waypoint-name-input")) return;
-
-    const id = target.dataset.id;
-    if (!id) return;
-
-    const wp = waypoints.find((w) => w.id === id);
-    if (wp) {
-      geocodeWaypointIfNeeded(wp, true);
-    }
-  });
-}
-
-// Auto-Geocode Waypoint Title when user finishes typing (Blur or Enter key)
-async function geocodeWaypointIfNeeded(wp: Waypoint, forceGeocode: boolean = false) {
-  const query = wp.title.trim();
-  if (!query) return;
-
-  // If user typed coordinates directly into title (e.g. "40.9, -98.3")
-  const parts = query.split(/[\s,]+/).filter(Boolean);
-  if (parts.length === 2) {
-    const pLat = parseFloat(parts[0]);
-    const pLon = parseFloat(parts[1]);
-    if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
-      wp.lat = pLat;
-      wp.lon = pLon;
-      renderWaypointsUI();
-      renderWaypointMapMarkers();
-      updateExpeditionRoute();
-      return;
-    }
-  }
-
-  // If lat/lon are missing OR if title was updated (forceGeocode = true), geocode via Nominatim API
-  if (forceGeocode || wp.lat === null || wp.lon === null) {
-    try {
-      showToast(`Finding location for "${query}"... 🔍`);
-      const center = map ? map.getCenter() : { lng: -104.9903, lat: 39.7392 };
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&lat=${center.lat}&lon=${center.lng}`
-      );
-      if (res.ok) {
-        const results = await res.json();
-        if (results && results.length > 0) {
-          const lat = parseFloat(results[0].lat);
-          const lon = parseFloat(results[0].lon);
-          wp.lat = lat;
-          wp.lon = lon;
-          if (results[0].display_name) {
-            wp.title = results[0].display_name.split(",")[0].toUpperCase();
-          }
-          renderWaypointsUI();
-          renderWaypointMapMarkers();
-          updateExpeditionRoute();
-          focusOnWaypoint(wp.id);
-          showToast(`Set "${wp.title}" to [${lat.toFixed(4)}, ${lon.toFixed(4)}] & recalculating route 📍`);
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn("Geocoding failed for waypoint title:", query, err);
-    }
-  }
 }
 
 // Left Drawer Collapse / Expand Controls
