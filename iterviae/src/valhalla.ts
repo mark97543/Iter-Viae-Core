@@ -169,6 +169,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
  * EXCLUSIVELY uses user production dedicated server (https://valhalla.wade-usa.com/route).
  */
 const VALHALLA_SERVERS = [
+  "https://valhalla.wade-usa.com/route",
   "/valhalla-proxy/route"
 ];
 
@@ -188,12 +189,9 @@ async function fetchValhallaRoute(locations: RouteLocation[]): Promise<RouteResu
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
-      }, 3500);
+      }, 5000);
 
       if (!res.ok) {
-        if (res.status >= 500) {
-          markServerDead(valhallaUrl);
-        }
         continue;
       }
 
@@ -249,7 +247,7 @@ async function fetchValhallaRoute(locations: RouteLocation[]): Promise<RouteResu
         };
       }
     } catch (err) {
-      markServerDead(valhallaUrl);
+      // Suppress network errors silently without killing primary server
     }
   }
 
@@ -448,6 +446,54 @@ export interface IncrementalRouteResult extends RouteResult {
 }
 
 /**
+ * Render real-time tactical status bar for route calculations
+ */
+export function updateRoutingProgress(current: number, total: number, message = "Calculating turn-by-turn road geometry...") {
+  let el = document.getElementById("routing-progress-status");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "routing-progress-status";
+    el.className = "routing-progress-container";
+    document.body.appendChild(el);
+  }
+
+  const percent = Math.min(100, Math.round((current / total) * 100));
+
+  el.style.opacity = "1";
+  el.style.transform = "translateX(-50%) translateY(0)";
+  el.style.display = "flex";
+
+  el.innerHTML = `
+    <div class="routing-progress-header">
+      <div class="routing-progress-title">
+        <span class="routing-pulse-dot">
+          <span class="routing-pulse-ring"></span>
+          <span class="routing-pulse-core"></span>
+        </span>
+        <span>${message}</span>
+      </div>
+      <span class="routing-progress-counter">${current} / ${total} (${percent}%)</span>
+    </div>
+    <div class="routing-progress-track">
+      <div class="routing-progress-fill" style="width: ${percent}%;"></div>
+    </div>
+  `;
+}
+
+export function hideRoutingProgress() {
+  const el = document.getElementById("routing-progress-status");
+  if (el) {
+    el.style.opacity = "0";
+    el.style.transform = "translateX(-50%) translateY(12px)";
+    setTimeout(() => {
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    }, 300);
+  }
+}
+
+/**
  * High-Performance Incremental Routing Engine:
  * Reuses cached leg geometry for unchanged waypoint pairs to achieve instant (< 50ms) updates
  */
@@ -492,41 +538,16 @@ export async function fetchIncrementalExpeditionRoute(
   }
 
   if (legsToFetch.length > 0) {
-    console.log(`Incremental Routing: Reusing ${finalLegs.length - legsToFetch.length} cached leg(s), fetching ${legsToFetch.length} updated leg(s) sequentially with rate-limit & outage protection...`);
-
-    let consecutiveFailures = 0;
-    const CIRCUIT_BREAKER_THRESHOLD = 3;
+    console.log(`Incremental Routing: Reusing ${finalLegs.length - legsToFetch.length} cached leg(s), fetching ${legsToFetch.length} updated leg(s)...`);
+    updateRoutingProgress(0, legsToFetch.length);
 
     for (let f = 0; f < legsToFetch.length; f++) {
       const item = legsToFetch[f];
-
-      if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
-        // Circuit breaker tripped! Public routing servers are offline or timing out.
-        if (consecutiveFailures === CIRCUIT_BREAKER_THRESHOLD) {
-          console.warn("⚠️ Public routing servers appear offline/unreachable. Circuit breaker tripped — generating smooth Great Circle arc fallbacks for remaining legs.");
-          consecutiveFailures++; // Increment so log prints only once
-        }
-
-        const fallbackCoords = generateGreatCircleArc([item.start.lon, item.start.lat], [item.end.lon, item.end.lat]);
-        const legDist = haversineDistance(item.start.lat, item.start.lon, item.end.lat, item.end.lon);
-        finalLegs[item.index] = {
-          startLat: item.start.lat,
-          startLon: item.start.lon,
-          endLat: item.end.lat,
-          endLon: item.end.lon,
-          coordinates: fallbackCoords,
-          encodedPolyline: encodePolyline6(fallbackCoords),
-          distanceMi: legDist,
-          durationSec: (legDist / 50) * 3600,
-          isFallback: true
-        };
-        continue;
-      }
+      updateRoutingProgress(f + 1, legsToFetch.length);
 
       try {
         const res = await fetchSingleBatchRoute([item.start, item.end]);
         if (res && res.coordinates && res.coordinates.length >= 2 && !res.isFallback) {
-          consecutiveFailures = 0; // Reset counter on successful server response
           const coords = res.coordinates;
           const encoded = encodePolyline6(coords);
           const leg: RouteLeg = {
@@ -542,7 +563,6 @@ export async function fetchIncrementalExpeditionRoute(
           };
           finalLegs[item.index] = leg;
         } else {
-          consecutiveFailures++;
           const fallbackCoords = generateGreatCircleArc([item.start.lon, item.start.lat], [item.end.lon, item.end.lat]);
           const legDist = haversineDistance(item.start.lat, item.start.lon, item.end.lat, item.end.lon);
           finalLegs[item.index] = {
@@ -558,7 +578,6 @@ export async function fetchIncrementalExpeditionRoute(
           };
         }
       } catch (err) {
-        consecutiveFailures++;
         const fallbackCoords = generateGreatCircleArc([item.start.lon, item.start.lat], [item.end.lon, item.end.lat]);
         const legDist = haversineDistance(item.start.lat, item.start.lon, item.end.lat, item.end.lon);
         finalLegs[item.index] = {
@@ -574,10 +593,12 @@ export async function fetchIncrementalExpeditionRoute(
         };
       }
 
-      if (f < legsToFetch.length - 1 && consecutiveFailures < CIRCUIT_BREAKER_THRESHOLD) {
-        await new Promise((r) => setTimeout(r, 60));
+      if (f < legsToFetch.length - 1) {
+        await new Promise((r) => setTimeout(r, 20));
       }
     }
+    updateRoutingProgress(legsToFetch.length, legsToFetch.length, "Route Snapping Complete!");
+    setTimeout(() => hideRoutingProgress(), 1000);
   } else {
     console.log(`Incremental Routing: 100% of ${finalLegs.length} legs loaded instantly from cache!`);
   }

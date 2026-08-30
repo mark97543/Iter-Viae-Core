@@ -9,7 +9,7 @@ services:
     volumes:
       - ./valhalla_data:/custom_files
     environment:
-      - tile_extract_url=https://download.geofabrik.de/north-america-latest.osm.pbf
+      - tile_urls=https://download.geofabrik.de/north-america/us-latest.osm.pbf
       - build_elevation=false
       - build_admins=true
       - build_time_zones=true

@@ -7,7 +7,7 @@ export default defineConfig({
     host: true,
     proxy: {
       "/valhalla-proxy": {
-        target: "https://valhalla.wade-usa.com",
+        target: "http://46.202.179.124:8002",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/valhalla-proxy/, "")
@@ -20,7 +20,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/valhalla-proxy": {
-        target: "https://valhalla.wade-usa.com",
+        target: "http://46.202.179.124:8002",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/valhalla-proxy/, "")

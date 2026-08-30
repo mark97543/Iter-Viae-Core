@@ -20,4 +20,8 @@ echo "📤 [2/2] Uploading routing.tar as valhalla_tiles.tar (20.13 GB)..."
 rsync -P -z "/home/mark/Documents/Iter Viae Core/data/maps/compiled/routing.tar" "root@$SERVER_IP:/etc/easypanel/projects/iterviae/valhalla/valhalla_tiles.tar"
 
 echo ""
-echo "✅ Upload complete! All map and routing files are active on $SERVER_IP."
+echo "📦 Extracting valhalla_tiles.tar into /etc/easypanel/projects/iterviae/valhalla/..."
+ssh "root@$SERVER_IP" "tar -xf /etc/easypanel/projects/iterviae/valhalla/valhalla_tiles.tar -C /etc/easypanel/projects/iterviae/valhalla/"
+
+echo ""
+echo "✅ Upload and extraction complete! All map and routing tiles are active on $SERVER_IP."

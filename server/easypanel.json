@@ -18,7 +18,7 @@
           "target": "/custom_files"
         }
       ],
-      "env": "tile_extract_url=https://download.geofabrik.de/north-america-latest.osm.pbf\nforce_rebuild=false"
+      "env": "tile_urls=https://download.geofabrik.de/north-america/us-latest.osm.pbf\nforce_rebuild=true"
     },
     {
       "name": "tileserver",
