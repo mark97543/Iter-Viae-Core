@@ -85,35 +85,48 @@ function initMobileMap() {
   const mapElement = document.getElementById("mobile-map");
   if (!mapElement) return;
 
+  const TILE_SERVER_HOST = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8080"
+    : "https://tiles.wade-usa.com";
+
   map = new maplibregl.Map({
     container: "mobile-map",
-    style: {
-      version: 8,
-      sources: {
-        "osm-tiles": {
-          type: "raster",
-          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-          tileSize: 256,
-          maxzoom: 17,
-          attribution: "&copy; OpenStreetMap contributors"
-        }
-      },
-      layers: [
-        {
-          id: "osm-tiles-layer",
-          type: "raster",
-          source: "osm-tiles",
-          minzoom: 0,
-          maxzoom: 17
-        }
-      ]
-    },
+    style: `${TILE_SERVER_HOST}/styles/dark/style.json`,
     center: [-111.9679844, 43.4704308], // Default Idaho Falls
     zoom: 13,
     minZoom: 3,
     maxZoom: 16.8,
     pitch: 45,
+    bearing: 0,
     attributionControl: false
+  });
+
+  map.once("error", (e) => {
+    console.warn("Mobile local tile server unavailable, falling back to Dark API raster surface:", e);
+    map?.setStyle({
+      version: 8,
+      sources: {
+        "carto-dark": {
+          type: "raster",
+          tiles: [
+            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+            "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+          ],
+          tileSize: 256,
+          maxzoom: 17,
+          attribution: "© OpenStreetMap contributors, © CARTO"
+        }
+      },
+      layers: [
+        {
+          id: "carto-dark-layer",
+          type: "raster",
+          source: "carto-dark",
+          minzoom: 0,
+          maxzoom: 17
+        }
+      ]
+    });
   });
 
   map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");

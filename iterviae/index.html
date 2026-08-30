@@ -29,12 +29,22 @@
 
         <div class="nav-actions">
           <!-- Quick Access Toolbar Buttons -->
+          <button id="new-trip-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Start a New Blank Expedition Route">
+            ➕ New Trip
+          </button>
           <button id="open-itinerary-btn" class="btn btn-emerald btn-sm" style="display: none; margin-right: 6px;" title="Open Detailed Itinerary">
             📊 Itinerary
           </button>
           <button id="save-trip-btn" class="btn btn-primary btn-sm" style="display: none; margin-right: 6px;" title="Save Trip to Cloud">
             💾 Save
           </button>
+          <button id="export-gpx-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Export Route as GPX for Garmin / GPS Devices">
+            📥 Export GPX
+          </button>
+          <button id="import-gpx-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Import GPX or KML File">
+            📤 Import GPX/KML
+          </button>
+          <input type="file" id="import-gpx-input" accept=".gpx,.kml" style="display: none;" />
           <button id="nav-vehicle-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Vehicle Specs & Fuel Calculator">
             ⛽ Vehicle Specs
           </button>
@@ -148,6 +158,10 @@
           <div class="planner-section waypoints-section">
             <div class="section-title-row">
               <h3>WAYPOINTS & STOPS</h3>
+              <div class="waypoint-toolbar-actions">
+                <button id="toggle-view-mode-btn" class="btn-tb-action" title="Toggle Compact / Detailed View">☰ Compact</button>
+                <button id="toggle-all-accordions-btn" class="btn-tb-action" title="Expand / Collapse All Days">▼ Accordions</button>
+              </div>
             </div>
 
             <div id="waypoints-container" class="waypoints-list">
@@ -178,7 +192,7 @@
           <span>ROUTE PLANNER</span>
         </button>
 
-        <!-- Top Coordinate Search Bar Overlay -->
+        <!-- Top Search Bar Overlay -->
         <div class="search-overlay">
           <form id="coord-search-form" class="search-form">
             <div class="search-input-wrapper">
@@ -187,29 +201,37 @@
                 type="text" 
                 id="coord-search-input" 
                 class="search-input"
-                placeholder="Enter Lat, Lon (e.g. 39.7392, -104.9903)" 
+                placeholder="Search place, city, or Lat, Lon (e.g. 39.7392, -104.9903)" 
                 autocomplete="off" 
               />
+              <button type="submit" class="btn-search-submit" title="Search">Search</button>
             </div>
           </form>
         </div>
 
-        <!-- Floating Map Style Switcher Widget -->
+        <!-- Compact Floating Map Surface Selector -->
         <div class="map-style-widget">
-          <label class="map-style-label" for="map-style-select">🗺️ MAP STYLE</label>
-          <select id="map-style-select" class="map-style-dropdown" title="Select Map Surface Theme">
-            <option value="highways" selected>🚘 Highways & Interstates (Esri Route Shields)</option>
-            <option value="voyager">🧭 Voyager Explorer (CARTO)</option>
-            <option value="topo">⛰️ Topo & Mountain Passes (OpenTopoMap)</option>
-            <option value="dark">🌙 Tactical Night (Dark OLED)</option>
-            <option value="satellite">🛰️ High-Res Satellite Imagery (Esri World)</option>
+          <select id="map-style-select" class="map-style-dropdown compact-dropdown" title="Select Map Theme">
+            <option value="vector" selected>🧭 Vector</option>
+            <option value="dark">🌙 Dark</option>
+            <option value="topo">⛰️ Topo</option>
+            <option value="terrain3d">🏔️ 3D Satellite</option>
           </select>
+        </div>
+
+        <!-- Floating POI Search Results Panel Overlay -->
+        <div id="poi-results-panel" class="poi-results-panel" style="display: none;">
+          <div class="poi-panel-header">
+            <span id="poi-panel-title" class="poi-panel-title">📍 NEARBY PLACES</span>
+            <button id="poi-panel-close" class="poi-panel-close-btn" title="Close Panel">&times;</button>
+          </div>
+          <div id="poi-results-list" class="poi-results-list"></div>
         </div>
 
         <!-- Map Surface Canvas -->
         <div id="map-container" class="map-surface"></div>
 
-        <!-- Right-Click Context Menu -->
+        <!-- Right-Click Context Menu with Spatial POI Discovery -->
         <div id="context-menu" class="context-menu" style="display: none;">
           <div id="context-coords-item" class="context-menu-item" title="Click to copy coordinates">
             <span class="context-icon">📍</span>
@@ -218,6 +240,28 @@
           <div id="context-add-stop-btn" class="context-menu-item context-menu-action" title="Add waypoint stop logically at this location">
             <span class="context-icon">+</span>
             <span>Add Stop Here</span>
+          </div>
+          <div class="context-menu-divider"></div>
+          <div class="context-menu-label">SEARCH NEARBY</div>
+          <div class="context-poi-btn context-menu-item" data-category="gas" title="Find Gas Stations Nearby">
+            <span class="context-icon">⛽</span>
+            <span>Find Gas Stations</span>
+          </div>
+          <div class="context-poi-btn context-menu-item" data-category="camping" title="Find Campgrounds Nearby">
+            <span class="context-icon">🏕️</span>
+            <span>Find Campgrounds</span>
+          </div>
+          <div class="context-poi-btn context-menu-item" data-category="sightseeing" title="Find Sightseeing Nearby">
+            <span class="context-icon">⛰️</span>
+            <span>Find Sightseeing</span>
+          </div>
+          <div class="context-poi-btn context-menu-item" data-category="food" title="Find Food & Restaurants Nearby">
+            <span class="context-icon">🍽️</span>
+            <span>Find Food & Dining</span>
+          </div>
+          <div class="context-poi-btn context-menu-item" data-category="lodging" title="Find Hotels & Lodging Nearby">
+            <span class="context-icon">🏨</span>
+            <span>Find Hotels / Lodging</span>
           </div>
         </div>
 
@@ -639,6 +683,44 @@
         <div class="print-form-footer">
           <span>OFFICIAL EXPEDITION FORM • GENERATED BY ITER VIAE TACTICAL ROUTE COMMAND</span>
           <span>PAGE 2 OF 2</span>
+    <!-- 3D Expedition Terrain Viewer Modal -->
+    <div id="modal-3d-viewer" class="modal-overlay" style="display: none;">
+      <div class="modal-card modal-3d-card">
+        <button id="modal-3d-close" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-3d-header">
+          <div class="modal-3d-title-group">
+            <span class="badge badge-primary">3D TERRAIN COMMAND</span>
+            <h2 class="modal-title">EXPEDITION 3D TERRAIN & ROUTE FLYTHROUGH</h2>
+          </div>
+
+          <div class="modal-3d-controls-row">
+            <button id="btn-3d-flythrough" class="btn btn-emerald btn-sm" title="Animate 3D Camera Flythrough along the expedition route">
+              ▶ Play Route Flythrough
+            </button>
+            <button id="btn-3d-reset-cam" class="btn btn-outline btn-sm" title="Reset 3D Orbit Camera">
+              ↺ Reset Camera
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-3d-body">
+          <div id="map-3d-container" class="map-3d-surface"></div>
+          
+          <div class="modal-3d-hud-overlay">
+            <div class="hud-item">
+              <span class="hud-label">CAM PITCH</span>
+              <span id="hud-pitch-val" class="hud-val">65°</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">ELEVATION MESH</span>
+              <span class="hud-val highlight">1.8x DEM</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">FLYTHROUGH STATUS</span>
+              <span id="hud-fly-status" class="hud-val">READY</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -32,6 +32,22 @@ export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2
 }
 
 /**
+ * Polyline Cleaner: Preserves 100% full-resolution road geometry while removing exact duplicate consecutive vertices
+ */
+export function downsamplePolyline(coords: [number, number][]): [number, number][] {
+  if (coords.length <= 1) return coords;
+  const result: [number, number][] = [coords[0]];
+  for (let i = 1; i < coords.length; i++) {
+    const prev = result[result.length - 1];
+    const curr = coords[i];
+    if (Math.abs(curr[0] - prev[0]) > 0.0000001 || Math.abs(curr[1] - prev[1]) > 0.0000001) {
+      result.push(curr);
+    }
+  }
+  return result;
+}
+
+/**
  * Generate linear interpolated geodesic points for fallback route drawing
  */
 function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
@@ -61,7 +77,7 @@ function generateGeodesicFallback(locations: RouteLocation[]): RouteResult {
   const durationSec = (totalDistanceMi / 50) * 3600;
 
   return {
-    coordinates,
+    coordinates: downsamplePolyline(coordinates),
     distanceMi: totalDistanceMi,
     durationSec,
     legs
@@ -136,10 +152,14 @@ export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<
   const MAX_BATCH_SIZE = 25;
 
   if (locations.length <= MAX_BATCH_SIZE) {
-    return fetchSingleBatchRoute(locations);
+    const singleRes = await fetchSingleBatchRoute(locations);
+    return {
+      ...singleRes,
+      coordinates: downsamplePolyline(singleRes.coordinates)
+    };
   }
 
-  console.log(`Unlimited Batch Routing: Splitting ${locations.length} waypoints into batches of ${MAX_BATCH_SIZE}...`);
+  console.log(`Unlimited Batch Routing: Processing ${locations.length} waypoints in optimized batches...`);
   const batches: RouteLocation[][] = [];
   let index = 0;
 
@@ -169,7 +189,7 @@ export async function fetchExpeditionRoute(locations: RouteLocation[]): Promise<
   });
 
   return {
-    coordinates: combinedCoordinates,
+    coordinates: downsamplePolyline(combinedCoordinates),
     distanceMi: totalDistanceMi,
     durationSec: totalDurationSec,
     legs: combinedLegs

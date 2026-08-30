@@ -87,7 +87,17 @@ const expandPlannerBtn = document.getElementById("expand-planner-btn");
 const tripTitleClickable = document.getElementById("trip-title-clickable");
 const tripTitleText = document.getElementById("trip-title-text");
 const waypointsContainer = document.getElementById("waypoints-container");
+const newTripBtn = document.getElementById("new-trip-btn");
 const saveTripBtn = document.getElementById("save-trip-btn");
+const exportGPXBtn = document.getElementById("export-gpx-btn");
+const importGPXBtn = document.getElementById("import-gpx-btn");
+const importGPXInput = document.getElementById("import-gpx-input") as HTMLInputElement;
+
+const poiResultsPanel = document.getElementById("poi-results-panel");
+const poiPanelTitle = document.getElementById("poi-panel-title");
+const poiPanelClose = document.getElementById("poi-panel-close");
+const poiResultsList = document.getElementById("poi-results-list");
+let activePoiSearchMarkers: maplibregl.Marker[] = [];
 
 const metricDistance = document.getElementById("metric-distance");
 const metricDuration = document.getElementById("metric-duration");
@@ -141,6 +151,19 @@ const savedTripsLoading = document.getElementById("saved-trips-loading");
 const savedTripsEmpty = document.getElementById("saved-trips-empty");
 const savedTripsList = document.getElementById("saved-trips-list");
 
+// DOM 3D Terrain & Flythrough Modal References
+const modal3DViewer = document.getElementById("modal-3d-viewer");
+const modal3DClose = document.getElementById("modal-3d-close");
+const btn3DFlythrough = document.getElementById("btn-3d-flythrough");
+const btn3DResetCam = document.getElementById("btn-3d-reset-cam");
+const hudPitchVal = document.getElementById("hud-pitch-val");
+const hudFlyStatus = document.getElementById("hud-fly-status");
+
+let map3D: maplibregl.Map | null = null;
+let is3DFlying: boolean = false;
+let flythroughIndex: number = 0;
+let flythroughTimer: any = null;
+
 // DOM Context Menu & Toast References
 const contextMenu = document.getElementById("context-menu");
 const contextCoordsText = document.getElementById("context-coords-text");
@@ -167,6 +190,28 @@ let currentLegMetrics: LegMetric[] = [];
 let lastRouteCoordinates: [number, number][] = [];
 let currentTripId: string | null = null; // Tracks active PocketBase saved trip ID
 
+// Multi-Day Accordions & View Mode State References
+const toggleViewModeBtn = document.getElementById("toggle-view-mode-btn");
+const toggleAllAccordionsBtn = document.getElementById("toggle-all-accordions-btn");
+
+let isCompactView: boolean = false;
+let collapsedDays: Set<number> = new Set();
+let isAllAccordionsCollapsed: boolean = false;
+
+const DAY_COLOR_PALETTE = [
+  "#38bdf8", // Day 1: Electric Blue
+  "#10b981", // Day 2: Emerald Green
+  "#f59e0b", // Day 3: Amber Gold
+  "#a855f7", // Day 4: Amethyst Purple
+  "#f43f5e", // Day 5: Rose Red
+  "#06b6d4", // Day 6: Cyan Teal
+  "#ec4899"  // Day 7+: Pink
+];
+
+export function getDayColor(dayIndex: number): string {
+  return DAY_COLOR_PALETTE[dayIndex % DAY_COLOR_PALETTE.length];
+}
+
 let vehicleProfile: VehicleProfile = {
   mpg: 18.0,
   tankCapacityGal: 20.0,
@@ -186,12 +231,12 @@ let waypoints: Waypoint[] = [
 
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Fallback map center
 
-// 5 High-Quality Map Surface Styles for Expedition Planning
+// 3 High-Performance API-Key-Free Map Surface Styles (Vector/Street, Dark OLED, Topo)
 const MAP_SURFACE_STYLES: Record<string, any> = {
-  highways: {
+  vector: {
     version: 8 as const,
     sources: {
-      "esri-highways": {
+      "esri-street": {
         type: "raster" as const,
         tiles: [
           "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
@@ -202,91 +247,44 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       }
     },
     layers: [
-      {
-        id: "esri-highways-layer",
-        type: "raster" as const,
-        source: "esri-highways",
-        minzoom: 0,
-        maxzoom: 17
-      }
-    ]
-  },
-  voyager: {
-    version: 8 as const,
-    sources: {
-      "carto-voyager": {
-        type: "raster" as const,
-        tiles: [
-          "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-          "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-        ],
-        tileSize: 256,
-        maxzoom: 17,
-        attribution: "© OpenStreetMap contributors, © CARTO"
-      }
-    },
-    layers: [
-      {
-        id: "carto-voyager-layer",
-        type: "raster" as const,
-        source: "carto-voyager",
-        minzoom: 0,
-        maxzoom: 17
-      }
-    ]
-  },
-  topo: {
-    version: 8 as const,
-    sources: {
-      "opentopo-map": {
-        type: "raster" as const,
-        tiles: [
-          "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
-          "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
-          "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"
-        ],
-        tileSize: 256,
-        maxzoom: 17,
-        attribution: "© OpenTopoMap contributors, © OpenStreetMap"
-      }
-    },
-    layers: [
-      {
-        id: "opentopo-map-layer",
-        type: "raster" as const,
-        source: "opentopo-map",
-        minzoom: 0,
-        maxzoom: 17
-      }
+      { id: "esri-street-layer", type: "raster" as const, source: "esri-street", minzoom: 0, maxzoom: 17 }
     ]
   },
   dark: {
     version: 8 as const,
     sources: {
-      "carto-dark": {
+      "esri-dark": {
         type: "raster" as const,
         tiles: [
-          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-          "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
-        maxzoom: 17,
-        attribution: "© OpenStreetMap contributors, © CARTO"
+        maxzoom: 16,
+        attribution: "© Esri, HERE, Garmin, NGA, USGS"
       }
     },
     layers: [
-      {
-        id: "carto-dark-layer",
-        type: "raster" as const,
-        source: "carto-dark",
-        minzoom: 0,
-        maxzoom: 17
-      }
+      { id: "esri-dark-layer", type: "raster" as const, source: "esri-dark", minzoom: 0, maxzoom: 16 }
     ]
   },
-  satellite: {
+  topo: {
+    version: 8 as const,
+    sources: {
+      "esri-topo": {
+        type: "raster" as const,
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 17,
+        attribution: "© Esri, HERE, Garmin, Intermap, USGS, NPS"
+      }
+    },
+    layers: [
+      { id: "esri-topo-layer", type: "raster" as const, source: "esri-topo", minzoom: 0, maxzoom: 17 }
+    ]
+  },
+  terrain3d: {
     version: 8 as const,
     sources: {
       "esri-satellite": {
@@ -296,118 +294,179 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
         ],
         tileSize: 256,
         maxzoom: 17,
-        attribution: "© Esri, Maxar, Earthstar Geographics, USDA, USGS"
+        attribution: "© Esri, Maxar, Earthstar Geographics"
+      },
+      "terrarium-dem": {
+        type: "raster-dem" as const,
+        tiles: [
+          "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
+        ],
+        encoding: "terrarium" as const,
+        tileSize: 256,
+        maxzoom: 15
       }
     },
     layers: [
-      {
-        id: "esri-satellite-layer",
-        type: "raster" as const,
-        source: "esri-satellite",
-        minzoom: 0,
-        maxzoom: 17
-      }
-    ]
+      { id: "esri-satellite-layer", type: "raster" as const, source: "esri-satellite", minzoom: 0, maxzoom: 17 }
+    ],
+    terrain: {
+      source: "terrarium-dem",
+      exaggeration: 1.5
+    }
   }
 };
 
-// Synchronously redraw stored route line & fuel line on map surface
+function splitCoordinatesIntoDaySegments(
+  coords: [number, number][],
+  waypointsList: Waypoint[]
+): [number, number][][] {
+  if (coords.length < 2) return [coords];
+
+  const dayLegRanges: { startLeg: number; endLeg: number }[] = [];
+  let currentStartLeg = 0;
+
+  for (let i = 0; i < waypointsList.length - 1; i++) {
+    if (waypointsList[i + 1].isOvernight || i === waypointsList.length - 2) {
+      dayLegRanges.push({ startLeg: currentStartLeg, endLeg: i });
+      currentStartLeg = i + 1;
+    }
+  }
+
+  if (dayLegRanges.length <= 1) return [coords];
+
+  const totalLegs = waypointsList.length - 1;
+  const coordsPerLeg = coords.length / totalLegs;
+  const segments: [number, number][][] = [];
+
+  dayLegRanges.forEach((range) => {
+    const startIdx = Math.max(0, Math.floor(range.startLeg * coordsPerLeg));
+    const endIdx = Math.min(coords.length, Math.ceil((range.endLeg + 1) * coordsPerLeg));
+    const seg = coords.slice(startIdx, endIdx + 1);
+    if (seg.length >= 2) {
+      segments.push(seg);
+    }
+  });
+
+  return segments.length > 0 ? segments : [coords];
+}
+
+// Synchronously redraw stored route line & fuel line on map surface with per-day colors
 function redrawRouteLine() {
   if (!map || !lastRouteCoordinates || lastRouteCoordinates.length < 2) return;
 
+  const daySegments = splitCoordinatesIntoDaySegments(lastRouteCoordinates, waypoints);
+
   const routeGeoJSON: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "LineString",
-          coordinates: lastRouteCoordinates
-        }
+    features: daySegments.map((seg, dayIdx) => ({
+      type: "Feature",
+      properties: {
+        dayIndex: dayIdx + 1,
+        color: getDayColor(dayIdx)
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: seg
       }
-    ]
+    }))
   };
 
   const applyLayers = () => {
     if (!map) return;
 
     try {
-      if (!map.getSource("expedition-route-src")) {
-        map.addSource("expedition-route-src", {
-          type: "geojson",
-          data: routeGeoJSON
-        });
-      } else {
-        const src = map.getSource("expedition-route-src") as maplibregl.GeoJSONSource;
-        if (src && typeof src.setData === "function") {
-          src.setData(routeGeoJSON);
+      if (map.getLayer("expedition-route-layer")) {
+        map.removeLayer("expedition-route-layer");
+      }
+      if (map.getLayer("expedition-route-casing")) {
+        map.removeLayer("expedition-route-casing");
+      }
+      if (map.getSource("expedition-route-src")) {
+        map.removeSource("expedition-route-src");
+      }
+
+      map.addSource("expedition-route-src", {
+        type: "geojson",
+        data: routeGeoJSON
+      });
+
+      const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
+
+      map.addLayer({
+        id: "expedition-route-casing",
+        type: "line",
+        source: "expedition-route-src",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round"
+        },
+        paint: {
+          "line-color": "#000000",
+          "line-width": 8,
+          "line-opacity": 0.6
         }
+      }, beforeId);
+
+      map.addLayer({
+        id: "expedition-route-layer",
+        type: "line",
+        source: "expedition-route-src",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round"
+        },
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 5,
+          "line-opacity": 0.95
+        }
+      }, beforeId);
+
+      if (map.getLayer("waypoints-symbols-pins")) {
+        map.moveLayer("waypoints-symbols-pins");
       }
 
-      if (!map.getLayer("expedition-route-casing")) {
-        map.addLayer({
-          id: "expedition-route-casing",
-          type: "line",
-          source: "expedition-route-src",
-          layout: {
-            "line-join": "round",
-            "line-cap": "round"
-          },
-          paint: {
-            "line-color": "#000000",
-            "line-width": 8,
-            "line-opacity": 0.6
-          }
-        });
+      if (vehicleProfile.enabled && lastRouteCoordinates.length > 1) {
+        updateFuelExhaustionMapOverlay(lastRouteCoordinates);
       }
-
-      if (!map.getLayer("expedition-route-layer")) {
-        map.addLayer({
-          id: "expedition-route-layer",
-          type: "line",
-          source: "expedition-route-src",
-          layout: {
-            "line-join": "round",
-            "line-cap": "round"
-          },
-          paint: {
-            "line-color": "#38bdf8",
-            "line-width": 5,
-            "line-opacity": 0.95
-          }
-        });
-      }
-
-      updateFuelCalculations();
     } catch (err) {
       console.warn("Layer re-creation delayed:", err);
     }
   };
 
   applyLayers();
-  setTimeout(applyLayers, 100);
-  setTimeout(applyLayers, 400);
+  setTimeout(applyLayers, 80);
+  setTimeout(applyLayers, 300);
 }
 
 function changeMapStyle(styleKey: string) {
   if (!map || !MAP_SURFACE_STYLES[styleKey]) return;
-  showToast(`Switching map surface to ${styleKey.toUpperCase()}...`);
+  showToast(`Switching map theme to ${styleKey.toUpperCase()}...`);
 
-  const onStyleReady = () => {
+  const reapplyAllLayers = () => {
+    if (!map) return;
     renderWaypointMapMarkers();
     redrawRouteLine();
-    updateExpeditionRoute();
   };
 
-  map.setStyle(MAP_SURFACE_STYLES[styleKey]);
+  try {
+    map.setStyle(MAP_SURFACE_STYLES[styleKey]);
 
-  map.once("style.load", () => {
-    onStyleReady();
-    if (map) {
-      map.once("idle", onStyleReady);
-    }
-  });
+    map.once("style.load", () => {
+      reapplyAllLayers();
+      if (styleKey === "terrain3d") {
+        map?.easeTo({ pitch: 60, bearing: -20, duration: 800 });
+      } else {
+        map?.easeTo({ pitch: 0, bearing: 0, duration: 600 });
+      }
+    });
+
+    map.once("idle", () => {
+      reapplyAllLayers();
+    });
+  } catch (err) {
+    console.error("Failed to set map style:", err);
+  }
 }
 
 function clearSearchMarker() {
@@ -1142,6 +1201,7 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
   }
 
   if (!map.getLayer("expedition-empty-route-layer")) {
+    const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
     map.addLayer({
       id: "expedition-empty-route-layer",
       type: "line",
@@ -1152,11 +1212,24 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
       },
       paint: {
         "line-color": "#ef4444",
-        "line-width": 6,
+        "line-width": 7,
         "line-dasharray": [2, 2],
-        "line-opacity": 0.95
+        "line-opacity": 1.0
       }
-    });
+    }, beforeId);
+  }
+
+  if (map.getLayer("expedition-empty-route-layer")) {
+    const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
+    if (beforeId) {
+      map.moveLayer("expedition-empty-route-layer", beforeId);
+    } else {
+      map.moveLayer("expedition-empty-route-layer");
+    }
+  }
+
+  if (map.getLayer("waypoints-symbols-pins")) {
+    map.moveLayer("waypoints-symbols-pins");
   }
 }
 
@@ -1339,61 +1412,164 @@ function createMarkerPopupHtml(wp: Waypoint, idx: number, markerColor: string, i
   `;
 }
 
-// Sync Map Markers with Active Waypoints List (DRAGGABLE = TRUE)
+const markerImageDataCache = new Map<string, ImageData>();
+
+function createVectorMarkerImageData(color: string, text: string): ImageData {
+  const cacheKey = `${color}_${text}`;
+  if (markerImageDataCache.has(cacheKey)) {
+    return markerImageDataCache.get(cacheKey)!;
+  }
+
+  const size = 32;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.clearRect(0, 0, size, size);
+
+  // Background Circle
+  ctx.beginPath();
+  ctx.arc(16, 16, 13, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // Dark Border Stroke
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = "#0f172a";
+  ctx.stroke();
+
+  // Centered Bold White Stop Number Text
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 11px Inter, system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 16, 16.5);
+
+  const imgData = ctx.getImageData(0, 0, size, size);
+  markerImageDataCache.set(cacheKey, imgData);
+  return imgData;
+}
+
 function renderWaypointMapMarkers() {
   if (!map) return;
 
-  // Clear existing waypoint markers
+  // Clear existing DOM waypoint markers if any exist
   waypointMapMarkers.forEach((item) => item.marker.remove());
   waypointMapMarkers = [];
 
-  waypoints.forEach((wp, idx) => {
-    if (wp.lat === null || wp.lon === null) return;
+  const validWaypoints = waypoints
+    .map((wp, idx) => ({ wp, idx }))
+    .filter(({ wp }) => wp.lat !== null && wp.lon !== null);
 
+  if (validWaypoints.length === 0) {
+    if (map.getLayer("waypoints-symbols-pins")) map.removeLayer("waypoints-symbols-pins");
+    if (map.getSource("waypoints-symbols-src")) map.removeSource("waypoints-symbols-src");
+    return;
+  }
+
+  const symbolFeatures: GeoJSON.Feature[] = [];
+
+  validWaypoints.forEach(({ wp, idx }) => {
+    const isFirst = idx === 0;
+    const isLast = idx === waypoints.length - 1;
     const currentCat = getCategoryForWaypoint(wp);
     const catDetails = CATEGORY_DETAILS[currentCat];
 
     let markerColor = catDetails ? catDetails.color : "#38bdf8";
-    let iconLabel = `STOP #${idx} • ${catDetails ? catDetails.icon : "📍"}`;
+    let indexString = (idx + 1).toString();
 
-    if (wp.type === "origin") {
+    if (isFirst) {
       markerColor = "#10b981";
-      iconLabel = "EXPEDITION ORIGIN";
-    } else if (wp.type === "destination") {
+      indexString = "A";
+    } else if (isLast) {
       markerColor = "#ef4444";
-      iconLabel = "FINAL DESTINATION";
+      indexString = "B";
     }
 
-    const popupHtml = createMarkerPopupHtml(wp, idx, markerColor, iconLabel);
-    const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml);
+    const iconId = `marker-icon-${markerColor.replace("#", "")}-${indexString}`;
+    if (map && !map.hasImage(iconId)) {
+      const imageData = createVectorMarkerImageData(markerColor, indexString);
+      map.addImage(iconId, imageData);
+    }
 
-    // Make Marker Draggable on Map Surface
-    const marker = new maplibregl.Marker({ color: markerColor, draggable: true })
-      .setLngLat([wp.lon, wp.lat])
-      .setPopup(popup)
-      .addTo(map!);
-
-    // Handle Drag Events to recalculate route in real time
-    marker.on("dragend", () => {
-      const lngLat = marker.getLngLat();
-      wp.lat = lngLat.lat;
-      wp.lon = lngLat.lng;
-
-      // Update popup content with new drag position
-      marker.getPopup()?.setHTML(createMarkerPopupHtml(wp, idx, markerColor, iconLabel));
-
-      // Update Left Panel input fields
-      const coordsInput = document.querySelector(`.waypoint-coords-input[data-id="${wp.id}"]`) as HTMLInputElement;
-      if (coordsInput) {
-        coordsInput.value = `${wp.lat.toFixed(6)}, ${wp.lon.toFixed(6)}`;
+    symbolFeatures.push({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [wp.lon!, wp.lat!]
+      },
+      properties: {
+        id: wp.id,
+        index: idx + 1,
+        indexString: indexString,
+        title: wp.title || `Stop #${idx + 1}`,
+        iconId: iconId,
+        color: markerColor
       }
+    });
+  });
 
-      // Re-trigger live route recalculation!
-      updateExpeditionRoute();
+  const symbolGeoJSON: GeoJSON.FeatureCollection = {
+    type: "FeatureCollection",
+    features: symbolFeatures
+  };
+
+  if (!map.getSource("waypoints-symbols-src")) {
+    map.addSource("waypoints-symbols-src", {
+      type: "geojson",
+      data: symbolGeoJSON
     });
 
-    waypointMapMarkers.push({ id: wp.id, marker });
-  });
+    map.addLayer({
+      id: "waypoints-symbols-pins",
+      type: "symbol",
+      source: "waypoints-symbols-src",
+      layout: {
+        "icon-image": ["get", "iconId"],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-anchor": "center"
+      }
+    });
+
+    // Move WebGL symbol layer to top of layer stack so markers float ABOVE route lines
+    if (map.getLayer("expedition-route-layer")) {
+      map.moveLayer("waypoints-symbols-pins");
+    }
+
+    // Interactive Click Popups on WebGL Vector Symbol Layer
+    map.on("click", "waypoints-symbols-pins", (e) => {
+      if (!e.features || e.features.length === 0) return;
+      const feat = e.features[0];
+      const props = feat.properties as any;
+      const wp = waypoints.find((w) => w.id === props.id);
+      if (wp && map) {
+        const catDetails = CATEGORY_DETAILS[getCategoryForWaypoint(wp)];
+        const popupHtml = createMarkerPopupHtml(wp, props.index - 1, props.color, `STOP #${props.indexString} • ${catDetails ? catDetails.icon : "📍"}`);
+        new maplibregl.Popup({ offset: 15, closeButton: true })
+          .setLngLat((feat.geometry as GeoJSON.Point).coordinates as [number, number])
+          .setHTML(popupHtml)
+          .addTo(map);
+      }
+    });
+
+    map.on("mouseenter", "waypoints-symbols-pins", () => {
+      if (map) map.getCanvas().style.cursor = "pointer";
+    });
+
+    map.on("mouseleave", "waypoints-symbols-pins", () => {
+      if (map) map.getCanvas().style.cursor = "";
+    });
+  } else {
+    const src = map.getSource("waypoints-symbols-src") as maplibregl.GeoJSONSource;
+    if (src && typeof src.setData === "function") {
+      src.setData(symbolGeoJSON);
+    }
+    if (map.getLayer("expedition-route-layer")) {
+      map.moveLayer("waypoints-symbols-pins");
+    }
+  }
 }
 
 // Global Category Dropdown Change Listener (Popup, Table, Waypoint Card)
@@ -1438,11 +1614,85 @@ document.addEventListener("input", (e) => {
   }
 });
 
-// Render Left Panel Waypoints List UI with Inter-Leg Inline Add Buttons & End Add Button
+interface DayGroup {
+  dayIndex: number;
+  dayTitle: string;
+  waypoints: { wp: Waypoint; globalIdx: number }[];
+  totalDistMi: number;
+  totalDurationSec: number;
+}
+
+function groupWaypointsByDay(waypointsList: Waypoint[]): DayGroup[] {
+  const groups: DayGroup[] = [];
+  let currentDayIdx = 0;
+  let currentGroup: DayGroup = {
+    dayIndex: 0,
+    dayTitle: "DAY 1",
+    waypoints: [],
+    totalDistMi: 0,
+    totalDurationSec: 0
+  };
+
+  waypointsList.forEach((wp, idx) => {
+    if (idx > 0 && waypointsList[idx - 1].isOvernight) {
+      groups.push(currentGroup);
+      currentDayIdx++;
+      currentGroup = {
+        dayIndex: currentDayIdx,
+        dayTitle: `DAY ${currentDayIdx + 1}`,
+        waypoints: [],
+        totalDistMi: 0,
+        totalDurationSec: 0
+      };
+    }
+
+    if (idx > 0) {
+      const legMetric = currentLegMetrics[idx - 1];
+      if (legMetric) {
+        currentGroup.totalDistMi += legMetric.distanceMi;
+        currentGroup.totalDurationSec += legMetric.durationSec;
+      }
+    }
+
+    currentGroup.waypoints.push({ wp, globalIdx: idx });
+  });
+
+  groups.push(currentGroup);
+  return groups;
+}
+
+function fitMapToDayBounds(dayIndex: number) {
+  if (!map) return;
+  const dayGroups = groupWaypointsByDay(waypoints);
+  const targetDay = dayGroups.find((d) => d.dayIndex === dayIndex);
+  if (!targetDay || targetDay.waypoints.length === 0) return;
+
+  const valid = targetDay.waypoints
+    .map(({ wp }) => wp)
+    .filter((w) => w.lat !== null && w.lon !== null);
+
+  if (valid.length === 0) return;
+
+  if (valid.length === 1) {
+    map.flyTo({ center: [valid[0].lon!, valid[0].lat!], zoom: 13, duration: 800 });
+    return;
+  }
+
+  const bounds = new maplibregl.LngLatBounds();
+  valid.forEach((w) => bounds.extend([w.lon!, w.lat!]));
+
+  map.fitBounds(bounds, {
+    padding: { top: 80, bottom: 80, left: 380, right: 80 },
+    maxZoom: 14,
+    duration: 900
+  });
+}
+
+// Render Left Panel Waypoints List UI grouped by Collapsible Day Accordions
 function renderWaypointsUI() {
   if (!waypointsContainer) return;
 
-  waypointsContainer.innerHTML = "";
+  const fragment = document.createDocumentFragment();
 
   // Ensure waypoint types are assigned correctly by array order
   waypoints.forEach((w, i) => {
@@ -1451,154 +1701,230 @@ function renderWaypointsUI() {
     else w.type = "stop";
   });
 
-  waypoints.forEach((wp, idx) => {
-    // 1. Render Inter-Waypoint Leg Connector with Inline Add Button
-    if (idx > 0) {
-      const legIndex = idx - 1;
-      const legMetric = currentLegMetrics[legIndex];
-      const legText = legMetric 
-        ? `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`
-        : `↓ ENTER WAYPOINTS...`;
+  const dayGroups = groupWaypointsByDay(waypoints);
 
-      const legEl = document.createElement("div");
-      legEl.className = "leg-connector";
-      legEl.innerHTML = `
-        <span class="leg-line"></span>
-        <span id="leg-badge-${legIndex}" class="leg-badge">${legText}</span>
-        <button class="btn-add-inline-leg" data-insert-index="${idx}" title="Insert Stop Here">+</button>
-      `;
-      waypointsContainer.appendChild(legEl);
-    }
+  dayGroups.forEach((group) => {
+    const dayColor = getDayColor(group.dayIndex);
+    const isCollapsed = collapsedDays.has(group.dayIndex);
 
-    // 2. Render Waypoint Item Card
-    const itemEl = document.createElement("div");
-    itemEl.className = "waypoint-item";
-    itemEl.setAttribute("draggable", "true");
-    itemEl.setAttribute("data-index", idx.toString());
-    itemEl.setAttribute("data-wp-id", wp.id);
+    const dayCardEl = document.createElement("div");
+    dayCardEl.className = `day-accordion-card ${isCollapsed ? "collapsed" : ""}`;
 
-    let tagClass = "tag-stop";
-    let titlePlaceholder = `Stop #${idx + 1} Title`;
+    const stopsCountText = `${group.waypoints.length} Stop${group.waypoints.length > 1 ? "s" : ""}`;
+    const distText = group.totalDistMi > 0 ? `${group.totalDistMi.toFixed(1)} MI` : "";
+    const timeText = group.totalDurationSec > 0 ? formatDuration(group.totalDurationSec) : "";
+    const subtitleText = [stopsCountText, distText, timeText].filter(Boolean).join(" • ");
 
-
-
-    if (wp.type === "origin") {
-      tagClass = "tag-origin";
-      titlePlaceholder = "Origin Location Title";
-    } else if (wp.type === "destination") {
-      tagClass = "tag-dest";
-      titlePlaceholder = "Destination Location Title";
-    }
-
-    const coordsString = (wp.lat !== null && wp.lon !== null) 
-      ? `${wp.lat.toFixed(4)}, ${wp.lon.toFixed(4)}` 
-      : "";
-
-    itemEl.innerHTML = `
-      <!-- Whole Left Drag Gutter with Stop # Number -->
-      <div class="wp-card-gutter drag-handle ${tagClass}" title="Drag to reorder waypoint sequence">
-        <span class="wp-gutter-grip">⋮</span>
-        <span class="wp-gutter-num">#${idx + 1}</span>
-        <span class="wp-gutter-grip">⋮</span>
+    const dayHeaderEl = document.createElement("div");
+    dayHeaderEl.className = "day-accordion-header";
+    dayHeaderEl.innerHTML = `
+      <div class="day-accordion-left">
+        <span class="day-color-indicator" style="background-color: ${dayColor}; color: ${dayColor};"></span>
+        <div class="day-accordion-title-box">
+          <span class="day-accordion-title">${group.dayTitle}</span>
+          <span class="day-accordion-subtitle">${subtitleText}</span>
+        </div>
       </div>
-
-      <!-- Main Card Content Body -->
-      <div class="wp-card-body">
-        <!-- Line 1: Full Width Destination Title + Delete Button -->
-        <div class="wp-card-line1">
-          <input 
-            type="text" 
-            class="waypoint-name-input" 
-            data-id="${wp.id}" 
-            data-field="title"
-            value="${wp.title}" 
-            placeholder="${titlePlaceholder}" 
-          />
-          ${waypoints.length > 2 ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop">✕</button>` : ""}
-        </div>
-
-        <!-- Line 2: [ Arrival | Lng,Lat | Depart ] -->
-        <div class="wp-card-line2">
-          <span class="wp-meta-arr" id="wp-arr-${wp.id}">ARR: --:--</span>
-          <span class="wp-meta-sep">|</span>
-          <input 
-            type="text" 
-            class="waypoint-coords-input" 
-            data-id="${wp.id}" 
-            data-field="coords"
-            value="${coordsString}" 
-            placeholder="Lat, Lon" 
-            title="Latitude, Longitude coordinates"
-          />
-          <span class="wp-meta-sep">|</span>
-          <span class="wp-meta-dep" id="wp-dep-${wp.id}">DEP: --:--</span>
-        </div>
+      <div class="day-accordion-right">
+        <span class="day-accordion-badge">${stopsCountText}</span>
+        <span class="day-accordion-chevron">▼</span>
       </div>
     `;
 
-    // Click on Waypoint Card -> Center & Zoom Map to it!
-    itemEl.addEventListener("click", (e) => {
-      const target = e.target as HTMLElement;
-      // Do not trigger zoom if clicking remove button or inline add button
-      if (target.classList.contains("btn-remove-waypoint") || target.classList.contains("btn-add-inline-leg")) {
-        return;
+    dayHeaderEl.addEventListener("click", () => {
+      if (collapsedDays.has(group.dayIndex)) {
+        collapsedDays.delete(group.dayIndex);
+      } else {
+        collapsedDays.add(group.dayIndex);
       }
-      focusOnWaypoint(wp.id);
+      fitMapToDayBounds(group.dayIndex);
+      renderWaypointsUI();
     });
 
-    // HTML5 Drag and Drop Event Listeners for Reordering List Items
-    itemEl.addEventListener("dragstart", (e) => {
-      draggedWaypointIndex = idx;
-      itemEl.classList.add("dragging");
-      if (e.dataTransfer) {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", idx.toString());
+    dayCardEl.appendChild(dayHeaderEl);
+
+    const dayBodyEl = document.createElement("div");
+    dayBodyEl.className = "day-accordion-body";
+
+    group.waypoints.forEach(({ wp, globalIdx }) => {
+      if (globalIdx > 0) {
+        const legIndex = globalIdx - 1;
+        const legMetric = currentLegMetrics[legIndex];
+        const legText = legMetric 
+          ? `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`
+          : `↓ ENTER WAYPOINTS...`;
+
+        const legEl = document.createElement("div");
+        legEl.className = "leg-connector";
+        legEl.innerHTML = `
+          <span class="leg-line"></span>
+          <span id="leg-badge-${legIndex}" class="leg-badge">${legText}</span>
+          <button class="btn-add-inline-leg" data-insert-index="${globalIdx}" title="Insert Stop Here">+</button>
+        `;
+        dayBodyEl.appendChild(legEl);
+      }
+
+      const currentCat = getCategoryForWaypoint(wp);
+      const catDetails = CATEGORY_DETAILS[currentCat];
+
+      if (isCompactView) {
+        // Render 1-Line Compact View Row
+        const compactRowEl = document.createElement("div");
+        compactRowEl.className = "compact-waypoint-row";
+        compactRowEl.setAttribute("data-index", globalIdx.toString());
+        compactRowEl.setAttribute("data-wp-id", wp.id);
+
+        let stopNumStr = `#${globalIdx + 1}`;
+        if (wp.type === "origin") stopNumStr = "A";
+        else if (wp.type === "destination") stopNumStr = "B";
+
+        compactRowEl.innerHTML = `
+          <div class="compact-row-left">
+            <span class="compact-stop-num">${stopNumStr}</span>
+            <span class="compact-stop-icon">${catDetails ? catDetails.icon : "📍"}</span>
+            <span class="compact-stop-title">${wp.title || `Stop #${globalIdx + 1}`}</span>
+          </div>
+          <div class="compact-row-right">
+            <span class="compact-stop-time" id="wp-arr-${wp.id}">ARR: --:--</span>
+            ${waypoints.length > 2 ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop" style="padding:0 4px; border:none; background:none; color:var(--text-muted); cursor:pointer;">✕</button>` : ""}
+          </div>
+        `;
+
+        compactRowEl.addEventListener("click", (e) => {
+          const target = e.target as HTMLElement;
+          if (target.classList.contains("btn-remove-waypoint") || target.classList.contains("btn-add-inline-leg")) {
+            return;
+          }
+          focusOnWaypoint(wp.id);
+        });
+
+        dayBodyEl.appendChild(compactRowEl);
+      } else {
+        // Render Detailed Card View Item
+        const itemEl = document.createElement("div");
+        itemEl.className = "waypoint-item";
+        itemEl.setAttribute("draggable", "true");
+        itemEl.setAttribute("data-index", globalIdx.toString());
+        itemEl.setAttribute("data-wp-id", wp.id);
+
+        let tagClass = "tag-stop";
+        let titlePlaceholder = `Stop #${globalIdx + 1} Title`;
+
+        if (wp.type === "origin") {
+          tagClass = "tag-origin";
+          titlePlaceholder = "Origin Location Title";
+        } else if (wp.type === "destination") {
+          tagClass = "tag-dest";
+          titlePlaceholder = "Destination Location Title";
+        }
+
+        const coordsString = (wp.lat !== null && wp.lon !== null) 
+          ? `${wp.lat.toFixed(4)}, ${wp.lon.toFixed(4)}` 
+          : "";
+
+        itemEl.innerHTML = `
+          <div class="wp-card-gutter drag-handle ${tagClass}" title="Drag to reorder waypoint sequence">
+            <span class="wp-gutter-grip">⋮</span>
+            <span class="wp-gutter-num">#${globalIdx + 1}</span>
+            <span class="wp-gutter-grip">⋮</span>
+          </div>
+
+          <div class="wp-card-body">
+            <div class="wp-card-line1">
+              <input 
+                type="text" 
+                class="waypoint-name-input" 
+                data-id="${wp.id}" 
+                data-field="title"
+                value="${wp.title}" 
+                placeholder="${titlePlaceholder}" 
+              />
+              ${waypoints.length > 2 ? `<button class="btn-remove-waypoint" data-id="${wp.id}" title="Remove Stop">✕</button>` : ""}
+            </div>
+
+            <div class="wp-card-line2">
+              <span class="wp-meta-arr" id="wp-arr-${wp.id}">ARR: --:--</span>
+              <span class="wp-meta-sep">|</span>
+              <input 
+                type="text" 
+                class="waypoint-coords-input" 
+                data-id="${wp.id}" 
+                data-field="coords"
+                value="${coordsString}" 
+                placeholder="Lat, Lon" 
+                title="Latitude, Longitude coordinates"
+              />
+              <span class="wp-meta-sep">|</span>
+              <span class="wp-meta-dep" id="wp-dep-${wp.id}">DEP: --:--</span>
+            </div>
+          </div>
+        `;
+
+        itemEl.addEventListener("click", (e) => {
+          const target = e.target as HTMLElement;
+          if (target.classList.contains("btn-remove-waypoint") || target.classList.contains("btn-add-inline-leg")) {
+            return;
+          }
+          focusOnWaypoint(wp.id);
+        });
+
+        itemEl.addEventListener("dragstart", (e) => {
+          draggedWaypointIndex = globalIdx;
+          itemEl.classList.add("dragging");
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", globalIdx.toString());
+          }
+        });
+
+        itemEl.addEventListener("dragend", () => {
+          draggedWaypointIndex = null;
+          itemEl.classList.remove("dragging");
+          document.querySelectorAll(".waypoint-item").forEach((el) => el.classList.remove("drag-over"));
+        });
+
+        itemEl.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          itemEl.classList.add("drag-over");
+        });
+
+        itemEl.addEventListener("dragleave", () => {
+          itemEl.classList.remove("drag-over");
+        });
+
+        itemEl.addEventListener("drop", (e) => {
+          e.preventDefault();
+          itemEl.classList.remove("drag-over");
+          const targetIndex = globalIdx;
+
+          if (draggedWaypointIndex !== null && draggedWaypointIndex !== targetIndex) {
+            const [movedWp] = waypoints.splice(draggedWaypointIndex, 1);
+            waypoints.splice(targetIndex, 0, movedWp);
+
+            renderWaypointsUI();
+            renderWaypointMapMarkers();
+            updateExpeditionRoute();
+          }
+        });
+
+        dayBodyEl.appendChild(itemEl);
       }
     });
 
-    itemEl.addEventListener("dragend", () => {
-      draggedWaypointIndex = null;
-      itemEl.classList.remove("dragging");
-      document.querySelectorAll(".waypoint-item").forEach((el) => el.classList.remove("drag-over"));
-    });
-
-    itemEl.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-      itemEl.classList.add("drag-over");
-    });
-
-    itemEl.addEventListener("dragleave", () => {
-      itemEl.classList.remove("drag-over");
-    });
-
-    itemEl.addEventListener("drop", (e) => {
-      e.preventDefault();
-      itemEl.classList.remove("drag-over");
-      const targetIndex = idx;
-
-      if (draggedWaypointIndex !== null && draggedWaypointIndex !== targetIndex) {
-        // Reorder waypoints array
-        const [movedWp] = waypoints.splice(draggedWaypointIndex, 1);
-        waypoints.splice(targetIndex, 0, movedWp);
-
-        // Re-render UI, map markers, and redraw route
-        renderWaypointsUI();
-        renderWaypointMapMarkers();
-        updateExpeditionRoute();
-      }
-    });
-
-    waypointsContainer.appendChild(itemEl);
+    dayCardEl.appendChild(dayBodyEl);
+    fragment.appendChild(dayCardEl);
   });
 
-  // 3. Render Add Stop at End Button Container
   const addEndContainer = document.createElement("div");
   addEndContainer.className = "add-end-stop-container";
   addEndContainer.innerHTML = `
     <button id="add-end-stop-btn" class="btn-add-end-stop">+ ADD STOP</button>
   `;
-  waypointsContainer.appendChild(addEndContainer);
+  fragment.appendChild(addEndContainer);
+
+  waypointsContainer.innerHTML = "";
+  waypointsContainer.appendChild(fragment);
 
   renderWaypointMapMarkers();
   updateWaypointCardTiming();
@@ -1840,6 +2166,237 @@ function closeItineraryModal() {
 
 if (openItineraryBtn) openItineraryBtn.addEventListener("click", openItineraryModal);
 if (itineraryModalClose) itineraryModalClose.addEventListener("click", closeItineraryModal);
+
+// Left Panel Accordions & Compact View Mode Toolbar Listeners
+if (toggleViewModeBtn) {
+  toggleViewModeBtn.addEventListener("click", () => {
+    isCompactView = !isCompactView;
+    toggleViewModeBtn.classList.toggle("active", isCompactView);
+    toggleViewModeBtn.innerHTML = isCompactView ? "📄 Detailed" : "☰ Compact";
+    renderWaypointsUI();
+  });
+}
+
+if (toggleAllAccordionsBtn) {
+  toggleAllAccordionsBtn.addEventListener("click", () => {
+    isAllAccordionsCollapsed = !isAllAccordionsCollapsed;
+    const dayGroups = groupWaypointsByDay(waypoints);
+    if (isAllAccordionsCollapsed) {
+      dayGroups.forEach((g) => collapsedDays.add(g.dayIndex));
+      toggleAllAccordionsBtn.innerHTML = "▲ Accordions";
+    } else {
+      collapsedDays.clear();
+      toggleAllAccordionsBtn.innerHTML = "▼ Accordions";
+    }
+    renderWaypointsUI();
+  });
+}
+
+// 3D Expedition Terrain & Flythrough Viewer Controls
+export function open3DViewerModal() {
+  if (!modal3DViewer) return;
+  modal3DViewer.style.display = "flex";
+
+  const container = document.getElementById("map-3d-container");
+  if (!container) return;
+
+  if (!map3D) {
+    console.log("Initializing Dedicated 3D Terrain Command Surface...");
+    map3D = new maplibregl.Map({
+      container: "map-3d-container",
+      style: {
+        version: 8,
+        sources: {
+          "esri-satellite": {
+            type: "raster",
+            tiles: [
+              "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            ],
+            tileSize: 256,
+            maxzoom: 17,
+            attribution: "© Esri, Maxar, Earthstar Geographics"
+          },
+          "terrarium-dem": {
+            type: "raster-dem",
+            tiles: [
+              "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
+            ],
+            encoding: "terrarium",
+            tileSize: 256,
+            maxzoom: 15
+          }
+        },
+        layers: [
+          { id: "esri-satellite-layer", type: "raster", source: "esri-satellite", minzoom: 0, maxzoom: 17 }
+        ],
+        terrain: {
+          source: "terrarium-dem",
+          exaggeration: 1.8
+        }
+      },
+      center: DEFAULT_CENTER,
+      zoom: 12.5,
+      pitch: 65,
+      bearing: -25,
+      attributionControl: false
+    });
+
+    map3D.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+    map3D.addControl(new maplibregl.FullscreenControl(), "bottom-right");
+
+    map3D.on("pitch", () => {
+      if (hudPitchVal && map3D) {
+        hudPitchVal.textContent = `${Math.round(map3D.getPitch())}°`;
+      }
+    });
+  }
+
+  setTimeout(() => {
+    if (!map3D) return;
+    map3D.resize();
+
+    // Render active expedition route on 3D map surface
+    if (map3D.getSource("route-3d")) {
+      (map3D.getSource("route-3d") as maplibregl.GeoJSONSource).setData({
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: lastRouteCoordinates.length > 1 ? lastRouteCoordinates : []
+            }
+          }
+        ]
+      });
+    } else {
+      map3D.addSource("route-3d", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "LineString",
+                coordinates: lastRouteCoordinates.length > 1 ? lastRouteCoordinates : []
+              }
+            }
+          ]
+        }
+      });
+
+      map3D.addLayer({
+        id: "route-3d-glow",
+        type: "line",
+        source: "route-3d",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#38bdf8", "line-width": 8, "line-opacity": 0.4 }
+      });
+
+      map3D.addLayer({
+        id: "route-3d-line",
+        type: "line",
+        source: "route-3d",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#ef4444", "line-width": 4 }
+      });
+    }
+
+    if (lastRouteCoordinates.length > 1) {
+      const bounds = new maplibregl.LngLatBounds(lastRouteCoordinates[0], lastRouteCoordinates[0]);
+      lastRouteCoordinates.forEach((coord) => bounds.extend(coord));
+      map3D.fitBounds(bounds, { padding: 80, pitch: 60, duration: 1000 });
+    }
+  }, 120);
+}
+
+function close3DViewerModal() {
+  if (modal3DViewer) modal3DViewer.style.display = "none";
+  stop3DFlythrough();
+}
+
+function stop3DFlythrough() {
+  is3DFlying = false;
+  if (flythroughTimer) clearTimeout(flythroughTimer);
+  if (btn3DFlythrough) btn3DFlythrough.innerHTML = "▶ Play Route Flythrough";
+  if (hudFlyStatus) hudFlyStatus.textContent = "PAUSED";
+}
+
+function reset3DCamera() {
+  stop3DFlythrough();
+  if (!map3D) return;
+
+  if (lastRouteCoordinates.length > 1) {
+    const bounds = new maplibregl.LngLatBounds(lastRouteCoordinates[0], lastRouteCoordinates[0]);
+    lastRouteCoordinates.forEach((coord) => bounds.extend(coord));
+    map3D.fitBounds(bounds, { padding: 80, pitch: 65, duration: 1000 });
+  } else {
+    map3D.easeTo({ pitch: 65, bearing: -25, zoom: 12.5, duration: 1000 });
+  }
+}
+
+function toggle3DFlythrough() {
+  if (is3DFlying) {
+    stop3DFlythrough();
+    return;
+  }
+
+  if (!lastRouteCoordinates || lastRouteCoordinates.length < 2) {
+    showToast("Please add at least 2 waypoints to run 3D flythrough.");
+    return;
+  }
+
+  is3DFlying = true;
+  if (btn3DFlythrough) btn3DFlythrough.innerHTML = "⏸ Pause Flythrough";
+  if (hudFlyStatus) hudFlyStatus.textContent = "FLYING...";
+
+  const stepInterval = Math.max(1, Math.floor(lastRouteCoordinates.length / 35));
+  flythroughIndex = 0;
+
+  function stepFlythrough() {
+    if (!is3DFlying || !map3D) return;
+
+    if (flythroughIndex >= lastRouteCoordinates.length) {
+      stop3DFlythrough();
+      if (hudFlyStatus) hudFlyStatus.textContent = "COMPLETED 🏁";
+      showToast("3D Route Flythrough completed!");
+      return;
+    }
+
+    const currentCoord = lastRouteCoordinates[flythroughIndex];
+    const nextIndex = Math.min(flythroughIndex + stepInterval, lastRouteCoordinates.length - 1);
+    const nextCoord = lastRouteCoordinates[nextIndex];
+
+    const dx = nextCoord[0] - currentCoord[0];
+    const dy = nextCoord[1] - currentCoord[1];
+    const bearing = (Math.atan2(dx, dy) * 180) / Math.PI;
+
+    map3D.flyTo({
+      center: currentCoord,
+      zoom: 14.5,
+      pitch: 68,
+      bearing: bearing,
+      speed: 0.8,
+      curve: 1.2,
+      essential: true
+    });
+
+    const progressPct = Math.round((flythroughIndex / lastRouteCoordinates.length) * 100);
+    if (hudFlyStatus) hudFlyStatus.textContent = `FLYING (${progressPct}%)`;
+
+    flythroughIndex += stepInterval;
+    flythroughTimer = setTimeout(stepFlythrough, 2500);
+  }
+
+  stepFlythrough();
+}
+
+if (modal3DClose) modal3DClose.addEventListener("click", close3DViewerModal);
+if (btn3DFlythrough) btn3DFlythrough.addEventListener("click", toggle3DFlythrough);
+if (btn3DResetCam) btn3DResetCam.addEventListener("click", reset3DCamera);
 
 // Tactical Document ID Generator: IV-YEAR-JULIANDAY-ROMAN
 let lastManifestJulianDay = "";
@@ -2528,6 +3085,409 @@ function extractPocketBaseError(err: any): string {
   return err?.message || JSON.stringify(data);
 }
 
+// Initialize a New Blank Expedition Workspace
+function resetTripToNewWorkspace() {
+  if (waypoints.some((w) => w.lat !== null && w.lon !== null)) {
+    const confirmReset = confirm("Create a new blank expedition? Any unsaved changes on your active trip will be cleared.");
+    if (!confirmReset) return;
+  }
+
+  currentTripId = null;
+  currentTripTitle = "MY EXPEDITION ROUTE";
+  currentTripSummary = "";
+  lastRouteCoordinates = [];
+  currentLegMetrics = [];
+  collapsedDays.clear();
+
+  if (modalTripTitle) modalTripTitle.value = currentTripTitle;
+  if (modalTripSummary) modalTripSummary.value = "";
+  if (tripTitleText) tripTitleText.textContent = currentTripTitle;
+
+  waypoints = [
+    { id: "wp-origin", title: "", lat: null, lon: null, type: "origin" },
+    { id: "wp-dest", title: "", lat: null, lon: null, type: "destination" }
+  ];
+
+  renderWaypointsUI();
+  renderWaypointMapMarkers();
+
+  if (map) {
+    if (map.getLayer("expedition-route-layer")) map.removeLayer("expedition-route-layer");
+    if (map.getLayer("expedition-route-casing")) map.removeLayer("expedition-route-casing");
+    if (map.getSource("expedition-route-src")) map.removeSource("expedition-route-src");
+    if (map.getLayer("expedition-empty-route-layer")) map.removeLayer("expedition-empty-route-layer");
+    if (map.getSource("expedition-empty-route-src")) map.removeSource("expedition-empty-route-src");
+  }
+
+  if (metricDistance) metricDistance.textContent = "0.0 MI";
+  if (metricDuration) metricDuration.textContent = "0H 0M";
+
+  updateFuelCalculations();
+  showToast("New expedition workspace initialized ➕");
+}
+
+if (newTripBtn) newTripBtn.addEventListener("click", resetTripToNewWorkspace);
+
+// Export Expedition Route as Standard GPX 1.1 XML File (Garmin / GPS Compatible)
+function exportExpeditionToGPX() {
+  const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
+  if (validWaypoints.length === 0) {
+    alert("No valid waypoints to export. Please add waypoints to your expedition route first.");
+    return;
+  }
+
+  const sanitizedTitle = currentTripTitle.replace(/[^\w\s-]/gi, "").trim() || "Expedition_Route";
+  const now = new Date().toISOString();
+
+  let gpxXml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  gpxXml += `<gpx version="1.1" creator="Iter Viae - https://iterviae.com" xmlns="http://www.topografix.com/GPX/1/1">\n`;
+  gpxXml += `  <metadata>\n`;
+  gpxXml += `    <name>${escapeXml(currentTripTitle)}</name>\n`;
+  gpxXml += `    <desc>${escapeXml(currentTripSummary || "Expedition Route generated via Iter Viae")}</desc>\n`;
+  gpxXml += `    <time>${now}</time>\n`;
+  gpxXml += `  </metadata>\n`;
+
+  // Waypoint Stops (<wpt>)
+  validWaypoints.forEach((wp, idx) => {
+    let name = wp.title || `Stop #${idx + 1}`;
+    if (idx === 0) name = `[START] ${name}`;
+    else if (idx === validWaypoints.length - 1) name = `[END] ${name}`;
+
+    gpxXml += `  <wpt lat="${wp.lat!.toFixed(6)}" lon="${wp.lon!.toFixed(6)}">\n`;
+    gpxXml += `    <name>${escapeXml(name)}</name>\n`;
+    gpxXml += `    <sym>${wp.isOvernight ? "Hotel" : "Pin"}</sym>\n`;
+    gpxXml += `    <type>${getCategoryForWaypoint(wp)}</type>\n`;
+    gpxXml += `  </wpt>\n`;
+  });
+
+  // Track Polyline Geometry (<trk>)
+  if (lastRouteCoordinates && lastRouteCoordinates.length > 1) {
+    gpxXml += `  <trk>\n`;
+    gpxXml += `    <name>${escapeXml(currentTripTitle)} Track</name>\n`;
+    gpxXml += `    <trkseg>\n`;
+    lastRouteCoordinates.forEach(([lon, lat]) => {
+      gpxXml += `      <trkpt lat="${lat.toFixed(6)}" lon="${lon.toFixed(6)}"/>\n`;
+    });
+    gpxXml += `    </trkseg>\n`;
+    gpxXml += `  </trk>\n`;
+  }
+
+  gpxXml += `</gpx>`;
+
+  const blob = new Blob([gpxXml], { type: "application/gpx+xml;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${sanitizedTitle.replace(/\s+/g, "_")}.gpx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(`Exported ${sanitizedTitle}.gpx for GPS devices 📥`);
+}
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+// Import GPX / KML Waypoints File into Active Workspace
+function parseGPXorKMLText(text: string, filename: string) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, "text/xml");
+  const importedWaypoints: Waypoint[] = [];
+
+  if (filename.toLowerCase().endsWith(".kml") || text.includes("<kml")) {
+    const placemarks = xmlDoc.getElementsByTagName("Placemark");
+    for (let i = 0; i < placemarks.length; i++) {
+      const pm = placemarks[i];
+      const name = pm.getElementsByTagName("name")[0]?.textContent || `Stop #${i + 1}`;
+      const coordsText = pm.getElementsByTagName("coordinates")[0]?.textContent;
+      if (coordsText) {
+        const parts = coordsText.trim().split(",");
+        if (parts.length >= 2) {
+          const lon = parseFloat(parts[0]);
+          const lat = parseFloat(parts[1]);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            importedWaypoints.push({
+              id: `wp-${Date.now()}-${i}`,
+              title: name.trim(),
+              lat,
+              lon,
+              type: i === 0 ? "origin" : "stop"
+            });
+          }
+        }
+      }
+    }
+  } else {
+    const wpts = xmlDoc.getElementsByTagName("wpt");
+    for (let i = 0; i < wpts.length; i++) {
+      const wpt = wpts[i];
+      const lat = parseFloat(wpt.getAttribute("lat") || "");
+      const lon = parseFloat(wpt.getAttribute("lon") || "");
+      const name = wpt.getElementsByTagName("name")[0]?.textContent || `Stop #${i + 1}`;
+      if (!isNaN(lat) && !isNaN(lon)) {
+        importedWaypoints.push({
+          id: `wp-${Date.now()}-${i}`,
+          title: name.trim(),
+          lat,
+          lon,
+          type: i === 0 ? "origin" : "stop"
+        });
+      }
+    }
+  }
+
+  if (importedWaypoints.length === 0) {
+    alert("No valid waypoint coordinates found in the uploaded GPX/KML file.");
+    return;
+  }
+
+  if (importedWaypoints.length > 0) {
+    importedWaypoints[importedWaypoints.length - 1].type = "destination";
+  }
+
+  waypoints = importedWaypoints;
+  currentTripTitle = filename.replace(/\.[^/.]+$/, "").replace(/_/g, " ").toUpperCase();
+  if (tripTitleText) tripTitleText.textContent = currentTripTitle;
+  if (modalTripTitle) modalTripTitle.value = currentTripTitle;
+
+  renderWaypointsUI();
+  renderWaypointMapMarkers();
+  updateExpeditionRoute();
+
+  showToast(`Imported ${importedWaypoints.length} waypoints from ${filename} 📤`);
+}
+
+if (exportGPXBtn) exportGPXBtn.addEventListener("click", exportExpeditionToGPX);
+
+if (importGPXBtn && importGPXInput) {
+  importGPXBtn.addEventListener("click", () => {
+    importGPXInput.click();
+  });
+
+  importGPXInput.addEventListener("change", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+      const file = target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        if (text) parseGPXorKMLText(text, file.name);
+      };
+      reader.readAsText(file);
+    }
+  });
+}
+
+// Interactive POI & Place Search Engine (Keyless Nominatim OpenStreetMap Endpoint)
+interface POISearchResult {
+  title: string;
+  category: StopCategory;
+  lat: number;
+  lon: number;
+  address?: string;
+}
+
+const CATEGORY_SEARCH_MAPPING: Record<string, { query: string; category: StopCategory; label: string; icon: string }> = {
+  gas: { query: "gas station", category: "gas", label: "Gas Station", icon: "⛽" },
+  camping: { query: "campground", category: "attraction", label: "Camping", icon: "🏕️" },
+  sightseeing: { query: "scenic viewpoint attraction", category: "attraction", label: "Sightseeing", icon: "⛰️" },
+  food: { query: "restaurant diner", category: "restaurant", label: "Food & Dining", icon: "🍽️" },
+  lodging: { query: "hotel motel", category: "lodging", label: "Hotel / Lodging", icon: "🏨" }
+};
+
+function clearSearchPOIMarkers() {
+  activePoiSearchMarkers.forEach((m) => m.remove());
+  activePoiSearchMarkers = [];
+}
+
+async function executePOISearchAroundPoint(catKey: string, customPoint?: { lat: number; lng: number }) {
+  clearSearchPOIMarkers();
+
+  const config = CATEGORY_SEARCH_MAPPING[catKey] || {
+    query: catKey,
+    category: "general" as StopCategory,
+    label: catKey,
+    icon: "📍"
+  };
+
+  const centerPoint = customPoint || lastRightClickLngLat || (map ? { lat: map.getCenter().lat, lng: map.getCenter().lng } : null);
+  if (!centerPoint) return;
+
+  if (poiResultsPanel) poiResultsPanel.style.display = "flex";
+  if (poiPanelTitle) poiPanelTitle.textContent = `${config.icon} NEARBY ${config.label.toUpperCase()}`;
+  if (poiResultsList) poiResultsList.innerHTML = `<div style="padding:16px; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); text-align:center;">Searching places nearby...</div>`;
+
+  showToast(`Searching for nearby ${config.label}... ${config.icon}`);
+
+  const d = 0.3; // ~20 mile radius bounding box around right-click target
+  const minLon = (centerPoint.lng - d).toFixed(6);
+  const maxLat = (centerPoint.lat + d).toFixed(6);
+  const maxLon = (centerPoint.lng + d).toFixed(6);
+  const minLat = (centerPoint.lat - d).toFixed(6);
+
+  const searchUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(config.query)}&format=json&limit=8&lat=${centerPoint.lat.toFixed(6)}&lon=${centerPoint.lng.toFixed(6)}&viewbox=${minLon},${maxLat},${maxLon},${minLat}&bounded=1`;
+
+  try {
+    const res = await fetch(searchUrl, {
+      headers: { "User-Agent": "IterViaeRoadPlanner/1.0" }
+    });
+
+    if (!res.ok) throw new Error("Search network error");
+    let data = await res.json();
+
+    if (!data || data.length === 0) {
+      // Fallback with 1.0 degree box (~60 miles) ALWAYS anchored at centerPoint
+      const wideMinLon = (centerPoint.lng - 1.0).toFixed(6);
+      const wideMaxLat = (centerPoint.lat + 1.0).toFixed(6);
+      const wideMaxLon = (centerPoint.lng + 1.0).toFixed(6);
+      const wideMinLat = (centerPoint.lat - 1.0).toFixed(6);
+
+      const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(config.query)}&format=json&limit=8&lat=${centerPoint.lat.toFixed(6)}&lon=${centerPoint.lng.toFixed(6)}&viewbox=${wideMinLon},${wideMaxLat},${wideMaxLon},${wideMinLat}&bounded=1`;
+
+      const fallbackRes = await fetch(fallbackUrl, {
+        headers: { "User-Agent": "IterViaeRoadPlanner/1.0" }
+      });
+      data = await fallbackRes.json();
+    }
+
+    if (!data || data.length === 0) {
+      if (poiResultsList) poiResultsList.innerHTML = `<div style="padding:16px; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); text-align:center;">No nearby ${config.label} found within 60 miles.</div>`;
+      showToast(`No nearby ${config.label} found at this location.`);
+      return;
+    }
+
+    renderPOISearchResults(data, config.category, config.icon);
+    showToast(`Found ${data.length} ${config.label} nearby ${config.icon}`);
+  } catch (err) {
+    console.warn("Spatial POI Search error:", err);
+    if (poiResultsList) poiResultsList.innerHTML = `<div style="padding:16px; font-family:var(--font-mono); font-size:0.75rem; color:#ef4444; text-align:center;">Failed to fetch search results.</div>`;
+    showToast("Failed to fetch nearby POIs.");
+  }
+}
+
+function renderPOISearchResults(results: any[], defaultCat: StopCategory, defaultIcon: string) {
+  if (!poiResultsList) return;
+  clearSearchPOIMarkers();
+
+  if (!results || results.length === 0) {
+    poiResultsList.innerHTML = `<div style="padding:16px; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); text-align:center;">No matching places found nearby.</div>`;
+    return;
+  }
+
+  const items: POISearchResult[] = results.map((item) => ({
+    title: item.display_name.split(",")[0],
+    category: defaultCat,
+    lat: parseFloat(item.lat),
+    lon: parseFloat(item.lon),
+    address: item.display_name
+  }));
+
+  const bounds = new maplibregl.LngLatBounds();
+  let html = "";
+
+  items.forEach((poi, i) => {
+    bounds.extend([poi.lon, poi.lat]);
+
+    html += `
+      <div class="search-result-item" data-idx="${i}">
+        <div class="search-result-left">
+          <span class="search-result-title">${defaultIcon} ${escapeXml(poi.title)}</span>
+          <span class="search-result-subtitle">${escapeXml(poi.address || "")}</span>
+        </div>
+        <button type="button" class="btn-add-poi-result" data-idx="${i}">+ Add Stop</button>
+      </div>
+    `;
+
+    // Drop interactive temporary marker on map surface
+    if (map) {
+      const el = document.createElement("div");
+      el.className = "poi-map-marker";
+      el.innerHTML = `<div style="background:#f59e0b; color:#fff; border:2px solid #0f172a; padding:4px 8px; border-radius:12px; font-family:var(--font-mono); font-size:0.7rem; font-weight:800; box-shadow:0 4px 12px rgba(0,0,0,0.4); cursor:pointer;">${defaultIcon} ${poi.title}</div>`;
+
+      const popupHtml = `
+        <div style="padding:4px;">
+          <h4 style="margin:0 0 4px 0; font-family:var(--font-sans); font-size:0.85rem; color:#0f172a;">${defaultIcon} ${escapeXml(poi.title)}</h4>
+          <p style="margin:0 0 8px 0; font-family:var(--font-mono); font-size:0.7rem; color:#64748b;">${escapeXml(poi.address || "")}</p>
+          <button id="btn-add-poi-map-${i}" style="width:100%; background:#10b981; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-family:var(--font-mono); font-size:0.72rem; font-weight:800; cursor:pointer;">+ Add to Expedition Route</button>
+        </div>
+      `;
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([poi.lon, poi.lat])
+        .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(popupHtml))
+        .addTo(map);
+
+      activePoiSearchMarkers.push(marker);
+
+      marker.getPopup().on("open", () => {
+        const addBtn = document.getElementById(`btn-add-poi-map-${i}`);
+        if (addBtn) {
+          addBtn.onclick = () => {
+            addPOIToExpedition(poi);
+            marker.remove();
+          };
+        }
+      });
+    }
+  });
+
+  poiResultsList.innerHTML = html;
+
+  if (map && items.length > 0) {
+    map.fitBounds(bounds, { padding: { top: 100, bottom: 80, left: 380, right: 380 }, maxZoom: 14, duration: 800 });
+  }
+
+  poiResultsList.querySelectorAll(".search-result-item").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      const idx = parseInt((el as HTMLElement).dataset.idx || "0", 10);
+      const poi = items[idx];
+      if (!poi) return;
+
+      const target = e.target as HTMLElement;
+      if (target.classList.contains("btn-add-poi-result")) {
+        addPOIToExpedition(poi);
+      } else {
+        if (map) map.flyTo({ center: [poi.lon, poi.lat], zoom: 14, duration: 800 });
+      }
+    });
+  });
+}
+
+function addPOIToExpedition(poi: POISearchResult) {
+  const newWp: Waypoint = {
+    id: `wp-poi-${Date.now()}`,
+    title: poi.title,
+    lat: poi.lat,
+    lon: poi.lon,
+    type: "stop"
+  };
+
+  setWaypointCategory(newWp, poi.category);
+
+  if (waypoints.length > 0 && waypoints[waypoints.length - 1].type === "destination") {
+    waypoints.splice(waypoints.length - 1, 0, newWp);
+  } else {
+    waypoints.push(newWp);
+  }
+
+  if (poiResultsPanel) poiResultsPanel.style.display = "none";
+  clearSearchPOIMarkers();
+
+  renderWaypointsUI();
+  renderWaypointMapMarkers();
+  updateExpeditionRoute();
+
+  showToast(`Added ${poi.title} to Expedition Route 📍`);
+}
+
 // Save & Update Trip to Cloud Backend (PocketBase - Progressive Fallbacks)
 if (saveTripBtn) {
   saveTripBtn.addEventListener("click", async () => {
@@ -2870,11 +3830,11 @@ function initializeMapSurface() {
     return;
   }
 
-  console.log("Initializing MapLibre GL Map Surface - Blank Canvas Mode...");
+  console.log("Initializing MapLibre GL Map Surface - Local TileServer GL Engine...");
 
   map = new maplibregl.Map({
     container: "map-container",
-    style: MAP_SURFACE_STYLES["highways"],
+    style: MAP_SURFACE_STYLES["vector"],
     center: DEFAULT_CENTER,
     zoom: 13,
     minZoom: 3,
@@ -2961,6 +3921,17 @@ function initializeMapSurface() {
   }, 400);
 }
 
+// Right-Click Context Menu POI Search Handlers
+document.querySelectorAll(".context-poi-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const categoryKey = (btn as HTMLElement).dataset.category;
+    hideContextMenu();
+    if (categoryKey && lastRightClickLngLat) {
+      executePOISearchAroundPoint(categoryKey, lastRightClickLngLat);
+    }
+  });
+});
+
 // Context Menu Handlers
 function copyCoordinatesToClipboard() {
   if (!lastRightClickLngLat) return;
@@ -2971,6 +3942,13 @@ function copyCoordinatesToClipboard() {
 }
 
 if (contextCoordsItem) contextCoordsItem.addEventListener("click", copyCoordinatesToClipboard);
+
+if (poiPanelClose) {
+  poiPanelClose.addEventListener("click", () => {
+    if (poiResultsPanel) poiResultsPanel.style.display = "none";
+    clearSearchPOIMarkers();
+  });
+}
 
 if (contextAddStopBtn) {
   contextAddStopBtn.addEventListener("click", () => {
@@ -3029,7 +4007,7 @@ if (coordSearchInput) {
   });
 }
 
-// Coordinate Search Form Handler (Lat, Lon)
+// Coordinate Search & POI Search Form Handler
 if (coordSearchForm && coordSearchInput) {
   coordSearchForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -3037,29 +4015,20 @@ if (coordSearchForm && coordSearchInput) {
     const query = coordSearchInput.value.trim();
     if (!query || !map) return;
 
+    // Check if query is explicit Lat, Lon format
     const parts = query.split(/[\s,]+/).filter(Boolean);
-    if (parts.length < 2) {
-      alert("Invalid format! Please enter valid coordinates in format: Lat, Lon (e.g. 39.7392, -104.9903)");
-      return;
+    if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+      const lat = parseFloat(parts[0]);
+      const lon = parseFloat(parts[1]);
+      if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+        map.flyTo({ center: [lon, lat], zoom: 14, speed: 1.4, essential: true });
+        addPinAtLocation(lat, lon);
+        return;
+      }
     }
 
-    const lat = parseFloat(parts[0]);
-    const lon = parseFloat(parts[1]);
-
-    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      alert("Latitude must be between -90 and 90, Longitude must be between -180 and 180.");
-      return;
-    }
-
-    // Fly map to searched target location
-    map.flyTo({
-      center: [lon, lat],
-      zoom: 14,
-      speed: 1.4,
-      essential: true
-    });
-
-    addPinAtLocation(lat, lon);
+    // Otherwise, perform Place Search around active map center
+    executePOISearchAroundPoint(query);
   });
 }
 
@@ -3086,8 +4055,11 @@ function updateAuthStateUI() {
 
     // Router: Switch between Unverified Screen vs Verified Map Surface Workspace
     if (isVerified) {
+      if (newTripBtn) newTripBtn.style.display = "inline-flex";
       if (openItineraryBtn) openItineraryBtn.style.display = "inline-flex";
       if (saveTripBtn) saveTripBtn.style.display = "inline-flex";
+      if (exportGPXBtn) exportGPXBtn.style.display = "inline-flex";
+      if (importGPXBtn) importGPXBtn.style.display = "inline-flex";
       if (navVehicleBtn) navVehicleBtn.style.display = "inline-flex";
       if (navSavedTripsBtn) navSavedTripsBtn.style.display = "inline-flex";
       // Verified User View -> Render Full 100vh Viewport Map Surface + Left Planner
@@ -3104,8 +4076,11 @@ function updateAuthStateUI() {
       }, 50);
     } else {
       // Unverified User View
+      if (newTripBtn) newTripBtn.style.display = "none";
       if (openItineraryBtn) openItineraryBtn.style.display = "none";
       if (saveTripBtn) saveTripBtn.style.display = "none";
+      if (exportGPXBtn) exportGPXBtn.style.display = "none";
+      if (importGPXBtn) importGPXBtn.style.display = "none";
       if (navVehicleBtn) navVehicleBtn.style.display = "none";
       if (navSavedTripsBtn) navSavedTripsBtn.style.display = "none";
       if (guestView) guestView.style.display = "none";
@@ -3116,8 +4091,11 @@ function updateAuthStateUI() {
     }
   } else {
     // Guest View (Not logged in)
+    if (newTripBtn) newTripBtn.style.display = "none";
     if (openItineraryBtn) openItineraryBtn.style.display = "none";
     if (saveTripBtn) saveTripBtn.style.display = "none";
+    if (exportGPXBtn) exportGPXBtn.style.display = "none";
+    if (importGPXBtn) importGPXBtn.style.display = "none";
     if (navVehicleBtn) navVehicleBtn.style.display = "none";
     if (navSavedTripsBtn) navSavedTripsBtn.style.display = "none";
     if (openAuthBtn) openAuthBtn.style.display = "inline-flex";
