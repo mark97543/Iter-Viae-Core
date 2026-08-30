@@ -1108,51 +1108,62 @@ function focusOnWaypoint(wpId: string) {
   }
 }
 
-// Spatial algorithm to find optimal insertion index for right-click stop (supports extending destination if farther out)
+// Spatial algorithm: Finds nearest waypoint by distance and inserts new stop right next to it
 function findOptimalInsertionIndex(lat: number, lon: number): number {
-  const validWaypoints = waypoints.filter((w) => w.lat !== null && w.lon !== null);
-  const N = validWaypoints.length;
+  const validItems = waypoints
+    .map((w, index) => ({ w, index }))
+    .filter(({ w }) => w.lat !== null && w.lon !== null);
 
-  if (N < 2) {
-    return waypoints.length;
-  }
+  const N = validItems.length;
+  if (N === 0) return 0;
+  if (N === 1) return waypoints.length;
 
-  const origin = validWaypoints[0];
-  const dest = validWaypoints[N - 1];
+  // 1. Find the single closest existing waypoint by Euclidean distance
+  let closestItem = validItems[0];
+  let minDistance = Math.hypot(closestItem.w.lat! - lat, closestItem.w.lon! - lon);
 
-  const distOriginToNew = haversineDistance(origin.lat!, origin.lon!, lat, lon);
-  const distDestToNew = haversineDistance(dest.lat!, dest.lon!, lat, lon);
-  const totalOrigToDest = haversineDistance(origin.lat!, origin.lon!, dest.lat!, dest.lon!);
-
-  // Check if new point is logically farther than the current last stop (destination)
-  // If dist(Origin -> New) > dist(Origin -> CurrentDest) AND dist(CurrentDest -> New) < dist(Origin -> New)
-  if (distOriginToNew > totalOrigToDest && distDestToNew < distOriginToNew) {
-    return waypoints.length; // Append at end to become the new Destination!
-  }
-
-  // Otherwise evaluate intermediate insertion detour vs appending at end
-  let bestIndex = waypoints.length;
-  let minDetour = distDestToNew; // Detour for appending at the end
-
-  for (let i = 0; i < N - 1; i++) {
-    const w1 = validWaypoints[i];
-    const w2 = validWaypoints[i + 1];
-
-    const d1 = haversineDistance(w1.lat!, w1.lon!, lat, lon);
-    const d2 = haversineDistance(lat, lon, w2.lat!, w2.lon!);
-    const originalDist = haversineDistance(w1.lat!, w1.lon!, w2.lat!, w2.lon!);
-
-    const detour = (d1 + d2) - originalDist;
-    if (detour < minDetour) {
-      minDetour = detour;
-      const realIndex = waypoints.findIndex((w) => w.id === w2.id);
-      if (realIndex !== -1) {
-        bestIndex = realIndex;
-      }
+  for (let i = 1; i < N; i++) {
+    const item = validItems[i];
+    const dist = Math.hypot(item.w.lat! - lat, item.w.lon! - lon);
+    if (dist < minDistance) {
+      minDistance = dist;
+      closestItem = item;
     }
   }
 
-  return bestIndex;
+  const closestIdx = closestItem.index;
+
+  // 2. Decide whether to insert BEFORE or AFTER closestItem based on neighbor proximity
+  if (closestIdx === 0) {
+    return 1; // Insert right after Origin
+  }
+
+  if (closestIdx === waypoints.length - 1) {
+    const prevWp = waypoints[closestIdx - 1];
+    if (prevWp && prevWp.lat !== null && prevWp.lon !== null) {
+      const distToPrev = Math.hypot(prevWp.lat - lat, prevWp.lon - lon);
+      if (distToPrev < minDistance) {
+        return closestIdx; // Insert right before Destination
+      }
+    }
+    return waypoints.length; // Append at end as new Destination
+  }
+
+  const prevWp = waypoints[closestIdx - 1];
+  const nextWp = waypoints[closestIdx + 1];
+
+  let distToPrev = Infinity;
+  let distToNext = Infinity;
+
+  if (prevWp && prevWp.lat !== null && prevWp.lon !== null) {
+    distToPrev = Math.hypot(prevWp.lat - lat, prevWp.lon - lon);
+  }
+  if (nextWp && nextWp.lat !== null && nextWp.lon !== null) {
+    distToNext = Math.hypot(nextWp.lat - lat, nextWp.lon - lon);
+  }
+
+  // Insert after closestItem if closer to next, or before closestItem if closer to prev
+  return distToNext <= distToPrev ? closestIdx + 1 : closestIdx;
 }
 
 // Fetch turn-by-turn route line geometry & update metrics
