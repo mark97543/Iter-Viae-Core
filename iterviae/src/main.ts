@@ -3893,10 +3893,16 @@ function addPOIToExpedition(poi: POISearchResult) {
 
   setWaypointCategory(newWp, poi.category);
 
-  if (waypoints.length > 0 && waypoints[waypoints.length - 1].type === "destination") {
-    waypoints.splice(waypoints.length - 1, 0, newWp);
+  // Spatial algorithm: Insert stop between the closest two route waypoints
+  const insertIndex = findOptimalInsertionIndex(poi.lat, poi.lon);
+  if (insertIndex >= waypoints.length) {
+    if (waypoints.length > 0 && waypoints[waypoints.length - 1].type === "destination") {
+      waypoints.splice(waypoints.length - 1, 0, newWp);
+    } else {
+      waypoints.push(newWp);
+    }
   } else {
-    waypoints.push(newWp);
+    waypoints.splice(insertIndex, 0, newWp);
   }
 
   if (poiResultsPanel) poiResultsPanel.style.display = "none";
@@ -3906,7 +3912,7 @@ function addPOIToExpedition(poi: POISearchResult) {
   renderWaypointMapMarkers();
   updateExpeditionRoute();
 
-  showToast(`Added ${poi.title} to Expedition Route 📍`);
+  showToast(`Added ${poi.title} to Expedition Route at Stop #${insertIndex + 1} 📍`);
 }
 
 /**
