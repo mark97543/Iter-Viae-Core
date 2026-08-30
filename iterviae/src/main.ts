@@ -225,16 +225,16 @@ let collapsedDays: Set<number> = new Set();
 let isAllAccordionsCollapsed: boolean = false;
 
 const DAY_COLOR_PALETTE = [
-  "#38bdf8", // Day 1: Electric Blue
-  "#10b981", // Day 2: Emerald Green
+  "#38bdf8", // Day 1: Electric Sky Blue
+  "#10b981", // Day 2: Emerald Mint Green
   "#f59e0b", // Day 3: Amber Gold
   "#a855f7", // Day 4: Amethyst Purple
-  "#f43f5e", // Day 5: Rose Red
-  "#06b6d4", // Day 6: Cyan Teal
-  "#ec4899", // Day 7: Hot Pink
-  "#84cc16", // Day 8: Lime Green
-  "#f97316", // Day 9: Vivid Orange
-  "#6366f1"  // Day 10: Indigo Blue
+  "#06b6d4", // Day 5: Cyan Ocean
+  "#ec4899", // Day 6: Hot Pink
+  "#84cc16", // Day 7: Lime Citrus
+  "#f97316", // Day 8: Vivid Safety Orange
+  "#6366f1", // Day 9: Indigo Electric
+  "#14b8a6"  // Day 10: Teal Topaz
 ];
 
 export function getDayColor(dayNumber: number): string {
@@ -1352,6 +1352,24 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
     (map.getSource("expedition-empty-route-src") as maplibregl.GeoJSONSource).setData(emptyGeoJSON);
   }
 
+  if (!map.getLayer("expedition-empty-route-casing")) {
+    const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
+    map.addLayer({
+      id: "expedition-empty-route-casing",
+      type: "line",
+      source: "expedition-empty-route-src",
+      layout: {
+        "line-join": "round",
+        "line-cap": "round"
+      },
+      paint: {
+        "line-color": "#0f172a",
+        "line-width": 9,
+        "line-opacity": 0.95
+      }
+    }, beforeId);
+  }
+
   if (!map.getLayer("expedition-empty-route-layer")) {
     const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
     map.addLayer({
@@ -1363,9 +1381,9 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
         "line-cap": "round"
       },
       paint: {
-        "line-color": "#ef4444",
-        "line-width": 7,
-        "line-dasharray": [2, 2],
+        "line-color": "#ff1744",
+        "line-width": 5.5,
+        "line-dasharray": [2.5, 2.5],
         "line-opacity": 1.0
       }
     }, beforeId);
