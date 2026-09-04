@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#8b5cf6" />
+    <title>WADE FAMILY TRAVEL BOOK — travel.wade-usa.com</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="travel-app-body">
+    <!-- Password Lock Screen Gate Overlay (Active until authenticated) -->
+    <div class="modal-overlay auth-gate-overlay" id="travel-auth-modal">
+      <div class="modal-card auth-gate-card">
+        <div class="auth-gate-header">
+          <div class="auth-gate-logo">📖 ✈️</div>
+          <h1 class="auth-gate-title">FAMILY TRAVEL BOOK</h1>
+          <p class="auth-gate-subtitle">Personal Itineraries & Trip Slug Collection</p>
+          <span class="auth-gate-domain">travel.wade-usa.com</span>
+        </div>
+        <div class="modal-body">
+          <form id="travel-login-form" class="auth-form-grid">
+            <div class="form-group">
+              <label for="travel-auth-email">ACCOUNT EMAIL OR USERNAME</label>
+              <input type="text" id="travel-auth-email" required placeholder="user@wade-usa.com" autocomplete="username" />
+            </div>
+            <div class="form-group">
+              <label for="travel-auth-password">PASSWORD</label>
+              <input type="password" id="travel-auth-password" required placeholder="••••••••" autocomplete="current-password" />
+            </div>
+            <div id="auth-error-msg" class="auth-error-pill" style="display: none;"></div>
+            <button type="submit" id="btn-submit-auth" class="btn btn-primary btn-gate-submit">
+              🔓 Unlock Travel Book
+            </button>
+            <p class="auth-notice-text">
+              🔑 Authenticate using your <strong>Iter Viae</strong> account credentials (api.wade-usa.com).
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Top HUD Banner Header -->
+    <header class="hud-banner">
+      <div class="dash-app-branding" id="header-brand-link" style="cursor: pointer;">
+        <span class="dash-app-logo">📖</span>
+        <div class="dash-app-titles">
+          <h1 class="dash-app-name">FAMILY TRAVEL BOOK</h1>
+          <span class="dash-app-sub">travel.wade-usa.com</span>
+        </div>
+      </div>
+      <div class="hud-meta-group">
+        <button id="btn-nav-library" class="hud-chip chip-active" title="View Travel Book Library">
+          <span class="chip-icon">📚</span>
+          <span>ALL SLUGS</span>
+        </button>
+        <button id="btn-open-instructions" class="hud-chip chip-cyan" title="How to Add a New Page">
+          <span class="chip-icon">➕</span>
+          <span>ADD PAGE GUIDE</span>
+        </button>
+        <button id="btn-open-menu" class="hud-chip chip-menu" title="Settings & Lock">
+          <span>⚙️</span>
+          <span>ACCOUNT</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="app-main-container">
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 1: POST-LOGIN SLUG CARDS LIBRARY GRID                          -->
+      <!-- ==================================================================== -->
+      <section id="library-view" class="view-section">
+        <div class="library-hero-banner">
+          <div class="hero-text-block">
+            <span class="hero-badge">TRAVEL SLUG COLLECTION</span>
+            <h1 class="hero-title">Family Travel Itineraries & Slugs</h1>
+            <p class="hero-subtitle">Select a trip card below to view detailed daily schedules, hotel reservations, flight confirmation codes, and packing lists.</p>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-secondary" id="btn-hero-add-guide">
+              ⚡ How to Add New Page (Copy-Paste)
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter / Search Controls Bar -->
+        <div class="library-toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="slug-search-input" placeholder="Filter trips by title, destination, or year..." />
+          </div>
+          <div class="trip-count-badge" id="trip-count-badge">3 Slugs Loaded</div>
+        </div>
+
+        <!-- Slug Cards Grid -->
+        <div class="slug-cards-grid" id="slug-cards-grid">
+          <!-- Dynamically populated via main.ts -->
+        </div>
+      </section>
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 2: INDIVIDUAL SLUG PAGE DETAIL VIEW                            -->
+      <!-- ==================================================================== -->
+      <section id="slug-detail-view" class="view-section" style="display: none;">
+        <!-- Navigation Back Bar -->
+        <div class="detail-nav-bar">
+          <button id="btn-back-to-library" class="btn-back">
+            &larr; Back to Travel Book Library
+          </button>
+          <div class="detail-quick-meta">
+            <span id="detail-slug-tag" class="slug-pill">#slug</span>
+            <button id="btn-share-slug" class="btn-share-icon" title="Copy Slug URL">🔗</button>
+          </div>
+        </div>
+
+        <!-- Dynamic Slug Header Container -->
+        <div id="slug-header-container">
+          <!-- Populated by main.ts -->
+        </div>
+
+        <!-- Content Section Tabs -->
+        <div class="detail-tabs-bar">
+          <button class="tab-btn active" data-tab="schedule">📅 Daily Schedule</button>
+          <button class="tab-btn" data-tab="reservations">🏨 Reservations & Flights</button>
+          <button class="tab-btn" data-tab="packing">🎒 Packing List</button>
+          <button class="tab-btn" data-tab="notes">📝 Notes & Contacts</button>
+        </div>
+
+        <!-- Tab Panel 1: Schedule -->
+        <div class="tab-panel active" id="panel-schedule">
+          <div id="schedule-container" class="schedule-timeline-list">
+            <!-- Populated by main.ts -->
+          </div>
+        </div>
+
+        <!-- Tab Panel 2: Reservations -->
+        <div class="tab-panel" id="panel-reservations" style="display: none;">
+          <div id="reservations-container" class="reservations-grid">
+            <!-- Populated by main.ts -->
+          </div>
+        </div>
+
+        <!-- Tab Panel 3: Packing List -->
+        <div class="tab-panel" id="panel-packing" style="display: none;">
+          <div id="packing-container" class="packing-list-grid">
+            <!-- Populated by main.ts -->
+          </div>
+        </div>
+
+        <!-- Tab Panel 4: Notes -->
+        <div class="tab-panel" id="panel-notes" style="display: none;">
+          <div id="notes-container" class="notes-briefing-box">
+            <!-- Populated by main.ts -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==================================================================== -->
+    <!-- MODAL 1: HOW TO ADD A NEW PAGE GUIDE (COPY & PASTE INSTRUCTIONS)     -->
+    <!-- ==================================================================== -->
+    <div class="modal-overlay" id="add-page-modal" style="display: none;">
+      <div class="modal-card instructions-modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="modal-badge">MANUAL PAGE EDITING GUIDE</span>
+            <h2 class="modal-title">📄 How to Add a New Page (Copy & Paste)</h2>
+            <p class="modal-subtitle">Follow these 3 simple steps to create a new itinerary page in your codebase.</p>
+          </div>
+          <button class="btn-icon" id="instructions-modal-close">&times;</button>
+        </div>
+
+        <div class="modal-body instructions-body">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h3>Duplicate the Template File</h3>
+              <p>In your editor, navigate to <code>src/data/pages/</code> and copy <code>template.ts</code>.</p>
+              <p>Rename the copied file to your new trip slug name (e.g. <code>paris-2026.ts</code> or <code>hawaii-trip.ts</code>).</p>
+              <div class="code-preview-box">
+                <span class="file-tag">File System Path</span>
+                <code>travel/src/data/pages/template.ts  ➔  travel/src/data/pages/paris-2026.ts</code>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h3>Edit Trip Fields & Slug</h3>
+              <p>Open your new file and update the <code>slug</code> property to match your filename. Then customize title, dates, day-by-day schedule, and flight/hotel bookings.</p>
+              <div class="code-preview-box">
+                <span class="file-tag">travel/src/data/pages/paris-2026.ts</span>
+                <pre>export const paris2026Page: ItineraryPage = {
+  slug: "paris-2026",
+  title: "Paris & French Riviera Vacation",
+  dates: "June 5 – June 18, 2026",
+  schedule: [ ... ]
+};</pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h3>Register the Page in <code>index.ts</code></h3>
+              <p>Open <code>src/data/pages/index.ts</code>, import your new page, and add it to the <code>allItineraryPages</code> array. Save the file!</p>
+              <div class="code-preview-box">
+                <span class="file-tag">travel/src/data/pages/index.ts</span>
+                <pre>import { paris2026Page } from "./paris-2026";
+
+export const allItineraryPages = [
+  japan2026Page,
+  yellowstone2026Page,
+  paris2026Page, // 👈 Add your new page here!
+];</pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="instructions-footer-note">
+            <p>✨ <strong>That's it!</strong> Once saved, your app updates automatically and the new slug card will appear on the post-login main screen!</p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btn-copy-template-code" class="btn btn-secondary">
+            📋 Copy Template Code to Clipboard
+          </button>
+          <button id="btn-close-instructions-modal" class="btn btn-primary">
+            Got it! Close Guide
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- MODAL 2: ACCOUNT & LOCK MENU                                        -->
+    <!-- ==================================================================== -->
+    <div class="modal-overlay" id="travel-menu-modal" style="display: none;">
+      <div class="modal-card glove-modal-card">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">⚙️ TRAVEL BOOK MENU</h2>
+            <p class="modal-subtitle">Session & account controls for travel.wade-usa.com</p>
+          </div>
+          <button class="btn-icon" id="menu-modal-close">&times;</button>
+        </div>
+        <div class="modal-body glove-modal-grid">
+          <div class="user-info-box" id="menu-user-info">
+            <span class="user-avatar">👤</span>
+            <div class="user-details">
+              <span class="user-email-label" id="menu-user-email">Authenticated User</span>
+              <span class="user-status-tag">api.wade-usa.com</span>
+            </div>
+          </div>
+
+          <div class="glove-btn-row">
+            <button id="menu-btn-add-page" class="glove-action-btn glove-btn-blue">
+              <span class="glove-btn-icon">📄</span>
+              <span>ADD PAGE GUIDE</span>
+            </button>
+            <button id="menu-btn-lock" class="glove-action-btn glove-btn-red">
+              <span class="glove-btn-icon">🔒</span>
+              <span>LOGOUT & LOCK</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

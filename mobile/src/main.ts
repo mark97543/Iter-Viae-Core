@@ -20,6 +20,44 @@ let lastSpokenTurnCategory: string = "";
 let lastSpokenTurnKey: string = "";
 let activeRouteCoordinates: [number, number][] = [];
 
+// Tactile Haptic Vibration Feedback Helper
+function triggerHapticFeedback(pattern: number | number[] = 18) {
+  if ("vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (_) {}
+  }
+}
+
+// Glove-Friendly Mode State & Persistence Engine
+let isGloveModeActive: boolean = localStorage.getItem("iterviae_glove_mode") === "true";
+
+function setGloveMode(active: boolean, showNotification: boolean = true) {
+  isGloveModeActive = active;
+  localStorage.setItem("iterviae_glove_mode", active ? "true" : "false");
+
+  if (active) {
+    document.body.classList.add("glove-mode-active");
+  } else {
+    document.body.classList.remove("glove-mode-active");
+  }
+
+  const gloveChipLabel = document.getElementById("glove-chip-label");
+  if (gloveChipLabel) {
+    gloveChipLabel.textContent = active ? "GLOVE ON" : "GLOVE OFF";
+  }
+
+  const modalGloveTitle = document.getElementById("modal-glove-title");
+  if (modalGloveTitle) {
+    modalGloveTitle.textContent = active ? "GLOVE MODE: ON" : "GLOVE MODE: OFF";
+  }
+
+  if (showNotification) {
+    triggerHapticFeedback([30, 50, 30]);
+    showToast(active ? "🧤 Glove Mode Engaged! Tap targets inflated." : "🧤 Glove Mode Disengaged.");
+  }
+}
+
 // DOM Elements
 const nextWpDistance = document.getElementById("next-wp-distance");
 const nextWpTitle = document.getElementById("next-wp-title");
@@ -821,6 +859,7 @@ if (mobileLoginForm) {
 // Dashboard Action Button Handlers (Matching wade-usa.com Screenshot Exactly)
 if (btnDashPrev) {
   btnDashPrev.addEventListener("click", () => {
+    triggerHapticFeedback(20);
     if (!activeTrip || !activeTrip.waypoints) return;
     const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
     if (valid.length === 0) return;
@@ -831,6 +870,7 @@ if (btnDashPrev) {
 
 if (btnDashNext) {
   btnDashNext.addEventListener("click", () => {
+    triggerHapticFeedback(25);
     if (!activeTrip || !activeTrip.waypoints) return;
     const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
     if (valid.length === 0) return;
@@ -841,20 +881,24 @@ if (btnDashNext) {
 
 if (btnDashGmaps) {
   btnDashGmaps.addEventListener("click", () => {
+    triggerHapticFeedback([20, 30, 20]);
     if (!activeTrip || !activeTrip.waypoints) return;
     const valid = activeTrip.waypoints.filter((w) => w.lat !== null && w.lon !== null);
     if (valid.length === 0) return;
     
-    const targetWp = valid[currentWaypointIndex];
-    const prevWp = currentWaypointIndex > 0 ? valid[currentWaypointIndex - 1] : undefined;
+    const isAtEnd = currentWaypointIndex >= valid.length - 1;
+    const targetWp = isAtEnd ? valid[currentWaypointIndex] : valid[currentWaypointIndex + 1];
+    const originWp = isAtEnd
+      ? (currentWaypointIndex > 0 ? valid[currentWaypointIndex - 1] : undefined)
+      : valid[currentWaypointIndex];
     
     if (targetWp && targetWp.lat !== null && targetWp.lon !== null) {
       showToast(`Launching Google Maps navigation to ${targetWp.title || "Waypoint"}...`);
       openInGoogleMaps(
         targetWp.lat,
         targetWp.lon,
-        prevWp && prevWp.lat !== null ? prevWp.lat : undefined,
-        prevWp && prevWp.lon !== null ? prevWp.lon : undefined
+        originWp && originWp.lat !== null ? originWp.lat : undefined,
+        originWp && originWp.lon !== null ? originWp.lon : undefined
       );
     }
   });
@@ -862,8 +906,26 @@ if (btnDashGmaps) {
 
 
 
+const btnZoomIn = document.getElementById("btn-zoom-in");
+const btnZoomOut = document.getElementById("btn-zoom-out");
+
+if (btnZoomIn) {
+  btnZoomIn.addEventListener("click", () => {
+    triggerHapticFeedback(15);
+    if (map) map.zoomIn({ duration: 300 });
+  });
+}
+
+if (btnZoomOut) {
+  btnZoomOut.addEventListener("click", () => {
+    triggerHapticFeedback(15);
+    if (map) map.zoomOut({ duration: 300 });
+  });
+}
+
 if (btnRecenter) {
   btnRecenter.addEventListener("click", () => {
+    triggerHapticFeedback(20);
     autoFollowVehicle = true;
     if (currentPosition && map) {
       map.flyTo({ center: [currentPosition.lon, currentPosition.lat], zoom: 15 });
@@ -982,20 +1044,39 @@ const gloveBtnTrips = document.getElementById("glove-btn-trips");
 const gloveBtnAuth = document.getElementById("glove-btn-auth");
 const gloveBtnRecenter = document.getElementById("glove-btn-recenter");
 
+// Glove Mode Header Chip & Modal Button Handlers
+const btnGloveToggle = document.getElementById("btn-glove-toggle");
+const gloveBtnGloveMode = document.getElementById("glove-btn-glove-mode");
+
+if (btnGloveToggle) {
+  btnGloveToggle.addEventListener("click", () => {
+    setGloveMode(!isGloveModeActive);
+  });
+}
+
+if (gloveBtnGloveMode) {
+  gloveBtnGloveMode.addEventListener("click", () => {
+    setGloveMode(!isGloveModeActive);
+  });
+}
+
 if (btnOpenGloveControls) {
   btnOpenGloveControls.addEventListener("click", () => {
+    triggerHapticFeedback(15);
     if (mobileGloveModal) mobileGloveModal.style.display = "flex";
   });
 }
 
 if (gloveModalClose) {
   gloveModalClose.addEventListener("click", () => {
+    triggerHapticFeedback(15);
     if (mobileGloveModal) mobileGloveModal.style.display = "none";
   });
 }
 
 if (gloveBtnFull) {
   gloveBtnFull.addEventListener("click", () => {
+    triggerHapticFeedback(20);
     if (mobileGloveModal) mobileGloveModal.style.display = "none";
     if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
       const docEl = document.documentElement as any;
@@ -1012,6 +1093,7 @@ if (gloveBtnFull) {
 
 if (gloveBtnTheme) {
   gloveBtnTheme.addEventListener("click", () => {
+    triggerHapticFeedback(20);
     const isDay = document.body.classList.toggle("theme-day");
     const labelEl = document.getElementById("glove-theme-label");
     if (labelEl) labelEl.textContent = isDay ? "NIGHT OLED" : "SUNLIGHT DAY";
@@ -1021,6 +1103,7 @@ if (gloveBtnTheme) {
 
 if (gloveBtnTrips) {
   gloveBtnTrips.addEventListener("click", () => {
+    triggerHapticFeedback(20);
     if (mobileGloveModal) mobileGloveModal.style.display = "none";
     if (btnOpenTrips) (btnOpenTrips as HTMLElement).click();
   });
@@ -1028,6 +1111,7 @@ if (gloveBtnTrips) {
 
 if (gloveBtnAuth) {
   gloveBtnAuth.addEventListener("click", () => {
+    triggerHapticFeedback(20);
     if (mobileGloveModal) mobileGloveModal.style.display = "none";
     if (pb.authStore.isValid) {
       pb.authStore.clear();
@@ -1041,6 +1125,7 @@ if (gloveBtnAuth) {
 
 if (gloveBtnRecenter) {
   gloveBtnRecenter.addEventListener("click", () => {
+    triggerHapticFeedback(20);
     if (mobileGloveModal) mobileGloveModal.style.display = "none";
     if (btnRecenter) (btnRecenter as HTMLElement).click();
   });
@@ -1052,4 +1137,5 @@ document.addEventListener("DOMContentLoaded", () => {
   startGPSWatcher();
   requestScreenWakeLock();
   updateAuthUI();
+  setGloveMode(isGloveModeActive, false);
 });

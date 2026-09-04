@@ -25,6 +25,10 @@
         </div>
       </div>
       <div class="hud-meta-group">
+        <button id="btn-glove-toggle" class="hud-chip chip-glove-toggle" title="Toggle Glove-Friendly High-Contrast UI">
+          <span class="chip-icon">🧤</span>
+          <span id="glove-chip-label">GLOVE OFF</span>
+        </button>
         <button id="btn-open-trips" class="hud-chip chip-load-route" title="Load Expedition Route">
           <span class="chip-icon">📂</span>
           <span>ROUTES</span>
@@ -42,8 +46,14 @@
       <main class="map-viewport">
         <div id="mobile-map" class="mobile-map-container"></div>
 
-        <!-- Floating Map Control Buttons -->
+        <!-- Floating Map Control Buttons (Enlarged Glove-Friendly Tap Targets) -->
         <div class="map-floating-controls">
+          <button id="btn-zoom-in" class="floating-btn" title="Zoom In Map (+)">
+            <span>➕</span>
+          </button>
+          <button id="btn-zoom-out" class="floating-btn" title="Zoom Out Map (-)">
+            <span>➖</span>
+          </button>
           <button id="btn-recenter" class="floating-btn" title="Recenter Camera on GPS Vehicle">
             <span>🎯</span>
           </button>
@@ -223,6 +233,14 @@
               <span id="glove-auth-label">SIGN IN</span>
             </button>
           </div>
+
+          <button id="glove-btn-glove-mode" class="glove-action-btn glove-btn-emerald" style="height: 60px;">
+            <span class="glove-btn-icon">🧤</span>
+            <div class="glove-btn-text">
+              <span class="glove-btn-title" id="modal-glove-title">GLOVE MODE: OFF</span>
+              <span class="glove-btn-sub">Extra-large touch targets & haptic vibration</span>
+            </div>
+          </button>
 
           <button id="glove-btn-recenter" class="glove-action-btn glove-btn-white" style="height: 52px; font-size: 0.95rem;">
             <span class="glove-btn-icon" style="font-size: 1.3rem;">🎯</span>

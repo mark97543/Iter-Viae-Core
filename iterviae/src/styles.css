@@ -2251,18 +2251,17 @@ input:checked + .toggle-slider:before {
 .print-form-card {
   width: 100% !important;
   max-width: 100% !important;
-  height: 10.5in !important;
-  min-height: 10.5in !important;
-  max-height: 10.5in !important;
-  margin: 0 auto !important;
+  min-height: 9.8in !important;
+  margin: 0 auto 0.4in auto !important;
   padding: 0.3in !important;
   border: 2px solid #0f172a !important;
   background: #ffffff !important;
   box-sizing: border-box !important;
-  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
+  page-break-after: always !important;
+  break-after: page !important;
 }
 
 .print-form-header {

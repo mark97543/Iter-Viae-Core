@@ -2751,7 +2751,16 @@ function renderPrintManifest() {
   }
   if (waypointChunks.length === 0) waypointChunks.push([]);
 
-  const totalPages = 1 + waypointChunks.length + 1; // Page 1: Overview, Page 2...N-1: Waypoints, Page N: Check Register
+  // Chunk financial check register items (10 items max per print page card)
+  const budgetWaypoints = processedWaypoints.filter((wp) => wp.budget > 0);
+  const BUDGET_ITEMS_PER_PAGE = 10;
+  const budgetChunks: any[][] = [];
+  for (let i = 0; i < budgetWaypoints.length; i += BUDGET_ITEMS_PER_PAGE) {
+    budgetChunks.push(budgetWaypoints.slice(i, i + BUDGET_ITEMS_PER_PAGE));
+  }
+  if (budgetChunks.length === 0) budgetChunks.push([]);
+
+  const totalPages = 1 + waypointChunks.length + budgetChunks.length;
 
   let html = "";
 
@@ -2917,100 +2926,109 @@ function renderPrintManifest() {
     `;
   });
 
-  // ==================== FINAL PAGE: FINANCIAL CHECK REGISTER LEDGER ====================
-  let runningEstTotal = 0;
-  let checkRegisterRowsHtml = "";
-  let bRowIndex = 0;
+  // ==================== FINAL PAGES: FINANCIAL CHECK REGISTER LEDGER (PAGINATED CHUNKS) ====================
+  const runningEstTotal = budgetWaypoints.reduce((acc, wp) => acc + (wp.budget || 0), 0);
 
-  // Waypoints with custom budgets or lodging
-  processedWaypoints.forEach((wp) => {
-    if (wp.budget > 0) {
-      runningEstTotal += wp.budget;
+  budgetChunks.forEach((bChunk, bChunkIdx) => {
+    const pageNum = 1 + waypointChunks.length + 1 + bChunkIdx;
+    let bRowsHtml = "";
+    let bRowIndex = 0;
+
+    bChunk.forEach((wp) => {
       const isEven = bRowIndex % 2 === 0;
       const rowBg = isEven ? "#ffffff" : "#f1f5f9";
       bRowIndex++;
 
-      checkRegisterRowsHtml += `
+      bRowsHtml += `
         <tr style="background:${rowBg};">
           <td style="font-family:var(--font-mono); font-size:0.7rem; font-weight:700;">LEG #${wp.idx}</td>
           <td style="font-weight:700;">${wp.title} ${wp.isOvernight ? "(Overnight Stay)" : ""}</td>
           <td style="font-family:var(--font-mono); font-size:0.68rem; font-weight:700;">${wp.categoryText}</td>
-          <td style="font-family:var(--font-mono); font-weight:700;">$${wp.budget.toFixed(2)}</td>
+          <td style="font-family:var(--font-mono); font-weight:700;">$${(wp.budget || 0).toFixed(2)}</td>
+          <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
+          <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
+        </tr>
+      `;
+    });
+
+    // Fill blank Checkbook Register Rows so Section 5 fills the page cleanly
+    const targetCheckRows = Math.max(4, BUDGET_ITEMS_PER_PAGE - bRowIndex);
+    for (let b = 1; b <= targetCheckRows; b++) {
+      const isEven = bRowIndex % 2 === 0;
+      const rowBg = isEven ? "#ffffff" : "#f1f5f9";
+      bRowIndex++;
+
+      bRowsHtml += `
+        <tr style="background:${rowBg};">
+          <td style="font-family:var(--font-mono); color:#94a3b8;">#____</td>
+          <td style="color:#cbd5e1;">_______________________________</td>
+          <td style="font-family:var(--font-mono); color:#cbd5e1;">_____________</td>
+          <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
           <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
           <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
         </tr>
       `;
     }
-  });
 
-  // Fill blank Checkbook Register Rows so Section 5 fills the page cleanly
-  const targetCheckRows = Math.max(8, 12 - bRowIndex);
-  for (let b = 1; b <= targetCheckRows; b++) {
-    const isEven = bRowIndex % 2 === 0;
-    const rowBg = isEven ? "#ffffff" : "#f1f5f9";
-    bRowIndex++;
+    const isLastBudgetPage = bChunkIdx === budgetChunks.length - 1;
+    const subtitle = budgetChunks.length > 1 ? ` • PART ${bChunkIdx + 1} OF ${budgetChunks.length}` : "";
 
-    checkRegisterRowsHtml += `
-      <tr style="background:${rowBg};">
-        <td style="font-family:var(--font-mono); color:#94a3b8;">#____</td>
-        <td style="color:#cbd5e1;">_______________________________</td>
-        <td style="font-family:var(--font-mono); color:#cbd5e1;">_____________</td>
-        <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
-        <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
-        <td style="font-family:var(--font-mono); color:#94a3b8;">$_______</td>
-      </tr>
-    `;
-  }
-
-  html += `
-    <div class="print-form-card print-page-2">
-      <div class="print-form-header">
-        <div class="print-form-brand-row">
-          <div class="print-form-logo-group">
-            <span class="print-logo-text">ITER VIAE</span>
-            <span class="print-logo-sub">EXPEDITION FINANCIAL LEDGER & CHECK REGISTER</span>
+    html += `
+      <div class="print-form-card print-page-2">
+        <div class="print-form-header">
+          <div class="print-form-brand-row">
+            <div class="print-form-logo-group">
+              <span class="print-logo-text">ITER VIAE</span>
+              <span class="print-logo-sub">EXPEDITION FINANCIAL LEDGER & CHECK REGISTER${subtitle}</span>
+            </div>
+            <div class="print-form-meta-box">
+              <div><strong>DOC ID:</strong> ${docId}</div>
+              <div><strong>ISSUED:</strong> ${issuedDate}</div>
+            </div>
           </div>
-          <div class="print-form-meta-box">
-            <div><strong>DOC ID:</strong> ${docId}</div>
-            <div><strong>ISSUED:</strong> ${issuedDate}</div>
-          </div>
+          <div class="print-form-divider"></div>
         </div>
-        <div class="print-form-divider"></div>
-      </div>
 
-      <div class="print-form-section" style="flex-grow: 1;">
-        <div class="print-form-section-head">SECTION 5 — EXPEDITION FINANCIAL LEDGER & CHECK REGISTER</div>
-        <table class="print-form-table print-budget-table">
-          <thead>
-            <tr>
-              <th style="width: 10%;">DATE / LEG</th>
-              <th style="width: 38%;">DESCRIPTION / EXPENSE ITEM</th>
-              <th style="width: 18%;">CATEGORY</th>
-              <th style="width: 12%;">ESTIMATED ($)</th>
-              <th style="width: 11%;">ACTUAL SPENT ($)</th>
-              <th style="width: 11%;">VARIANCE (+/-)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${checkRegisterRowsHtml}
-          </tbody>
-          <tfoot>
-            <tr class="print-budget-totals-row">
-              <td colspan="3" style="text-align: right; font-weight: 800; font-family: var(--font-mono);">TOTAL FINANCIAL BUDGET:</td>
-              <td style="font-weight: 800; font-family: var(--font-mono);">$${runningEstTotal.toFixed(2)}</td>
-              <td style="font-weight: 800; font-family: var(--font-mono);">$_______</td>
-              <td style="font-weight: 800; font-family: var(--font-mono);">$_______</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+        <div class="print-form-section" style="flex-grow: 1;">
+          <div class="print-form-section-head">SECTION 5 — EXPEDITION FINANCIAL LEDGER & CHECK REGISTER${subtitle}</div>
+          <table class="print-form-table print-budget-table">
+            <thead>
+              <tr>
+                <th style="width: 10%;">DATE / LEG</th>
+                <th style="width: 38%;">DESCRIPTION / EXPENSE ITEM</th>
+                <th style="width: 18%;">CATEGORY</th>
+                <th style="width: 12%;">ESTIMATED ($)</th>
+                <th style="width: 11%;">ACTUAL SPENT ($)</th>
+                <th style="width: 11%;">VARIANCE (+/-)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bRowsHtml}
+            </tbody>
+            ${
+              isLastBudgetPage
+                ? `
+              <tfoot>
+                <tr class="print-budget-totals-row">
+                  <td colspan="3" style="text-align: right; font-weight: 800; font-family: var(--font-mono);">TOTAL FINANCIAL BUDGET:</td>
+                  <td style="font-weight: 800; font-family: var(--font-mono);">$${runningEstTotal.toFixed(2)}</td>
+                  <td style="font-weight: 800; font-family: var(--font-mono);">$_______</td>
+                  <td style="font-weight: 800; font-family: var(--font-mono);">$_______</td>
+                </tr>
+              </tfoot>
+            `
+                : ""
+            }
+          </table>
+        </div>
 
-      <div class="print-form-footer">
-        <span>OFFICIAL EXPEDITION FORM • GENERATED BY ITER VIAE TACTICAL ROUTE COMMAND</span>
-        <span>PAGE ${totalPages} OF ${totalPages}</span>
+        <div class="print-form-footer">
+          <span>OFFICIAL EXPEDITION FORM • GENERATED BY ITER VIAE TACTICAL ROUTE COMMAND</span>
+          <span>PAGE ${pageNum} OF ${totalPages}</span>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  });
 
   container.innerHTML = html;
 }
