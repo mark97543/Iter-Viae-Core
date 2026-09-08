@@ -1,0 +1,65 @@
+{
+  "slug": "thailand-feb-2027",
+  "title": "Thailand Feb 2027",
+  "subtitle": "Trip to Thailand for parents to meet Fa",
+  "destination": "Thailand",
+  "dates": "Feb 17, 2027 through Mar 6, 2027",
+  "status": "upcoming",
+  "coverEmoji": "🏝️",
+  "coverGradient": "linear-gradient(135deg, #0284c7, #3b82f6)",
+  "summary": "Trip for my Mother and Father to Meet Fa and her family, This is the first trip for Dad and his first trip in over 40 years leaving the United States.",
+  "stats": {
+    "days": 17,
+    "travelers": 3
+  },
+  "sections": [
+    {
+      "slug": "overview",
+      "title": "Trip Overview",
+      "icon": "🏠",
+      "file": "overview.md"
+    },
+    {
+      "slug": "day-1",
+      "title": "Day 1: Wednesday 2/17/27",
+      "icon": "✈️",
+      "file": "day-1.md"
+    },
+    {
+      "slug": "day-2",
+      "title": "Day 2: Thursday 2/18/27",
+      "icon": "✈️",
+      "file": "day-2.md"
+    },
+    {
+      "slug": "packing",
+      "title": "Packing",
+      "icon": "📦",
+      "file": "packing.md"
+    },
+    {
+      "slug": "apps-to-download",
+      "title": "Apps to Download",
+      "icon": "📱",
+      "file": "apps-to-download.md"
+    },
+    {
+      "slug": "plane-amenities",
+      "title": "Plane Amenities",
+      "icon": "💺",
+      "file": "plane-amenities.md"
+    },
+    {
+      "slug": "airport-guide",
+      "title": "Airport Guide",
+      "icon": "🛄",
+      "file": "sin-airport-guide.md"
+    },
+    {
+      "slug": "emergency",
+      "title": "Emergency",
+      "icon": "🚨",
+      "file": "emergency.md"
+    }
+  ]
+}

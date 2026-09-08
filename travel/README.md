@@ -1,13 +1,15 @@
-# Wade Family Travel Book — `travel.wade-usa.com` 📖 ✈️
+# Travel Book — Blank Template & Itineraries 📖 ✈️
 
-**Wade Family Travel Book** is a clean, password-protected personal travel itinerary library. It organizes travel plans into individual **slug cards** (e.g. `#japan-2026`, `#yellowstone-2026`, `#template-slug`) containing day-by-day activity timelines, flight/hotel booking details, packing checklists, and travel briefing notes.
+**Travel Book** is a clean, modern personal travel itinerary planner and library. It organizes travel plans into individual **slug cards** (e.g. `#blank-template`, `#japan-2026`, `#yellowstone-2026`) containing day-by-day activity timelines, flight/hotel booking details, packing checklists, and travel briefing notes.
 
 ---
 
-## 🔐 Authentication & Security
+## ⚡ Direct Access (No Password Protection)
 
-- **Password Gate**: Protected site using your existing **Iter Viae** account credentials (`api.wade-usa.com`).
-- **Zero Heavy Map Dependencies**: Maps and Valhalla routing have been removed for a clean, fast itinerary book reader experience.
+- **Zero Password Gate**: Access the blank travel template and itineraries instantly without login or password prompts.
+- **Interactive Customization**: Customize days, reservations, packing checklists, and briefing notes live in your browser.
+- **Zero Heavy Map Dependencies**: Lightweight, fast itinerary builder experience.
+
 
 ---
 

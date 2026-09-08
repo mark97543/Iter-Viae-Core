@@ -645,21 +645,45 @@ export async function fetchIncrementalExpeditionRoute(
   const combinedCoordinates: [number, number][] = [];
   let totalDistanceMi = 0;
   let totalDurationSec = 0;
-  const legMetrics: LegMetric[] = [];
+  const legMetrics: LegMetric[] = new Array(locations.length - 1);
 
-  finalLegs.forEach((leg) => {
-    if (!leg || !leg.coordinates || leg.coordinates.length === 0) return;
+  for (let i = 0; i < locations.length - 1; i++) {
+    let leg = finalLegs[i];
 
-    totalDistanceMi += leg.distanceMi || 0;
-    totalDurationSec += leg.durationSec || 0;
-    legMetrics.push({ distanceMi: leg.distanceMi || 0, durationSec: leg.durationSec || 0 });
+    if (!leg || !leg.coordinates || leg.coordinates.length < 2) {
+      const start = locations[i];
+      const end = locations[i + 1];
+      const fallbackCoords = generateGreatCircleArc([start.lon, start.lat], [end.lon, end.lat]);
+      const legDist = haversineDistance(start.lat, start.lon, end.lat, end.lon);
+      const legDur = (legDist / 50) * 3600;
+
+      leg = {
+        startLat: start.lat,
+        startLon: start.lon,
+        endLat: end.lat,
+        endLon: end.lon,
+        coordinates: fallbackCoords,
+        encodedPolyline: encodePolyline6(fallbackCoords),
+        distanceMi: legDist,
+        durationSec: legDur,
+        isFallback: true
+      };
+      finalLegs[i] = leg;
+    }
+
+    const dist = leg.distanceMi || 0;
+    const dur = leg.durationSec || 0;
+
+    totalDistanceMi += dist;
+    totalDurationSec += dur;
+    legMetrics[i] = { distanceMi: dist, durationSec: dur };
 
     if (combinedCoordinates.length === 0) {
       combinedCoordinates.push(...leg.coordinates);
     } else {
       combinedCoordinates.push(...leg.coordinates.slice(1));
     }
-  });
+  }
 
   return {
     coordinates: downsamplePolyline(combinedCoordinates),

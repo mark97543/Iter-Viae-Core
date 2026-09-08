@@ -1470,26 +1470,52 @@ export function syncVehicleProfileToUI(profile: Partial<VehicleProfile>) {
   updateFuelCalculations();
 }
 
+// Retrieve leg metric corresponding to target waypoint index with proper valid-waypoint alignment
+export function getLegMetricForWaypointIndex(
+  waypointsList: Waypoint[],
+  targetIdx: number,
+  legMetrics: LegMetric[]
+): LegMetric | undefined {
+  if (targetIdx <= 0 || targetIdx >= waypointsList.length) return undefined;
+
+  const wp = waypointsList[targetIdx];
+  const prevWp = waypointsList[targetIdx - 1];
+
+  if (wp.lat === null || wp.lon === null || prevWp.lat === null || prevWp.lon === null) {
+    return undefined;
+  }
+
+  let validLegCount = 0;
+  for (let i = 1; i <= targetIdx; i++) {
+    if (
+      waypointsList[i].lat !== null &&
+      waypointsList[i].lon !== null &&
+      waypointsList[i - 1].lat !== null &&
+      waypointsList[i - 1].lon !== null
+    ) {
+      validLegCount++;
+    }
+  }
+
+  const legIndex = validLegCount - 1;
+  if (legIndex >= 0 && legIndex < legMetrics.length && legMetrics[legIndex]) {
+    return legMetrics[legIndex];
+  }
+
+  const dist = haversineDistance(prevWp.lat, prevWp.lon, wp.lat, wp.lon);
+  return { distanceMi: dist, durationSec: (dist / 50) * 3600 };
+}
+
 // Update Waypoint Card Line 2 Arrival & Departure Badges
 function updateWaypointCardTiming() {
   let currentMillis = Date.parse(expeditionStartTime);
   if (isNaN(currentMillis)) currentMillis = Date.now();
 
-  let validIdx = 0;
-
   waypoints.forEach((wp, idx) => {
     const arrEl = document.getElementById(`wp-arr-${wp.id}`);
     const depEl = document.getElementById(`wp-dep-${wp.id}`);
 
-    const isPlaced = wp.lat !== null && wp.lon !== null;
-    let legMetric: LegMetric | undefined = undefined;
-
-    if (isPlaced) {
-      if (validIdx > 0) {
-        legMetric = currentLegMetrics[validIdx - 1];
-      }
-      validIdx++;
-    }
+    const legMetric = getLegMetricForWaypointIndex(waypoints, idx, currentLegMetrics);
 
     if (idx === 0) {
       const depDate = new Date(currentMillis);
@@ -1531,7 +1557,6 @@ function updateLegBadgesUI() {
   const isEnabled = vehicleProfile.enabled !== false;
 
   let accumulatedTankDistance = 0;
-  let validIdx = 0;
 
   for (let idx = 1; idx < waypoints.length; idx++) {
     const legIndex = idx - 1;
@@ -1539,19 +1564,7 @@ function updateLegBadgesUI() {
     if (!badgeEl) continue;
 
     const wp = waypoints[idx];
-    const prevWp = waypoints[idx - 1];
-
-    let legMetric: LegMetric | undefined = undefined;
-
-    if (wp.lat !== null && wp.lon !== null && prevWp.lat !== null && prevWp.lon !== null) {
-      if (validIdx < currentLegMetrics.length) {
-        legMetric = currentLegMetrics[validIdx];
-      } else {
-        const dist = haversineDistance(prevWp.lat, prevWp.lon, wp.lat, wp.lon);
-        legMetric = { distanceMi: dist, durationSec: (dist / 50) * 3600 };
-      }
-      validIdx++;
-    }
+    const legMetric = getLegMetricForWaypointIndex(waypoints, idx, currentLegMetrics);
 
     if (legMetric) {
       accumulatedTankDistance += legMetric.distanceMi;
@@ -1826,7 +1839,7 @@ function groupWaypointsByDay(waypointsList: Waypoint[]): DayGroup[] {
     }
 
     if (idx > 0) {
-      const legMetric = currentLegMetrics[idx - 1];
+      const legMetric = getLegMetricForWaypointIndex(waypointsList, idx, currentLegMetrics);
       if (legMetric) {
         currentGroup.totalDistMi += legMetric.distanceMi;
         currentGroup.totalDurationSec += legMetric.durationSec;
@@ -1928,7 +1941,7 @@ function renderWaypointsUI() {
     group.waypoints.forEach(({ wp, globalIdx }) => {
       if (globalIdx > 0) {
         const legIndex = globalIdx - 1;
-        const legMetric = currentLegMetrics[legIndex];
+        const legMetric = getLegMetricForWaypointIndex(waypoints, globalIdx, currentLegMetrics);
         const legText = legMetric 
           ? `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`
           : `↓ ENTER WAYPOINTS...`;
