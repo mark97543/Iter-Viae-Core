@@ -1,0 +1,53 @@
+<!-- To Do will be added here -->
+
+### Parents:
+- [ ] Dads Passport needs to be inputed to Singapore Airlines
+- [X] Moms Passport needs to be inputed to Singapore Airlines
+
+### I/Me:
+- [ ] I need to Renew Passport (Sept 18, 2026)
+    - [ ] Update Passport in Singapore Airlines Website
+- [ ] Select Special Meals on airplane (Jan 2027)
+- [ ] BKK Hotel Feb 20 - Feb 23 
+- [ ] Suring Hotel Feb 23 - Feb 27
+- [ ] Determine Beach We will go to
+    - [ ] Book Hotel Feb 27 - March 3
+- [ ] BKK hotel for March 3 - March 5
+- [ ] LAX Hotel March 5 - March 6
+- [ ] Singapore Arrival Card (Hotel before leave in LAX)
+    - **Online Link (Easiest):** [ica.gov.sg](https://www.ica.gov.sg/enter-transit-depart/entering-singapore/sg-arrival-card)
+    - **Mobile App:** **MyICA Mobile** (available on iOS and Android)
+    - **Cost:** **100% Free** (never pay on third-party scam sites).
+    - **How It Works:**
+        - Opens exactly **3 days (72 hours)** prior to landing in Singapore.
+        - You can select **"Foreign Visitors"** -> **"Group Submission"** on the website or in the MyICA app.
+        - You can enter all three travelers (you, Dad, Mom) under a single submission so your parents don't have to fill out anything.
+    - Requires passport details, flight number (SQ 037), and a brief health declaration. 
+- [ ] Thai Entry Card (In Hotel Before Leave for PLane in LAX)
+    - **Online Link:** tdac.immigration.go.th
+    - **Cost:** 100% Free.
+    - **How It Works:**	
+        - Opens 72 hours before landing in Bangkok.
+        - Replaces the old paper blue-and-white TM6 card that flight attendants used to hand out on the plane.
+        - You submit passport details, arrival flight (SQ 714), and your hotel address in Bangkok. 
+        - Once submitted, it generates a confirmation QR code. Take a screenshot of each QR code and save it to your phone (or print a copy) to show alongside your passports at the immigration booth.
+        - Try t get hotel to print or put all on my phone 
+- [ ] Set Up Parents Kris Account for WIFI
+- [ ] Call Airline to link my account with flight 
+- [ ] Fa
+    - [ ] EMERGEN-C
+    - [ ] License Plate
+    - [ ] 3 Bags Coffee
+    - [ ] Wine
+    - [ ] Other THings
+- [ ] Kids
+    - [ ] License Plates
+    - [ ] Candy
+    - [ ] Neice Somthing from Marky
+- [ ] Parents In Law
+    - [ ] Rum
+    - [ ] Wine
+- [ ] Sister In Laws
+    - [ ] Bed Bath and Beyond
+- [ ] Brother In Law
+    - [ ] Need to figute out 

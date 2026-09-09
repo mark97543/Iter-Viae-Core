@@ -45,15 +45,6 @@ Our plane goes wheels-up at <b>22:05</b>. Missing an international wide-body fli
       <td class="text-center"><code>07:55</code></td>
       <td class="text-center"><span class="header-stat-badge">56B<br>56C<br>56A</span></td>
     </tr>
-    <tr>
-      <td class="text-center"><b>2</b></td>
-      <td class="text-center"><b>SIN</b><br><span class="mobile-hide">Singapore</span></td>
-      <td class="text-center"><b>BKK</b><br><span class="mobile-hide">Bangkok, Thailand</span></td>
-      <td class="text-center">Singapore Airlines<br><b>SQ37</b></td>
-      <td class="text-center"><code>10:05</code></td>
-      <td class="text-center"><code>11:55</code></td>
-      <td class="text-center"><span class="header-stat-badge">56B<br>56C<br>56A</span></td>
-    </tr>
   </tbody>
   <tfoot>
     <tr>

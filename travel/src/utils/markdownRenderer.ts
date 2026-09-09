@@ -48,7 +48,7 @@ function renderNestedList(items: ListItem[]): string {
 function parseListsInMarkdown(text: string): string {
   const lines = text.split('\n');
   const output: string[] = [];
-  const listRegex = /^(\s*)(\d+\.|[-\*]|\[[ xX]\]|[-\*]\s*\[[ xX]\])\s+(.*)$/;
+  const listRegex = /^(\s*)(\d+\.|[-\*]\s+\[[ xX]\]|\[[ xX]\]|[-\*])\s+(.*)$/;
   let i = 0;
 
   while (i < lines.length) {
@@ -67,12 +67,23 @@ function parseListsInMarkdown(text: string): string {
           let type: 'ol' | 'ul' = 'ul';
           let content = itemMatch[3];
 
-          if (marker.includes('[x]') || marker.includes('[X]')) {
-            content = `<input type="checkbox" class="task-checkbox" checked disabled /> ${content}`;
-          } else if (marker.includes('[ ]')) {
-            content = `<input type="checkbox" class="task-checkbox" disabled /> ${content}`;
+          let isChecked = false;
+          let isCheckbox = false;
+
+          if (marker.includes('[x]') || marker.includes('[X]') || /^\[[xX]\]/.test(content)) {
+            isCheckbox = true;
+            isChecked = true;
+            content = content.replace(/^\[[xX]\]\s*/, '');
+          } else if (marker.includes('[ ]') || /^\[\s*\]/.test(content)) {
+            isCheckbox = true;
+            isChecked = false;
+            content = content.replace(/^\[\s*\]\s*/, '');
           } else if (/^\d+\./.test(marker)) {
             type = 'ol';
+          }
+
+          if (isCheckbox) {
+            content = `<input type="checkbox" class="task-checkbox"${isChecked ? ' checked' : ''} disabled /><span class="${isChecked ? 'task-done' : ''}">${content}</span>`;
           }
 
           blockItems.push({ indent, type, content });
@@ -206,7 +217,8 @@ export function renderMarkdown(markdown: string): string {
   // 4. Parse Lists with nesting, checkbox & lookahead support
   html = parseListsInMarkdown(html);
 
-  // 5. Bold & Italic
+  // 5. Bold, Italic & Strikethrough
+  html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
 

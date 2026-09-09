@@ -91,6 +91,10 @@ It’s practical, easily rolled into a carry-on once we cross the equator, and c
 
 ### Parents Flight
 
+>⚠️ **WARNING** ⚠️ <br> Be at the airport a minumum 3 hours prior to departure. New York is a chaotic city and you do not want to be caught in traffic. THis means at the ticket counter 3 hours early !!!! Not just arriving at the airport 2 hours prior to departure. 
+
+
+
 <table>
   <thead>
     <tr>

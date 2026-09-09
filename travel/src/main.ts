@@ -46,6 +46,7 @@ function showToast(message: string) {
 // Purge legacy local storage keys on startup to ensure zero caching issues
 localStorage.removeItem("multi_engine_trips_data");
 localStorage.removeItem("travel_app_standalone_data");
+localStorage.removeItem("travel_pb_cache");
 
 // Helper to merge remote/cached trips with local file-based trips (local trip.json ALWAYS takes priority)
 function mergeTrips(remoteTrips: Trip[], localTrips: Trip[]): Trip[] {
