@@ -117,13 +117,17 @@ function handleAuthClick() {
 }
 
 // Event Listeners
+const authNameGroup = document.getElementById("auth-name-group");
+const authName = document.getElementById("auth-name") as HTMLInputElement | null;
+const authVehicleGroup = document.getElementById("auth-vehicle-group");
+const authVehicle = document.getElementById("auth-vehicle") as HTMLSelectElement | null;
+
 if (btnHeaderAuth) btnHeaderAuth.addEventListener("click", handleAuthClick);
 if (btnHeroAuth) btnHeroAuth.addEventListener("click", handleAuthClick);
 
 if (btnLaunchCockpit) {
   btnLaunchCockpit.addEventListener("click", () => {
     showToast("🚀 Redirecting to Mobile Cockpit (mobile.wade-usa.com)...");
-    // In local dev preview:
     window.location.href = "/archive/v1-legacy/mobile/index.html";
   });
 }
@@ -147,6 +151,8 @@ if (btnToggleAuthMode) {
     if (authModalSubtitle) authModalSubtitle.textContent = isSignUpMode ? "Create an account to save and sync expedition routes" : "Sign in to access your saved expedition routes";
     if (btnSubmitAuth) btnSubmitAuth.textContent = isSignUpMode ? "✨ Create Account & Sign In" : "🚀 Sign In to Iter Viae";
     if (btnToggleAuthMode) btnToggleAuthMode.textContent = isSignUpMode ? "Already have an account? Sign in here" : "Need an account? Create one here";
+    if (authNameGroup) authNameGroup.style.display = isSignUpMode ? "flex" : "none";
+    if (authVehicleGroup) authVehicleGroup.style.display = isSignUpMode ? "flex" : "none";
     if (authErrorMsg) authErrorMsg.style.display = "none";
   });
 }
@@ -159,10 +165,12 @@ if (loginForm) {
     if (authErrorMsg) authErrorMsg.style.display = "none";
     const emailVal = authEmail.value.trim();
     const passVal = authPassword.value;
+    const nameVal = authName ? authName.value.trim() : "";
+    const vehicleVal = authVehicle ? authVehicle.value : "motorcycle";
 
     try {
       if (isSignUpMode) {
-        await registerUser(emailVal, passVal);
+        await registerUser(emailVal, passVal, nameVal, vehicleVal);
         showToast("Account created successfully!");
       } else {
         await loginUser(emailVal, passVal);

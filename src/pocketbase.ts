@@ -30,11 +30,13 @@ export async function loginUser(email: string, pass: string) {
   return await pb.collection("users").authWithPassword(email, pass);
 }
 
-export async function registerUser(email: string, pass: string) {
+export async function registerUser(email: string, pass: string, name?: string, vehicleType?: string) {
   await pb.collection("users").create({
     email,
     password: pass,
-    passwordConfirm: pass
+    passwordConfirm: pass,
+    name: name || "",
+    vehicleType: vehicleType || "motorcycle"
   });
   return await loginUser(email, pass);
 }

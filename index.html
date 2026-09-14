@@ -89,14 +89,32 @@
           </div>
           <div class="modal-body">
             <form id="login-form">
+              <div class="form-group" id="auth-name-group" style="display: none;">
+                <label>FULL NAME / RIDER NAME</label>
+                <input type="text" id="auth-name" placeholder="Mark Wade" />
+              </div>
+
               <div class="form-group">
                 <label>EMAIL OR USERNAME</label>
                 <input type="text" id="auth-email" required placeholder="user@wade-usa.com" />
               </div>
+
               <div class="form-group">
                 <label>PASSWORD</label>
                 <input type="password" id="auth-password" required placeholder="••••••••" />
               </div>
+
+              <div class="form-group" id="auth-vehicle-group" style="display: none;">
+                <label>PRIMARY EXPEDITION VEHICLE</label>
+                <select id="auth-vehicle" class="form-select">
+                  <option value="motorcycle">🏍️ Motorcycle / Dual-Sport</option>
+                  <option value="overland">🚙 4x4 / Overland Rig</option>
+                  <option value="car">🚗 Road Trip Car</option>
+                  <option value="bicycle">🚲 Bicycle / Bikepacking</option>
+                  <option value="hiking">🥾 Hiking / Foot Expedition</option>
+                </select>
+              </div>
+
               <div id="auth-error-msg" class="auth-error" style="display: none;"></div>
               <button type="submit" id="btn-submit-auth" class="btn btn-primary btn-full">
                 🚀 Sign In to Iter Viae

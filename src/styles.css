@@ -302,7 +302,8 @@ html, body {
   color: var(--text-sub);
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
   height: 46px;
   background: var(--bg-surface);
   border: 1.5px solid var(--border-color);
@@ -310,7 +311,8 @@ html, body {
   color: #ffffff;
   padding: 0 14px;
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  outline: none;
 }
 
 .auth-error {
