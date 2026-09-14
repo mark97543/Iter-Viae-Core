@@ -52,14 +52,45 @@ export async function loginUser(email: string, pass: string) {
 }
 
 export async function registerUser(email: string, pass: string, name?: string, vehicleType?: string) {
-  await pb.collection("users").create({
-    email,
+  if (!email || !pass) {
+    throw new Error("Email and password are required.");
+  }
+  if (pass.length < 8) {
+    throw new Error("Password must be at least 8 characters long.");
+  }
+
+  const basePayload: Record<string, any> = {
+    email: email.trim(),
     password: pass,
     passwordConfirm: pass,
-    name: name || "",
-    vehicleType: vehicleType || "motorcycle"
-  });
-  return await loginUser(email, pass);
+    emailVisibility: true
+  };
+  if (name && name.trim()) {
+    basePayload.name = name.trim();
+  }
+
+  // Attempt creation with vehicleType first, fallback if vehicleType field doesn't exist in PocketBase users schema
+  try {
+    if (vehicleType) {
+      try {
+        await pb.collection("users").create({ ...basePayload, vehicleType });
+        return await loginUser(email, pass);
+      } catch (err: any) {
+        // If PocketBase schema rejected vehicleType, retry with base auth payload
+        if (err?.data?.vehicleType || err?.status === 400) {
+          await pb.collection("users").create(basePayload);
+          return await loginUser(email, pass);
+        }
+        throw err;
+      }
+    } else {
+      await pb.collection("users").create(basePayload);
+      return await loginUser(email, pass);
+    }
+  } catch (err: any) {
+    console.error("PocketBase registration error details:", err?.data || err);
+    throw err;
+  }
 }
 
 export function logoutUser() {
