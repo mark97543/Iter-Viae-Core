@@ -1,5 +1,5 @@
 import "./styles.css";
-import { pb, isUserAuthenticated, getCurrentUser, isUserVerified, refreshVerificationStatus, loginUser, registerUser, logoutUser, fetchUserTrips, createNewTrip, deleteTrip, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
+import { pb, isUserAuthenticated, getCurrentUser, isUserVerified, refreshVerificationStatus, loginUser, registerUser, logoutUser, fetchUserTrips, createNewTrip, deleteTrip, deleteTripRecord, leaveSharedTripRecord, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
 
 console.log("ITER VIAE Platform Initialized (wade-usa.com)");
 
@@ -123,7 +123,10 @@ async function renderTripsWorkspace() {
         <button class="btn ${isSelected ? "btn-primary" : "btn-secondary"} btn-select-trip" style="flex:1;">
           ${isSelected ? "✓ SELECTED TRIP" : "🗺️ SELECT TRIP"}
         </button>
-        ${isOwner ? `<button class="btn btn-outline btn-delete-trip" title="Delete Trip" style="padding: 10px 12px; color: var(--accent-red); border-color: rgba(239,68,68,0.3);">🗑️</button>` : ""}
+        ${isOwner ? 
+          `<button class="btn btn-outline btn-delete-trip" title="Delete Trip" style="padding: 10px 12px; color: var(--accent-red); border-color: rgba(239,68,68,0.3);">🗑️</button>` : 
+          `<button class="btn btn-outline btn-leave-trip" title="Leave Shared Trip" style="padding: 10px 12px; color: var(--accent-amber); border-color: rgba(245,158,11,0.3);">👋 Leave</button>`
+        }
       </div>
     `;
 
@@ -141,11 +144,32 @@ async function renderTripsWorkspace() {
     if (btnDelete) {
       btnDelete.onclick = async () => {
         if (confirm(`Are you sure you want to delete trip "${titleText}"?`)) {
-          showToast("Deleting trip...");
-          await deleteTrip(t.id);
-          showToast("🗑️ Trip deleted.");
-          if (activeSelectedTripId === t.id) activeSelectedTripId = null;
-          renderTripsWorkspace();
+          try {
+            showToast("Deleting trip from cloud...");
+            await deleteTripRecord(t.id);
+            showToast("🗑️ Trip deleted.");
+            if (activeSelectedTripId === t.id) activeSelectedTripId = null;
+            renderTripsWorkspace();
+          } catch (err: any) {
+            showToast(`❌ ${err.message || "Failed to delete trip"}`);
+          }
+        }
+      };
+    }
+
+    const btnLeave = card.querySelector(".btn-leave-trip") as HTMLButtonElement | null;
+    if (btnLeave) {
+      btnLeave.onclick = async () => {
+        if (confirm(`Remove yourself from shared trip "${titleText}"?`)) {
+          try {
+            showToast("Removing self from shared trip...");
+            await leaveSharedTripRecord(t.id);
+            showToast("👋 Left shared trip.");
+            if (activeSelectedTripId === t.id) activeSelectedTripId = null;
+            renderTripsWorkspace();
+          } catch (err: any) {
+            showToast(`❌ ${err.message || "Failed to leave shared trip"}`);
+          }
         }
       };
     }

@@ -131,15 +131,39 @@ export async function createNewTrip(tripName: string, summary: string, sharedUse
   }
 }
 
-export async function deleteTrip(tripId: string): Promise<boolean> {
+export async function deleteTripRecord(tripId: string): Promise<boolean> {
+  if (!pb.authStore.isValid || !pb.authStore.model) {
+    throw new Error("Authentication required to delete an expedition trip.");
+  }
   try {
     await pb.collection("trips").delete(tripId);
     return true;
-  } catch (err) {
-    console.warn("Failed to delete trip:", err);
-    return false;
+  } catch (err: any) {
+    console.error("PocketBase delete trip error:", err);
+    if (err?.status === 403 || err?.status === 404) {
+      throw new Error("Permission denied: Only the owner of this trip can delete it.");
+    }
+    throw new Error(err?.message || "Failed to delete trip record.");
   }
 }
+
+export async function leaveSharedTripRecord(tripId: string): Promise<boolean> {
+  const user = getCurrentUser();
+  if (!user || !pb.authStore.isValid) {
+    throw new Error("Authentication required to leave shared trip.");
+  }
+  try {
+    const trip = await pb.collection("trips").getOne<SavedTripRecord>(tripId, { requestKey: null });
+    const updatedShared = (trip.shared || []).filter((id) => id !== user.id);
+    await pb.collection("trips").update(tripId, { shared: updatedShared });
+    return true;
+  } catch (err: any) {
+    console.error("Failed to leave shared trip:", err);
+    throw new Error(err?.message || "Failed to remove self from shared trip.");
+  }
+}
+
+export const deleteTrip = deleteTripRecord;
 
 
 export interface WelcomeBriefingRecord {
