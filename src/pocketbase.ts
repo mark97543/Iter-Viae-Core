@@ -94,9 +94,18 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
   if (!clean) return true;
   try {
     const found = await pb.collection("users").getFirstListItem(`username = "${clean}"`, { requestKey: null });
-    return !found;
-  } catch (_) {
-    return true; // 404 means available
+    if (found && (found.id || found.username)) {
+      return false; // Record exists -> NOT available!
+    }
+    return true;
+  } catch (err: any) {
+    // PocketBase returns status 404 when no user matches the username
+    if (err?.status === 404) {
+      return true; // 404 Not Found -> username IS available!
+    }
+    // If status 403 or server error, do not claim available!
+    console.warn("Notice checking username availability:", err?.status, err?.message);
+    return false;
   }
 }
 
