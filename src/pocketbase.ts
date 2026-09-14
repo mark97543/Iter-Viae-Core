@@ -48,7 +48,19 @@ export async function refreshVerificationStatus(): Promise<boolean> {
 }
 
 export async function loginUser(email: string, pass: string) {
-  return await pb.collection("users").authWithPassword(email, pass);
+  const identity = (email || "").trim();
+  if (!identity || !pass) {
+    throw new Error("Email or username and password are required.");
+  }
+  try {
+    return await pb.collection("users").authWithPassword(identity, pass);
+  } catch (err: any) {
+    console.error("PocketBase auth error:", err);
+    if (err?.status === 400) {
+      throw new Error("Invalid email or password. If you don't have an account yet, click 'Need an account? Create one here'.");
+    }
+    throw new Error(err?.message || "Authentication failed.");
+  }
 }
 
 export async function registerUser(email: string, pass: string, name?: string, vehicleType?: string) {
