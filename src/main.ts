@@ -1,5 +1,5 @@
 import "./styles.css";
-import { pb, isUserAuthenticated, getCurrentUser, isUserVerified, refreshVerificationStatus, loginUser, registerUser, logoutUser, fetchUserTrips, createNewTrip, deleteTrip, deleteTripRecord, leaveSharedTripRecord, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
+import { pb, isUserAuthenticated, getCurrentUser, isUserVerified, refreshVerificationStatus, isUsernameAvailable, loginUser, registerUser, logoutUser, fetchUserTrips, createNewTrip, deleteTrip, deleteTripRecord, leaveSharedTripRecord, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
 
 console.log("ITER VIAE Platform Initialized (wade-usa.com)");
 
@@ -143,16 +143,37 @@ async function renderTripsWorkspace() {
 
     const btnDelete = card.querySelector(".btn-delete-trip") as HTMLButtonElement | null;
     if (btnDelete) {
-      btnDelete.onclick = async () => {
-        if (confirm(`Are you sure you want to delete trip "${titleText}"?`)) {
+      let confirmState = false;
+      let resetTimer: any = null;
+
+      btnDelete.onclick = async (e) => {
+        e.stopPropagation();
+        console.log("Delete trip button clicked:", t.id, titleText);
+
+        if (!confirmState) {
+          confirmState = true;
+          btnDelete.textContent = "⚠️ CONFIRM DELETE?";
+          btnDelete.style.background = "rgba(239, 68, 68, 0.25)";
+          showToast(`👇 Click 'CONFIRM DELETE' to delete "${titleText}"`);
+          resetTimer = setTimeout(() => {
+            confirmState = false;
+            btnDelete.textContent = "🗑️";
+            btnDelete.style.background = "";
+          }, 4000);
+        } else {
+          clearTimeout(resetTimer);
           try {
-            showToast("Deleting trip from cloud...");
+            showToast(`⏳ Deleting trip "${titleText}" from PocketBase cloud...`);
             await deleteTripRecord(t.id);
-            showToast("🗑️ Trip deleted.");
+            showToast(`🗑️ Trip "${titleText}" deleted.`);
             if (activeSelectedTripId === t.id) activeSelectedTripId = null;
             renderTripsWorkspace();
           } catch (err: any) {
+            console.error("Delete trip error:", err);
             showToast(`❌ ${err.message || "Failed to delete trip"}`);
+            confirmState = false;
+            btnDelete.textContent = "🗑️";
+            btnDelete.style.background = "";
           }
         }
       };
@@ -160,16 +181,37 @@ async function renderTripsWorkspace() {
 
     const btnLeave = card.querySelector(".btn-leave-trip") as HTMLButtonElement | null;
     if (btnLeave) {
-      btnLeave.onclick = async () => {
-        if (confirm(`Remove yourself from shared trip "${titleText}"?`)) {
+      let confirmState = false;
+      let resetTimer: any = null;
+
+      btnLeave.onclick = async (e) => {
+        e.stopPropagation();
+        console.log("Leave shared trip button clicked:", t.id, titleText);
+
+        if (!confirmState) {
+          confirmState = true;
+          btnLeave.textContent = "⚠️ CONFIRM LEAVE?";
+          btnLeave.style.background = "rgba(245, 158, 11, 0.25)";
+          showToast(`👇 Click 'CONFIRM LEAVE' to remove self from "${titleText}"`);
+          resetTimer = setTimeout(() => {
+            confirmState = false;
+            btnLeave.textContent = "👋 Leave";
+            btnLeave.style.background = "";
+          }, 4000);
+        } else {
+          clearTimeout(resetTimer);
           try {
-            showToast("Removing self from shared trip...");
+            showToast(`⏳ Removing self from shared trip "${titleText}"...`);
             await leaveSharedTripRecord(t.id);
-            showToast("👋 Left shared trip.");
+            showToast(`👋 Removed self from trip "${titleText}".`);
             if (activeSelectedTripId === t.id) activeSelectedTripId = null;
             renderTripsWorkspace();
           } catch (err: any) {
+            console.error("Leave trip error:", err);
             showToast(`❌ ${err.message || "Failed to leave shared trip"}`);
+            confirmState = false;
+            btnLeave.textContent = "👋 Leave";
+            btnLeave.style.background = "";
           }
         }
       };
@@ -356,6 +398,34 @@ if (unverifiedModalClose) {
 
 const authUsernameGroup = document.getElementById("auth-username-group");
 const authUsername = document.getElementById("auth-username") as HTMLInputElement | null;
+const authUsernameStatus = document.getElementById("auth-username-status");
+
+if (authUsername) {
+  let debounceTimer: any = null;
+  authUsername.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const val = authUsername.value.trim();
+    if (!val) {
+      if (authUsernameStatus) authUsernameStatus.style.display = "none";
+      return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+      if (!isSignUpMode) return;
+      const available = await isUsernameAvailable(val);
+      if (authUsernameStatus) {
+        authUsernameStatus.style.display = "block";
+        if (available) {
+          authUsernameStatus.textContent = `✓ Username "${val.toLowerCase()}" is available.`;
+          authUsernameStatus.style.color = "var(--accent-emerald)";
+        } else {
+          authUsernameStatus.textContent = `❌ Username "${val.toLowerCase()}" is unavailable (not unique).`;
+          authUsernameStatus.style.color = "var(--accent-red)";
+        }
+      }
+    }, 350);
+  });
+}
 
 if (btnToggleAuthMode) {
   btnToggleAuthMode.addEventListener("click", () => {

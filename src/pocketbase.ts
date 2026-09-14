@@ -89,6 +89,17 @@ export async function resolveUserIds(inputs: string[]): Promise<string[]> {
   return ids;
 }
 
+export async function isUsernameAvailable(username: string): Promise<boolean> {
+  const clean = (username || "").trim().toLowerCase();
+  if (!clean) return true;
+  try {
+    const found = await pb.collection("users").getFirstListItem(`username = "${clean}"`, { requestKey: null });
+    return !found;
+  } catch (_) {
+    return true; // 404 means available
+  }
+}
+
 export async function registerUser(email: string, pass: string, name?: string, username?: string, vehicleType?: string) {
   if (!email || !pass) {
     throw new Error("Email and password are required.");
@@ -107,7 +118,13 @@ export async function registerUser(email: string, pass: string, name?: string, u
     basePayload.name = name.trim();
   }
   if (username && username.trim()) {
-    basePayload.username = username.trim().toLowerCase();
+    const cleanUsername = username.trim().toLowerCase();
+    // Check availability client-side first for immediate feedback
+    const available = await isUsernameAvailable(cleanUsername);
+    if (!available) {
+      throw new Error(`Username "${cleanUsername}" is unavailable (not unique). Please choose a different username.`);
+    }
+    basePayload.username = cleanUsername;
   }
 
   // Attempt creation with vehicleType first, fallback if vehicleType field doesn't exist in PocketBase users schema
@@ -130,7 +147,11 @@ export async function registerUser(email: string, pass: string, name?: string, u
   } catch (err: any) {
     console.error("PocketBase registration error details:", err?.data || err);
     if (err?.data?.username) {
-      throw new Error("Username already taken. Please choose a unique username.");
+      const chosen = username ? `"${username.trim()}"` : "";
+      throw new Error(`Username ${chosen} is unavailable (not unique). Please choose a different username.`);
+    }
+    if (err?.data?.email) {
+      throw new Error("An account with this email address already exists. Please sign in instead.");
     }
     throw err;
   }
