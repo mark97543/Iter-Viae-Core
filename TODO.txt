@@ -1,0 +1,2 @@
+[x] TODO: Need to add username in the signup and make sure its unique
+[x] TODO: Need to Get the Leave Trip Button to work 

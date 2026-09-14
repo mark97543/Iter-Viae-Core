@@ -354,6 +354,9 @@ if (unverifiedModalClose) {
   });
 }
 
+const authUsernameGroup = document.getElementById("auth-username-group");
+const authUsername = document.getElementById("auth-username") as HTMLInputElement | null;
+
 if (btnToggleAuthMode) {
   btnToggleAuthMode.addEventListener("click", () => {
     isSignUpMode = !isSignUpMode;
@@ -362,6 +365,7 @@ if (btnToggleAuthMode) {
     if (btnSubmitAuth) btnSubmitAuth.textContent = isSignUpMode ? "✨ Create Account & Sign In" : "🚀 Sign In to Iter Viae";
     if (btnToggleAuthMode) btnToggleAuthMode.textContent = isSignUpMode ? "Already have an account? Sign in here" : "Need an account? Create one here";
     if (authNameGroup) authNameGroup.style.display = isSignUpMode ? "flex" : "none";
+    if (authUsernameGroup) authUsernameGroup.style.display = isSignUpMode ? "flex" : "none";
     if (authVehicleGroup) authVehicleGroup.style.display = isSignUpMode ? "flex" : "none";
     if (authErrorMsg) authErrorMsg.style.display = "none";
   });
@@ -376,11 +380,12 @@ if (loginForm) {
     const emailVal = authEmail.value.trim();
     const passVal = authPassword.value;
     const nameVal = authName ? authName.value.trim() : "";
+    const usernameVal = authUsername ? authUsername.value.trim() : "";
     const vehicleVal = authVehicle ? authVehicle.value : "motorcycle";
 
     try {
       if (isSignUpMode) {
-        await registerUser(emailVal, passVal, nameVal, vehicleVal);
+        await registerUser(emailVal, passVal, nameVal, usernameVal, vehicleVal);
         showToast("Account created successfully!");
       } else {
         await loginUser(emailVal, passVal);

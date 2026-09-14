@@ -63,7 +63,33 @@ export async function loginUser(email: string, pass: string) {
   }
 }
 
-export async function registerUser(email: string, pass: string, name?: string, vehicleType?: string) {
+export async function resolveUserIds(inputs: string[]): Promise<string[]> {
+  const ids: string[] = [];
+  for (const raw of inputs) {
+    const clean = raw.trim();
+    if (!clean) continue;
+    
+    // If it already looks like a PocketBase 15-char record ID
+    if (/^[a-z0-9]{15}$/i.test(clean)) {
+      ids.push(clean);
+      continue;
+    }
+
+    try {
+      const userRec = await pb.collection("users").getFirstListItem(`email = "${clean}" || username = "${clean}"`, { requestKey: null });
+      if (userRec && userRec.id) {
+        ids.push(userRec.id);
+        continue;
+      }
+    } catch (_) {}
+
+    // Fallback to raw string if user lookup doesn't find a record
+    ids.push(clean);
+  }
+  return ids;
+}
+
+export async function registerUser(email: string, pass: string, name?: string, username?: string, vehicleType?: string) {
   if (!email || !pass) {
     throw new Error("Email and password are required.");
   }
@@ -80,6 +106,9 @@ export async function registerUser(email: string, pass: string, name?: string, v
   if (name && name.trim()) {
     basePayload.name = name.trim();
   }
+  if (username && username.trim()) {
+    basePayload.username = username.trim().toLowerCase();
+  }
 
   // Attempt creation with vehicleType first, fallback if vehicleType field doesn't exist in PocketBase users schema
   try {
@@ -88,7 +117,6 @@ export async function registerUser(email: string, pass: string, name?: string, v
         await pb.collection("users").create({ ...basePayload, vehicleType });
         return await loginUser(email, pass);
       } catch (err: any) {
-        // If PocketBase schema rejected vehicleType, retry with base auth payload
         if (err?.data?.vehicleType || err?.status === 400) {
           await pb.collection("users").create(basePayload);
           return await loginUser(email, pass);
@@ -101,6 +129,9 @@ export async function registerUser(email: string, pass: string, name?: string, v
     }
   } catch (err: any) {
     console.error("PocketBase registration error details:", err?.data || err);
+    if (err?.data?.username) {
+      throw new Error("Username already taken. Please choose a unique username.");
+    }
     throw err;
   }
 }
@@ -111,10 +142,18 @@ export function logoutUser() {
 
 export async function fetchUserTrips(): Promise<SavedTripRecord[]> {
   if (!pb.authStore.isValid || !pb.authStore.model) return [];
-  const userId = pb.authStore.model.id;
+  const user = pb.authStore.model;
+  const userId = user.id;
+  const userEmail = (user.email || "").toLowerCase().trim();
+  const username = (user.username || "").toLowerCase().trim();
+
   try {
+    let filterStr = `user = "${userId}" || shared ~ "${userId}"`;
+    if (userEmail) filterStr += ` || shared ~ "${userEmail}"`;
+    if (username) filterStr += ` || shared ~ "${username}"`;
+
     const records = await pb.collection("trips").getFullList<SavedTripRecord>({
-      filter: `user = "${userId}" || shared ~ "${userId}"`,
+      filter: filterStr,
       sort: "-updated",
       requestKey: null
     });
@@ -125,16 +164,18 @@ export async function fetchUserTrips(): Promise<SavedTripRecord[]> {
   }
 }
 
-
-export async function createNewTrip(tripName: string, summary: string, sharedUserIds: string[] = []): Promise<SavedTripRecord | null> {
+export async function createNewTrip(tripName: string, summary: string, sharedUserInputs: string[] = []): Promise<SavedTripRecord | null> {
   if (!pb.authStore.isValid || !pb.authStore.model) return null;
+  
+  const resolvedSharedIds = await resolveUserIds(sharedUserInputs);
+
   try {
     const record = await pb.collection("trips").create<SavedTripRecord>({
       user: pb.authStore.model.id,
       trip: tripName,
       title: tripName,
       summary: summary,
-      shared: sharedUserIds
+      shared: resolvedSharedIds
     });
     return record;
   } catch (err: any) {
@@ -168,22 +209,38 @@ export async function leaveSharedTripRecord(tripId: string): Promise<boolean> {
   try {
     const trip = await pb.collection("trips").getOne<SavedTripRecord>(tripId, { requestKey: null });
     
-    // Filter out the current user's ID, email, or username from the shared list
     const currentUserId = user.id;
-    const currentUserEmail = user.email ? user.email.toLowerCase() : "";
-    const currentUsername = user.username ? user.username.toLowerCase() : "";
+    const currentUserEmail = (user.email || "").toLowerCase().trim();
+    const currentUsername = (user.username || "").toLowerCase().trim();
 
-    const updatedShared = (trip.shared || []).filter((item: any) => {
-      const itemStr = typeof item === "string" ? item : (item?.id || item?.email || "");
-      const normalized = String(itemStr).toLowerCase().trim();
+    const remainingShared = (trip.shared || []).filter((item: any) => {
+      const val = typeof item === "string" ? item.toLowerCase().trim() : (item?.id || "").toLowerCase().trim();
       return (
-        normalized !== currentUserId.toLowerCase() &&
-        normalized !== currentUserEmail &&
-        normalized !== currentUsername
+        val !== currentUserId.toLowerCase() &&
+        val !== currentUserEmail &&
+        val !== currentUsername
       );
     });
 
-    await pb.collection("trips").update(tripId, { shared: updatedShared }, { requestKey: null });
+    try {
+      // Try updating with remaining array and atomic subtract modifier
+      await pb.collection("trips").update(
+        tripId,
+        {
+          shared: remainingShared,
+          "shared-": currentUserId
+        },
+        { requestKey: null }
+      );
+    } catch (_) {
+      // Fallback to updating shared array directly
+      await pb.collection("trips").update(
+        tripId,
+        { shared: remainingShared },
+        { requestKey: null }
+      );
+    }
+
     return true;
   } catch (err: any) {
     console.error("Failed to leave shared trip error details:", err?.data || err);
