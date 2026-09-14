@@ -60,15 +60,38 @@ export async function fetchUserTrips(): Promise<SavedTripRecord[]> {
   }
 }
 
-export async function fetchLatestTripForCard(): Promise<SavedTripRecord | null> {
+export interface WelcomeBriefingRecord {
+  id?: string;
+  badge?: string;
+  title?: string;
+  intro?: string;
+  updated?: string;
+}
+
+export async function fetchWelcomeBriefingFromDB(): Promise<WelcomeBriefingRecord | null> {
   try {
-    const records = await pb.collection("trips").getList<SavedTripRecord>(1, 1, {
-      sort: "-updated",
-      requestKey: null
-    });
-    return records.items.length > 0 ? records.items[0] : null;
+    const collections = ["announcements", "settings", "content", "trips"];
+    for (const col of collections) {
+      try {
+        const records = await pb.collection(col).getList<any>(1, 1, {
+          sort: "-updated",
+          requestKey: null
+        });
+        if (records.items.length > 0) {
+          const item = records.items[0];
+          return {
+            id: item.id,
+            badge: item.badge || "👋 WELCOME TO ITER VIAE",
+            title: item.title || item.heading || "WELCOME TO ITER VIAE",
+            intro: item.intro || item.summary || item.body || item.description,
+            updated: item.updated || item.created
+          };
+        }
+      } catch (_) {}
+    }
+    return null;
   } catch (err) {
-    console.warn("Failed to fetch DB item for centered card:", err);
+    console.warn("Failed to fetch welcome briefing from DB:", err);
     return null;
   }
 }

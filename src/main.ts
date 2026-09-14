@@ -1,5 +1,5 @@
 import "./styles.css";
-import { pb, isUserAuthenticated, getCurrentUser, loginUser, registerUser, logoutUser, fetchUserTrips, fetchLatestTripForCard } from "./pocketbase";
+import { pb, isUserAuthenticated, getCurrentUser, loginUser, registerUser, logoutUser, fetchUserTrips, fetchWelcomeBriefingFromDB } from "./pocketbase";
 
 console.log("ITER VIAE Platform Initialized (wade-usa.com)");
 
@@ -208,39 +208,35 @@ if (btnUserLogout) {
   });
 }
 
-// Render Centered DB Card
+// Render Pre-Login Centered DB Welcome Card
 async function renderCenteredDBCard() {
+  const cardBadge = document.getElementById("card-db-badge");
   const cardTitle = document.getElementById("card-db-title");
   const cardUpdated = document.getElementById("card-db-updated");
   const cardIntro = document.getElementById("card-db-intro");
   const btnCardAction = document.getElementById("btn-card-action");
 
-  const trip = await fetchLatestTripForCard();
+  const welcomeData = await fetchWelcomeBriefingFromDB();
 
-  if (trip) {
-    if (cardTitle) cardTitle.textContent = trip.title || "EXPEDITION ROUTE";
-    if (cardUpdated && trip.updated) {
-      const dateStr = new Date(trip.updated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  if (welcomeData) {
+    if (cardBadge && welcomeData.badge) cardBadge.textContent = welcomeData.badge;
+    if (cardTitle && welcomeData.title) cardTitle.textContent = welcomeData.title;
+    if (cardUpdated && welcomeData.updated) {
+      const dateStr = new Date(welcomeData.updated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       cardUpdated.textContent = `Updated: ${dateStr}`;
     }
-    if (cardIntro) cardIntro.textContent = trip.summary || (trip.waypoints && trip.waypoints.length > 0 ? `Active expedition featuring ${trip.waypoints.length} checkpoints and route guidance.` : "Saved expedition route from cloud database.");
-    if (btnCardAction) {
-      btnCardAction.textContent = "🚀 LAUNCH EXPEDITION ROUTE";
-      btnCardAction.onclick = () => {
-        showToast(`Launching ${trip.title || "Expedition"}...`);
-        window.location.href = `/archive/v1-legacy/mobile/index.html?tripId=${trip.id}`;
-      };
-    }
+    if (cardIntro && welcomeData.intro) cardIntro.textContent = welcomeData.intro;
   } else {
-    if (cardTitle) cardTitle.textContent = "THAILAND MOTO TOUR 2027";
+    if (cardBadge) cardBadge.textContent = "👋 WELCOME TO ITER VIAE";
+    if (cardTitle) cardTitle.textContent = "WELCOME TO ITER VIAE";
     if (cardUpdated) cardUpdated.textContent = "Updated: Sep 14, 2026";
-    if (cardIntro) cardIntro.textContent = "Full 18-day motorcycle expedition through northern Thailand's Mae Hong Son loop, featuring mountain passes, border checkpoints, and overnight stays.";
-    if (btnCardAction) {
-      btnCardAction.textContent = "🚀 EXPLORE FEATURED ROUTE";
-      btnCardAction.onclick = () => {
-        showToast("Opening featured route details...");
-      };
-    }
+    if (cardIntro) cardIntro.textContent = "Engineered for the open road. Plan overland expeditions and road trips on desktop, sync seamlessly to mobile handlebar cockpits, and track waypoints on the go.";
+  }
+
+  if (btnCardAction) {
+    btnCardAction.onclick = () => {
+      handleAuthClick();
+    };
   }
 }
 
