@@ -70,28 +70,23 @@ export interface WelcomeBriefingRecord {
 
 export async function fetchWelcomeBriefingFromDB(): Promise<WelcomeBriefingRecord | null> {
   try {
-    const collections = ["announcements", "settings", "content", "trips"];
-    for (const col of collections) {
-      try {
-        const records = await pb.collection(col).getList<any>(1, 1, {
-          sort: "-updated",
-          requestKey: null
-        });
-        if (records.items.length > 0) {
-          const item = records.items[0];
-          return {
-            id: item.id,
-            badge: item.badge || "👋 WELCOME TO ITER VIAE",
-            title: item.title || item.heading || "WELCOME TO ITER VIAE",
-            intro: item.intro || item.summary || item.body || item.description,
-            updated: item.updated || item.created
-          };
-        }
-      } catch (_) {}
+    const records = await pb.collection("announcements").getList<any>(1, 1, {
+      sort: "-updated",
+      requestKey: null
+    });
+    if (records.items.length > 0) {
+      const item = records.items[0];
+      return {
+        id: item.id,
+        badge: item.badge || "👋 WELCOME TO ITER VIAE",
+        title: item.title || item.heading || "WELCOME TO ITER VIAE",
+        intro: item.intro || item.summary || item.body || item.description,
+        updated: item.updated || item.created
+      };
     }
     return null;
   } catch (err) {
-    console.warn("Failed to fetch welcome briefing from DB:", err);
+    console.warn("Notice querying announcements collection:", err);
     return null;
   }
 }
