@@ -29,34 +29,107 @@
         </div>
       </header>
 
-      <!-- Main Content Container with Centered Pre-Login Welcome Card -->
-      <main class="main-content" id="main-content">
-        <section class="centered-card-wrapper">
-          <div class="centered-db-card" id="centered-db-card">
-            <div class="db-card-header">
-              <span class="db-card-badge" id="card-db-badge">👋 WELCOME TO ITER VIAE</span>
-              <span class="db-card-updated" id="card-db-updated">Updated --</span>
-            </div>
-            
-            <h2 class="db-card-title" id="card-db-title">WELCOME TO ITER VIAE</h2>
-            
-            <p class="db-card-intro" id="card-db-intro">
-              Engineered for the open road. Plan overland expeditions and road trips on desktop, sync seamlessly to mobile handlebar cockpits, and track waypoints on the go.
-            </p>
+      <!-- Pre-Login View with Centered DB Welcome Card -->
+      <div id="view-prelogin">
+        <main class="main-content" id="main-content">
+          <section class="centered-card-wrapper">
+            <div class="centered-db-card" id="centered-db-card">
+              <div class="db-card-header">
+                <span class="db-card-badge" id="card-db-badge">👋 WELCOME TO ITER VIAE</span>
+                <span class="db-card-updated" id="card-db-updated">Updated --</span>
+              </div>
+              
+              <h2 class="db-card-title" id="card-db-title">WELCOME TO ITER VIAE</h2>
+              
+              <p class="db-card-intro" id="card-db-intro">
+                Engineered for the open road. Plan overland expeditions and road trips on desktop, sync seamlessly to mobile handlebar cockpits, and track waypoints on the go.
+              </p>
 
-            <div class="db-card-actions">
-              <button id="btn-card-action" class="btn btn-primary btn-full" style="height: 54px; font-size: 1.05rem;">
-                🔑 SIGN IN / CREATE ACCOUNT
+              <div class="db-card-actions">
+                <button id="btn-card-action" class="btn btn-primary btn-full" style="height: 54px; font-size: 1.05rem;">
+                  🔑 SIGN IN / CREATE ACCOUNT
+                </button>
+              </div>
+
+              <div class="db-card-footer">
+                <span class="pulse-dot"></span>
+                <span>DYNAMIC POCKETBASE CLOUD SYNC • API.WADE-USA.COM</span>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Logged-In Screen (Trip Selection Workspace) -->
+      <div id="view-app" style="display: none;">
+        <main class="app-view-content">
+          <div class="blank-workspace-container">
+            <div class="workspace-info-bar">
+              <div class="workspace-status">
+                <span class="pulse-dot"></span>
+                <span id="workspace-user-tag">AUTHENTICATED EXPEDITION SESSION</span>
+              </div>
+              <button id="btn-open-create-trip" class="btn btn-primary">
+                ➕ Create New Trip
               </button>
             </div>
 
-            <div class="db-card-footer">
-              <span class="pulse-dot"></span>
-              <span>DYNAMIC POCKETBASE CLOUD SYNC • API.WADE-USA.COM</span>
+            <!-- Trip Selection Workspace Container -->
+            <div class="trip-selection-wrapper">
+              <div class="trip-selection-header">
+                <div class="trip-header-title">
+                  <span class="header-icon">🗺️</span>
+                  <div>
+                    <h2>EXPEDITION TRIPS</h2>
+                    <p>Select an existing trip or create a new route to start planning</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Trips Grid Container -->
+              <div class="trips-grid" id="trips-grid">
+                <div class="empty-trips-msg">Syncing your trips from PocketBase cloud...</div>
+              </div>
             </div>
           </div>
-        </section>
-      </main>
+        </main>
+      </div>
+
+      <!-- Create New Trip Modal -->
+      <div class="modal-overlay" id="create-trip-modal" style="display: none;">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">🧭 CREATE EXPEDITION TRIP</h2>
+              <p class="modal-subtitle">Add a new trip to your PocketBase cloud account</p>
+            </div>
+            <button class="btn-icon-close" id="create-trip-modal-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="create-trip-form">
+              <div class="form-group">
+                <label>TRIP NAME / TITLE</label>
+                <input type="text" id="trip-input-name" required placeholder="e.g. Pacific Coast Highway Overland Run" />
+              </div>
+
+              <div class="form-group">
+                <label>TRIP SUMMARY / DESCRIPTION</label>
+                <textarea id="trip-input-summary" rows="3" class="form-textarea" placeholder="Multi-day scenic coastal expedition with off-grid campsites..."></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>SHARE WITH USERS (POCKETBASE USER IDS, COMMA SEPARATED)</label>
+                <input type="text" id="trip-input-shared" placeholder="Optional: user_id1, user_id2" />
+                <span class="form-help-text">Add user IDs to grant shared access to this trip.</span>
+              </div>
+
+              <button type="submit" id="btn-submit-create-trip" class="btn btn-primary btn-full" style="margin-top: 12px;">
+                ✨ Create Expedition Trip
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
 
       <!-- PocketBase Auth Modal -->
       <div class="modal-overlay" id="auth-modal" style="display: none;">

@@ -1,9 +1,10 @@
 import "./styles.css";
-import { pb, isUserAuthenticated, getCurrentUser, isUserVerified, refreshVerificationStatus, loginUser, registerUser, logoutUser, fetchUserTrips, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
+import { pb, isUserAuthenticated, getCurrentUser, isUserVerified, refreshVerificationStatus, loginUser, registerUser, logoutUser, fetchUserTrips, createNewTrip, deleteTrip, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
 
 console.log("ITER VIAE Platform Initialized (wade-usa.com)");
 
 let isSignUpMode = false;
+let activeSelectedTripId: string | null = null;
 
 // DOM Elements
 const btnHeaderAuth = document.getElementById("btn-header-auth");
@@ -40,6 +41,16 @@ const unverifiedUserEmail = document.getElementById("unverified-user-email");
 const btnCheckVerification = document.getElementById("btn-check-verification");
 const btnUnverifiedLogout = document.getElementById("btn-unverified-logout");
 
+// Create Trip Elements
+const btnOpenCreateTrip = document.getElementById("btn-open-create-trip");
+const createTripModal = document.getElementById("create-trip-modal");
+const createTripModalClose = document.getElementById("create-trip-modal-close");
+const createTripForm = document.getElementById("create-trip-form") as HTMLFormElement | null;
+const tripInputName = document.getElementById("trip-input-name") as HTMLInputElement | null;
+const tripInputSummary = document.getElementById("trip-input-summary") as HTMLTextAreaElement | null;
+const tripInputShared = document.getElementById("trip-input-shared") as HTMLInputElement | null;
+const tripsGrid = document.getElementById("trips-grid");
+
 // Toast Helper
 function showToast(msg: string) {
   const container = document.getElementById("toast-container");
@@ -54,31 +65,136 @@ function showToast(msg: string) {
   }, 3500);
 }
 
-// Update Auth UI Buttons & Headers
+// View Containers
+const viewPrelogin = document.getElementById("view-prelogin");
+const viewApp = document.getElementById("view-app");
+const workspaceUserTag = document.getElementById("workspace-user-tag");
+
+// Render Trips Workspace Grid
+async function renderTripsWorkspace() {
+  if (!tripsGrid) return;
+  tripsGrid.innerHTML = `<div class="empty-trips-msg">Syncing your trips from PocketBase cloud...</div>`;
+
+  const trips = await fetchUserTrips();
+  const user = getCurrentUser();
+
+  if (trips.length === 0) {
+    tripsGrid.innerHTML = `
+      <div class="empty-trips-msg" style="grid-column: 1 / -1; padding: 40px 20px;">
+        <span style="font-size: 2rem; display: block; margin-bottom: 8px;">🗺️</span>
+        <strong style="color: #ffffff; font-size: 1rem;">No Expedition Trips Found</strong>
+        <p style="margin-top: 4px;">Click '➕ Create New Trip' above to build your first trip route.</p>
+      </div>
+    `;
+    return;
+  }
+
+  tripsGrid.innerHTML = "";
+  trips.forEach((t) => {
+    const isOwner = user && t.user === user.id;
+    const isShared = t.shared && t.shared.length > 0;
+    const isSelected = activeSelectedTripId === t.id;
+
+    const card = document.createElement("div");
+    card.className = "trip-card";
+    if (isSelected) {
+      card.style.borderColor = "var(--accent-cyan)";
+      card.style.boxShadow = "0 0 30px rgba(56, 189, 248, 0.25)";
+    }
+
+    const titleText = t.trip || t.title || "UNTITLED TRIP";
+    const summaryText = t.summary || "No description provided.";
+    const formattedDate = t.updated ? new Date(t.updated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+
+    card.innerHTML = `
+      <div class="trip-card-top">
+        <div class="trip-card-badges">
+          <span class="${isOwner ? "badge-owner" : "badge-shared"}">
+            ${isOwner ? "👤 OWNER" : "🤝 SHARED WITH YOU"}
+          </span>
+          <span class="trip-card-date">${formattedDate}</span>
+        </div>
+
+        <h3 class="trip-card-title">${titleText}</h3>
+        <p class="trip-card-summary">${summaryText}</p>
+      </div>
+
+      <div class="trip-card-actions">
+        <button class="btn ${isSelected ? "btn-primary" : "btn-secondary"} btn-select-trip" style="flex:1;">
+          ${isSelected ? "✓ SELECTED TRIP" : "🗺️ SELECT TRIP"}
+        </button>
+        ${isOwner ? `<button class="btn btn-outline btn-delete-trip" title="Delete Trip" style="padding: 10px 12px; color: var(--accent-red); border-color: rgba(239,68,68,0.3);">🗑️</button>` : ""}
+      </div>
+    `;
+
+    // Action button handlers
+    const btnSelect = card.querySelector(".btn-select-trip") as HTMLButtonElement | null;
+    if (btnSelect) {
+      btnSelect.onclick = () => {
+        activeSelectedTripId = t.id;
+        showToast(`🗺️ Selected Trip: "${titleText}"`);
+        renderTripsWorkspace();
+      };
+    }
+
+    const btnDelete = card.querySelector(".btn-delete-trip") as HTMLButtonElement | null;
+    if (btnDelete) {
+      btnDelete.onclick = async () => {
+        if (confirm(`Are you sure you want to delete trip "${titleText}"?`)) {
+          showToast("Deleting trip...");
+          await deleteTrip(t.id);
+          showToast("🗑️ Trip deleted.");
+          if (activeSelectedTripId === t.id) activeSelectedTripId = null;
+          renderTripsWorkspace();
+        }
+      };
+    }
+
+    tripsGrid.appendChild(card);
+  });
+}
+
+// Update Auth UI Buttons, Views & Headers
 function updateAuthUI() {
   const isAuth = isUserAuthenticated();
   const user = getCurrentUser();
   const verified = isUserVerified();
 
-  if (isAuth && user) {
+  if (isAuth && user && verified) {
+    // Show Logged-In Screen (Separate from pre-login home screen)
+    if (viewPrelogin) viewPrelogin.style.display = "none";
+    if (viewApp) viewApp.style.display = "block";
+
     const displayName = user.email || user.username || "ACCOUNT";
     const shortName = displayName.split("@")[0].substring(0, 12).toUpperCase();
 
-    if (!verified) {
+    if (workspaceUserTag) workspaceUserTag.textContent = `AUTHENTICATED SESSION • ${user.email || user.username}`;
+    if (headerAuthLabel) headerAuthLabel.textContent = `ACCOUNT (${shortName})`;
+    if (heroAuthLabel) heroAuthLabel.textContent = `MANAGE ACCOUNT (${shortName})`;
+    if (btnCardAction) btnCardAction.innerHTML = `👤 OPEN EXPEDITION PROFILE (${shortName})`;
+
+    renderTripsWorkspace();
+  } else {
+    // Show Pre-Login Home Screen
+    if (viewPrelogin) viewPrelogin.style.display = "block";
+    if (viewApp) viewApp.style.display = "none";
+
+    if (isAuth && user && !verified) {
+      const displayName = user.email || user.username || "ACCOUNT";
+      const shortName = displayName.split("@")[0].substring(0, 12).toUpperCase();
+
       if (headerAuthLabel) headerAuthLabel.textContent = `⏳ UNVERIFIED (${shortName})`;
       if (heroAuthLabel) heroAuthLabel.textContent = `⏳ PENDING VERIFICATION (${shortName})`;
       if (btnCardAction) btnCardAction.innerHTML = `⏳ ACCOUNT VERIFICATION PENDING`;
     } else {
-      if (headerAuthLabel) headerAuthLabel.textContent = `ACCOUNT (${shortName})`;
-      if (heroAuthLabel) heroAuthLabel.textContent = `MANAGE ACCOUNT (${shortName})`;
-      if (btnCardAction) btnCardAction.innerHTML = `👤 OPEN EXPEDITION PROFILE (${shortName})`;
+      if (headerAuthLabel) headerAuthLabel.textContent = "SIGN IN";
+      if (heroAuthLabel) heroAuthLabel.textContent = "SIGN IN TO CLOUD";
+      if (btnCardAction) btnCardAction.innerHTML = "🔑 SIGN IN / CREATE ACCOUNT";
     }
-  } else {
-    if (headerAuthLabel) headerAuthLabel.textContent = "SIGN IN";
-    if (heroAuthLabel) heroAuthLabel.textContent = "SIGN IN TO CLOUD";
-    if (btnCardAction) btnCardAction.innerHTML = "🔑 SIGN IN / CREATE ACCOUNT";
   }
 }
+
+
 
 // Render User Trips in Dashboard Modal
 async function renderDashboardTrips() {
@@ -154,6 +270,44 @@ if (btnLaunchCockpit) {
   btnLaunchCockpit.addEventListener("click", () => {
     showToast("🚀 Redirecting to Mobile Cockpit (mobile.wade-usa.com)...");
     window.location.href = "/archive/v1-legacy/mobile/index.html";
+  });
+}
+
+if (btnOpenCreateTrip) {
+  btnOpenCreateTrip.addEventListener("click", () => {
+    if (createTripModal) createTripModal.style.display = "flex";
+  });
+}
+
+if (createTripModalClose) {
+  createTripModalClose.addEventListener("click", () => {
+    if (createTripModal) createTripModal.style.display = "none";
+  });
+}
+
+if (createTripForm) {
+  createTripForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!tripInputName) return;
+
+    const nameVal = tripInputName.value.trim();
+    const summaryVal = tripInputSummary ? tripInputSummary.value.trim() : "";
+    const sharedRaw = tripInputShared ? tripInputShared.value.trim() : "";
+    const sharedList = sharedRaw ? sharedRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+
+    if (!nameVal) return;
+
+    try {
+      showToast("Creating trip in PocketBase cloud...");
+      await createNewTrip(nameVal, summaryVal, sharedList);
+      showToast("✨ Expedition trip created!");
+      createTripForm.reset();
+      if (createTripModal) createTripModal.style.display = "none";
+      renderTripsWorkspace();
+    } catch (err: any) {
+      console.error("Create trip failed:", err);
+      showToast(`❌ Failed to create trip: ${err.message || "Check schema permissions"}`);
+    }
   });
 }
 

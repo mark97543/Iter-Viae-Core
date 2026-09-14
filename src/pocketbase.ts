@@ -9,10 +9,12 @@ pb.autoCancellation(false);
 export interface SavedTripRecord {
   id: string;
   user: string;
-  title: string;
+  shared?: string[];
+  trip?: string;
+  title?: string;
   status?: string;
   summary?: string;
-  waypoints: any[];
+  waypoints?: any[];
   metrics?: any;
   created?: string;
   updated?: string;
@@ -66,18 +68,48 @@ export function logoutUser() {
 
 export async function fetchUserTrips(): Promise<SavedTripRecord[]> {
   if (!pb.authStore.isValid || !pb.authStore.model) return [];
+  const userId = pb.authStore.model.id;
   try {
     const records = await pb.collection("trips").getFullList<SavedTripRecord>({
-      filter: `user = "${pb.authStore.model.id}"`,
+      filter: `user = "${userId}" || shared ~ "${userId}"`,
       sort: "-updated",
       requestKey: null
     });
     return records;
   } catch (err) {
-    console.warn("Failed to fetch trips:", err);
+    console.warn("Notice fetching trips collection:", err);
     return [];
   }
 }
+
+
+export async function createNewTrip(tripName: string, summary: string, sharedUserIds: string[] = []): Promise<SavedTripRecord | null> {
+  if (!pb.authStore.isValid || !pb.authStore.model) return null;
+  try {
+    const record = await pb.collection("trips").create<SavedTripRecord>({
+      user: pb.authStore.model.id,
+      trip: tripName,
+      title: tripName,
+      summary: summary,
+      shared: sharedUserIds
+    });
+    return record;
+  } catch (err: any) {
+    console.error("Failed to create trip:", err);
+    throw err;
+  }
+}
+
+export async function deleteTrip(tripId: string): Promise<boolean> {
+  try {
+    await pb.collection("trips").delete(tripId);
+    return true;
+  } catch (err) {
+    console.warn("Failed to delete trip:", err);
+    return false;
+  }
+}
+
 
 export interface WelcomeBriefingRecord {
   id?: string;
