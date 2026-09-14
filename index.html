@@ -140,6 +140,44 @@
           </div>
         </div>
       </div>
+
+      <!-- Unverified / Pending Verification Modal -->
+      <div class="modal-overlay" id="unverified-modal" style="display: none;">
+        <div class="modal-card unverified-modal-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title" style="color: var(--accent-amber);">⏳ VERIFICATION PENDING</h2>
+              <p class="modal-subtitle" id="unverified-user-email">Account awaiting admin verification</p>
+            </div>
+            <button class="btn-icon-close" id="unverified-modal-close">&times;</button>
+          </div>
+          <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="unverified-banner">
+              <div class="unverified-icon">🛡️</div>
+              <div class="unverified-info">
+                <h3>ACCOUNT STATUS: UNVERIFIED</h3>
+                <p>Your account is registered but awaiting admin verification before full access is granted.</p>
+              </div>
+            </div>
+
+            <div class="contact-box">
+              <span class="contact-label">PLEASE CONTACT MARK WADE FOR VERIFICATION:</span>
+              <a href="mailto:wade.mark.a@gmail.com?subject=Iter%20Viae%20Account%20Verification%20Request" class="contact-email-link">
+                ✉️ wade.mark.a@gmail.com
+              </a>
+            </div>
+
+            <div class="unverified-actions" style="display: flex; gap: 10px; margin-top: 8px;">
+              <button id="btn-check-verification" class="btn btn-secondary" style="flex: 1;">
+                🔄 Refresh Status
+              </button>
+              <button id="btn-unverified-logout" class="btn btn-danger" style="flex: 1;">
+                🚪 Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Notification Toast Container -->

@@ -26,6 +26,25 @@ export function getCurrentUser() {
   return pb.authStore.model;
 }
 
+export function isUserVerified(): boolean {
+  const user = getCurrentUser();
+  if (!user) return false;
+  return Boolean(user.verified);
+}
+
+export async function refreshVerificationStatus(): Promise<boolean> {
+  const user = getCurrentUser();
+  if (!user || !pb.authStore.token) return false;
+  try {
+    const updatedUser = await pb.collection("users").getOne(user.id, { requestKey: null });
+    pb.authStore.save(pb.authStore.token, updatedUser);
+    return Boolean(updatedUser.verified);
+  } catch (err) {
+    console.warn("Failed to refresh verification status:", err);
+    return Boolean(user.verified);
+  }
+}
+
 export async function loginUser(email: string, pass: string) {
   return await pb.collection("users").authWithPassword(email, pass);
 }

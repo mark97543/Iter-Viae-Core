@@ -1,6 +1,5 @@
 import "./styles.css";
-import { pb, isUserAuthenticated, getCurrentUser, loginUser, registerUser, logoutUser, fetchUserTrips, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
-
+import { pb, isUserAuthenticated, getCurrentUser, isUserVerified, refreshVerificationStatus, loginUser, registerUser, logoutUser, fetchUserTrips, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
 
 console.log("ITER VIAE Platform Initialized (wade-usa.com)");
 
@@ -34,6 +33,13 @@ const userTripsList = document.getElementById("user-trips-list");
 const btnUserLogout = document.getElementById("btn-user-logout");
 const btnCardAction = document.getElementById("btn-card-action");
 
+// Unverified Modal Elements
+const unverifiedModal = document.getElementById("unverified-modal");
+const unverifiedModalClose = document.getElementById("unverified-modal-close");
+const unverifiedUserEmail = document.getElementById("unverified-user-email");
+const btnCheckVerification = document.getElementById("btn-check-verification");
+const btnUnverifiedLogout = document.getElementById("btn-unverified-logout");
+
 // Toast Helper
 function showToast(msg: string) {
   const container = document.getElementById("toast-container");
@@ -52,14 +58,21 @@ function showToast(msg: string) {
 function updateAuthUI() {
   const isAuth = isUserAuthenticated();
   const user = getCurrentUser();
+  const verified = isUserVerified();
 
   if (isAuth && user) {
     const displayName = user.email || user.username || "ACCOUNT";
     const shortName = displayName.split("@")[0].substring(0, 12).toUpperCase();
 
-    if (headerAuthLabel) headerAuthLabel.textContent = `ACCOUNT (${shortName})`;
-    if (heroAuthLabel) heroAuthLabel.textContent = `MANAGE ACCOUNT (${shortName})`;
-    if (btnCardAction) btnCardAction.innerHTML = `👤 OPEN EXPEDITION PROFILE (${shortName})`;
+    if (!verified) {
+      if (headerAuthLabel) headerAuthLabel.textContent = `⏳ UNVERIFIED (${shortName})`;
+      if (heroAuthLabel) heroAuthLabel.textContent = `⏳ PENDING VERIFICATION (${shortName})`;
+      if (btnCardAction) btnCardAction.innerHTML = `⏳ ACCOUNT VERIFICATION PENDING`;
+    } else {
+      if (headerAuthLabel) headerAuthLabel.textContent = `ACCOUNT (${shortName})`;
+      if (heroAuthLabel) heroAuthLabel.textContent = `MANAGE ACCOUNT (${shortName})`;
+      if (btnCardAction) btnCardAction.innerHTML = `👤 OPEN EXPEDITION PROFILE (${shortName})`;
+    }
   } else {
     if (headerAuthLabel) headerAuthLabel.textContent = "SIGN IN";
     if (heroAuthLabel) heroAuthLabel.textContent = "SIGN IN TO CLOUD";
@@ -107,16 +120,24 @@ async function renderDashboardTrips() {
   });
 }
 
-// Open Auth Modal or Dashboard Modal
+// Open Auth Modal, Unverified Screen, or Dashboard Modal
 function handleAuthClick() {
-  if (isUserAuthenticated()) {
-    const user = getCurrentUser();
+  if (!isUserAuthenticated()) {
+    if (authModal) authModal.style.display = "flex";
+    return;
+  }
+
+  const user = getCurrentUser();
+  if (!isUserVerified()) {
+    if (unverifiedUserEmail && user) {
+      unverifiedUserEmail.textContent = `Registered as ${user.email || user.username || "user"}`;
+    }
+    if (unverifiedModal) unverifiedModal.style.display = "flex";
+  } else {
     if (dashUserEmail && user) dashUserEmail.textContent = user.email || user.username || "Rider";
     if (dashUserName && user) dashUserName.textContent = (user.username || user.email || "RIDER ACCOUNT").toUpperCase();
     if (dashboardModal) dashboardModal.style.display = "flex";
     renderDashboardTrips();
-  } else {
-    if (authModal) authModal.style.display = "flex";
   }
 }
 
@@ -145,6 +166,12 @@ if (authModalClose) {
 if (dashModalClose) {
   dashModalClose.addEventListener("click", () => {
     if (dashboardModal) dashboardModal.style.display = "none";
+  });
+}
+
+if (unverifiedModalClose) {
+  unverifiedModalClose.addEventListener("click", () => {
+    if (unverifiedModal) unverifiedModal.style.display = "none";
   });
 }
 
@@ -183,6 +210,15 @@ if (loginForm) {
 
       updateAuthUI();
       if (authModal) authModal.style.display = "none";
+
+      if (!isUserVerified()) {
+        const user = getCurrentUser();
+        if (unverifiedUserEmail && user) {
+          unverifiedUserEmail.textContent = `Registered as ${user.email || user.username || "user"}`;
+        }
+        if (unverifiedModal) unverifiedModal.style.display = "flex";
+        showToast("⏳ Account pending verification. Please contact wade.mark.a@gmail.com.");
+      }
     } catch (err: any) {
       console.error("Auth failed:", err);
       let detailedMsg = err.message || "Authentication failed.";
@@ -209,6 +245,30 @@ if (btnUserLogout) {
     updateAuthUI();
     if (dashboardModal) dashboardModal.style.display = "none";
     showToast("Signed out of PocketBase.");
+  });
+}
+
+if (btnUnverifiedLogout) {
+  btnUnverifiedLogout.addEventListener("click", () => {
+    logoutUser();
+    updateAuthUI();
+    if (unverifiedModal) unverifiedModal.style.display = "none";
+    showToast("Signed out of PocketBase.");
+  });
+}
+
+if (btnCheckVerification) {
+  btnCheckVerification.addEventListener("click", async () => {
+    showToast("Checking verification status...");
+    const verifiedNow = await refreshVerificationStatus();
+    updateAuthUI();
+    if (verifiedNow) {
+      showToast("🎉 Account verified! Welcome to Iter Viae.");
+      if (unverifiedModal) unverifiedModal.style.display = "none";
+      handleAuthClick();
+    } else {
+      showToast("⏳ Verification pending. Please email wade.mark.a@gmail.com.");
+    }
   });
 }
 
@@ -254,7 +314,16 @@ async function renderCenteredDBCard() {
 document.addEventListener("DOMContentLoaded", () => {
   updateAuthUI();
   renderCenteredDBCard();
-  
+
+  // If user is authenticated on load but unverified, auto-show unverified modal
+  if (isUserAuthenticated() && !isUserVerified()) {
+    const user = getCurrentUser();
+    if (unverifiedUserEmail && user) {
+      unverifiedUserEmail.textContent = `Registered as ${user.email || user.username || "user"}`;
+    }
+    if (unverifiedModal) unverifiedModal.style.display = "flex";
+  }
+
   // Real-time listener for live edits in PocketBase Admin UI
   subscribeToWelcomeBriefing((liveData) => {
     console.log("Real-time briefing update received:", liveData);
