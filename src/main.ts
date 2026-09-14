@@ -1,5 +1,6 @@
 import "./styles.css";
-import { pb, isUserAuthenticated, getCurrentUser, loginUser, registerUser, logoutUser, fetchUserTrips, fetchWelcomeBriefingFromDB } from "./pocketbase";
+import { pb, isUserAuthenticated, getCurrentUser, loginUser, registerUser, logoutUser, fetchUserTrips, fetchWelcomeBriefingFromDB, subscribeToWelcomeBriefing } from "./pocketbase";
+
 
 console.log("ITER VIAE Platform Initialized (wade-usa.com)");
 
@@ -31,6 +32,7 @@ const dashUserEmail = document.getElementById("dash-user-email");
 const dashUserName = document.getElementById("dash-user-name");
 const userTripsList = document.getElementById("user-trips-list");
 const btnUserLogout = document.getElementById("btn-user-logout");
+const btnCardAction = document.getElementById("btn-card-action");
 
 // Toast Helper
 function showToast(msg: string) {
@@ -57,9 +59,11 @@ function updateAuthUI() {
 
     if (headerAuthLabel) headerAuthLabel.textContent = `ACCOUNT (${shortName})`;
     if (heroAuthLabel) heroAuthLabel.textContent = `MANAGE ACCOUNT (${shortName})`;
+    if (btnCardAction) btnCardAction.innerHTML = `👤 OPEN EXPEDITION PROFILE (${shortName})`;
   } else {
     if (headerAuthLabel) headerAuthLabel.textContent = "SIGN IN";
     if (heroAuthLabel) heroAuthLabel.textContent = "SIGN IN TO CLOUD";
+    if (btnCardAction) btnCardAction.innerHTML = "🔑 SIGN IN / CREATE ACCOUNT";
   }
 }
 
@@ -208,29 +212,35 @@ if (btnUserLogout) {
   });
 }
 
-// Render Pre-Login Centered DB Welcome Card
-async function renderCenteredDBCard() {
+// Populate Welcome Briefing Card UI
+function applyWelcomeBriefingData(data: { badge?: string; title?: string; intro?: string; updated?: string }) {
   const cardBadge = document.getElementById("card-db-badge");
   const cardTitle = document.getElementById("card-db-title");
   const cardUpdated = document.getElementById("card-db-updated");
   const cardIntro = document.getElementById("card-db-intro");
-  const btnCardAction = document.getElementById("btn-card-action");
 
+  if (cardBadge && data.badge) cardBadge.textContent = data.badge;
+  if (cardTitle && data.title) cardTitle.textContent = data.title;
+  if (cardUpdated && data.updated) {
+    const dateStr = new Date(data.updated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    cardUpdated.textContent = `Updated: ${dateStr}`;
+  }
+  if (cardIntro && data.intro) cardIntro.textContent = data.intro;
+}
+
+// Render Pre-Login Centered DB Welcome Card
+async function renderCenteredDBCard() {
   const welcomeData = await fetchWelcomeBriefingFromDB();
 
   if (welcomeData) {
-    if (cardBadge && welcomeData.badge) cardBadge.textContent = welcomeData.badge;
-    if (cardTitle && welcomeData.title) cardTitle.textContent = welcomeData.title;
-    if (cardUpdated && welcomeData.updated) {
-      const dateStr = new Date(welcomeData.updated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-      cardUpdated.textContent = `Updated: ${dateStr}`;
-    }
-    if (cardIntro && welcomeData.intro) cardIntro.textContent = welcomeData.intro;
+    applyWelcomeBriefingData(welcomeData);
   } else {
-    if (cardBadge) cardBadge.textContent = "👋 WELCOME TO ITER VIAE";
-    if (cardTitle) cardTitle.textContent = "WELCOME TO ITER VIAE";
-    if (cardUpdated) cardUpdated.textContent = "Updated: Sep 14, 2026";
-    if (cardIntro) cardIntro.textContent = "Engineered for the open road. Plan overland expeditions and road trips on desktop, sync seamlessly to mobile handlebar cockpits, and track waypoints on the go.";
+    applyWelcomeBriefingData({
+      badge: "👋 WELCOME TO ITER VIAE",
+      title: "WELCOME TO ITER VIAE",
+      updated: new Date().toISOString(),
+      intro: "Engineered for the open road. Plan overland expeditions and road trips on desktop, sync seamlessly to mobile handlebar cockpits, and track waypoints on the go."
+    });
   }
 
   if (btnCardAction) {
@@ -244,4 +254,12 @@ async function renderCenteredDBCard() {
 document.addEventListener("DOMContentLoaded", () => {
   updateAuthUI();
   renderCenteredDBCard();
+  
+  // Real-time listener for live edits in PocketBase Admin UI
+  subscribeToWelcomeBriefing((liveData) => {
+    console.log("Real-time briefing update received:", liveData);
+    applyWelcomeBriefingData(liveData);
+    showToast("⚡ Briefing updated live from PocketBase Cloud!");
+  });
 });
+

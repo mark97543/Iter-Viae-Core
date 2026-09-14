@@ -95,3 +95,29 @@ export async function fetchWelcomeBriefingFromDB(): Promise<WelcomeBriefingRecor
     return null;
   }
 }
+
+export function subscribeToWelcomeBriefing(onChange: (data: WelcomeBriefingRecord) => void): () => void {
+  try {
+    pb.collection("announcements").subscribe("*", (e) => {
+      if (e.record) {
+        onChange({
+          id: e.record.id,
+          badge: e.record.badge || "👋 WELCOME TO ITER VIAE",
+          title: e.record.title || e.record.heading || "WELCOME TO ITER VIAE",
+          intro: e.record.intro || e.record.summary || e.record.body || e.record.description,
+          updated: e.record.updated || e.record.created
+        });
+      }
+    }).catch(err => {
+      console.warn("Real-time subscription notice:", err);
+    });
+
+    return () => {
+      pb.collection("announcements").unsubscribe("*").catch(() => {});
+    };
+  } catch (err) {
+    console.warn("Could not subscribe to announcements:", err);
+    return () => {};
+  }
+}
+
