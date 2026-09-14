@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>ITER VIAE — Tactical Mobile Cockpit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800;900&display=swap" rel="stylesheet">
+  </head>
+  <body class="mobile-cockpit-body">
+    <!-- Top Expedition Header -->
+    <header class="hud-banner">
+      <div class="dash-app-branding">
+        <span class="dash-app-logo">🧭</span>
+        <div class="dash-app-titles">
+          <h1 class="dash-app-name">ITER VIAE</h1>
+          <span class="dash-app-sub">TACTICAL MOBILE COCKPIT</span>
+        </div>
+      </div>
+      <div class="hud-meta-group">
+        <button id="btn-open-glove-controls" class="hud-chip chip-menu" title="Cockpit Settings & Controls">
+          <span>⚙️</span>
+          <span>MENU</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Uncluttered Single-Focus Active Stop Page -->
+    <main class="portrait-cockpit-container">
+      <!-- Expedition Route Header & Progress Card -->
+      <section class="expedition-summary-card">
+        <div class="summary-card-header">
+          <div class="summary-card-title-group">
+            <span class="summary-card-icon">🏍️</span>
+            <div>
+              <h2 class="summary-card-title" id="dash-route-title">SELECT AN EXPEDITION ROUTE</h2>
+              <span class="summary-card-sub" id="dash-route-subtitle">Load a saved trip from logbook to begin</span>
+            </div>
+          </div>
+          <div class="summary-card-badge" id="dash-route-pct">0%</div>
+        </div>
+
+        <div class="route-progress-track">
+          <div class="route-progress-fill" id="dash-progress-fill" style="width: 0%;"></div>
+        </div>
+
+        <div class="expedition-meta-bar">
+          <div class="expedition-meta-pill">
+            <span class="meta-pill-label">COMPLETED</span>
+            <span class="meta-pill-val" id="stat-completed-count">0 / 0</span>
+          </div>
+          <div class="expedition-meta-pill">
+            <span class="meta-pill-label">REMAINING DIST</span>
+            <span class="meta-pill-val" id="dock-dist-val">-- MI</span>
+          </div>
+          <div class="expedition-meta-pill">
+            <span class="meta-pill-label">EST. TIME</span>
+            <span class="meta-pill-val" id="dock-eta-val">--H --M</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Active Stop Page Hero View -->
+      <section class="hero-active-stop-view">
+        <div class="hero-card">
+          <!-- Active Checkpoint Header -->
+          <div class="hero-card-header">
+            <div class="hero-card-title-row">
+              <span class="hero-card-index" id="hero-wp-index">#1</span>
+              <span class="category-tag" id="hero-wp-cat">📍 CHECKPOINT</span>
+              <span class="hero-completed-badge" id="hero-wp-done-badge" style="display:none;">✅ COMPLETED</span>
+            </div>
+            <h2 class="hero-card-title" id="dash-curr-title">No Expedition Active</h2>
+          </div>
+
+          <!-- Structured Details Pill Grid -->
+          <div class="waypoint-details-grid">
+            <div class="detail-chip">
+              <span class="detail-chip-label">SCHEDULE</span>
+              <span class="detail-chip-val" id="dash-curr-depart">🛬 -- → 🛫 --</span>
+            </div>
+            <div class="detail-chip">
+              <span class="detail-chip-label">STOP BREAK</span>
+              <span class="detail-chip-val" id="dash-curr-break">⏱️ -- MIN</span>
+            </div>
+            <div class="detail-chip">
+              <span class="detail-chip-label">EST. BUDGET</span>
+              <span class="detail-chip-val" id="dash-curr-budget">💵 $0.00</span>
+            </div>
+            <div class="detail-chip">
+              <span class="detail-chip-label">LIVE DISTANCE</span>
+              <span class="detail-chip-val" id="dash-curr-dist">📏 -- MI</span>
+            </div>
+          </div>
+
+          <!-- Briefing Box -->
+          <div class="waypoint-briefing-box">
+            <div class="waypoint-briefing-text" id="dash-notes-text">
+              Select an expedition route from your logbook to view checkpoint briefing and launch Google Maps navigation.
+            </div>
+            <button id="btn-read-notes" class="glove-speech-btn" title="Read briefing notes out loud">
+              🗣️ READ
+            </button>
+          </div>
+
+          <!-- Next Destination Preview Banner -->
+          <div class="hero-next-preview">
+            <div class="next-preview-label">NEXT DESTINATION</div>
+            <div class="next-preview-title-row">
+              <span class="next-preview-title" id="dash-next-title">Load Route to Start</span>
+              <span class="dash-pill-badge" id="dash-next-pill">0.0mi • 0m</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Glove Hero Action Bar (Next Stop IS Check Mark!) -->
+        <div class="hero-action-bar">
+          <button id="btn-dash-prev" class="btn-hero-square" title="Previous Stop">&larr;</button>
+          <button id="btn-dash-next-step" class="btn-hero-next" title="Complete Current Stop & Advance to Next">
+            ✅ NEXT STOP
+          </button>
+          <button id="btn-dash-gmaps" class="btn-hero-blue" title="Launch Google Maps to Next Destination">
+            🗺️ NAVIGATE
+          </button>
+        </div>
+      </section>
+    </main>
+
+
+    <!-- End-of-Trip Summary Modal -->
+    <div class="modal-overlay" id="mobile-summary-modal" style="display: none;">
+      <div class="modal-card summary-modal-card">
+        <div class="modal-header">
+          <div>
+            <div class="arrival-badge" style="background: rgba(16,185,129,0.2); color: #10b981;">🏁 EXPEDITION LOGBOOK SUMMARY</div>
+            <h2 class="modal-title" id="summary-trip-title">EXPEDITION COMPLETE</h2>
+            <p class="modal-subtitle" id="summary-trip-subtitle">Timestamped record of completed waypoints</p>
+          </div>
+          <button class="btn-icon" id="summary-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="summary-stats-grid">
+            <div class="summary-stat-box">
+              <span class="stat-label">CHECKPOINTS</span>
+              <span class="stat-val" id="summary-stat-count">0 / 0</span>
+            </div>
+            <div class="summary-stat-box">
+              <span class="stat-label">TOTAL TIME</span>
+              <span class="stat-val" id="summary-stat-time">--</span>
+            </div>
+            <div class="summary-stat-box">
+              <span class="stat-label">TOTAL DISTANCE</span>
+              <span class="stat-val" id="summary-stat-dist">--</span>
+            </div>
+          </div>
+
+          <div class="summary-logbook-box">
+            <div class="briefing-label">COMPLETED CHECKPOINTS & TIMESTAMPS</div>
+            <div id="summary-logbook-list" class="summary-logbook-list"></div>
+          </div>
+
+          <button id="summary-close-btn" class="btn btn-primary" style="width: 100%; height: 50px; font-weight: 900; margin-top: 12px;">
+            👍 Done
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Trips Logbook Modal -->
+    <div class="modal-overlay" id="mobile-trips-modal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">ITER VIAE EXPEDITION LOGBOOK</h2>
+            <p class="modal-subtitle">Select an expedition route for active mobile guidance</p>
+          </div>
+          <button class="btn-icon" id="trips-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="trips-loading-spinner" class="loading-spinner">Syncing Iter Viae expedition routes...</div>
+          <div id="mobile-trips-list" class="mobile-trips-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Iter Viae Auth Modal -->
+    <div class="modal-overlay" id="mobile-auth-modal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="auth-modal-title">ITER VIAE ACCOUNT AUTH</h2>
+            <p class="modal-subtitle" id="auth-modal-subtitle">Sign in to access your saved expedition routes</p>
+          </div>
+          <button class="btn-icon" id="auth-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="mobile-login-form" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-sub); font-weight: 800;">EMAIL OR USERNAME</label>
+              <input type="text" id="mobile-auth-email" required style="height: 44px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0 12px; font-family: var(--font-mono); font-size: 0.9rem;" placeholder="user@wade-usa.com" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-sub); font-weight: 800;">PASSWORD</label>
+              <input type="password" id="mobile-auth-password" required style="height: 44px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0 12px; font-family: var(--font-mono); font-size: 0.9rem;" placeholder="••••••••" />
+            </div>
+            <div id="auth-error-msg" style="color: var(--accent-red); font-family: var(--font-mono); font-size: 0.75rem; display: none; line-height: 1.4; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 8px 12px; border-radius: 6px;"></div>
+            <button type="submit" id="btn-submit-auth" class="btn btn-primary" style="height: 46px; margin-top: 4px;">
+              🚀 Sign In to Iter Viae
+            </button>
+            <div style="text-align: center; margin-top: 4px;">
+              <button type="button" id="btn-toggle-auth-mode" style="background: none; border: none; color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; text-decoration: underline;">
+                Need an account? Create one here
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+    <!-- Combined Cockpit Menu Modal -->
+    <div class="modal-overlay" id="mobile-glove-modal" style="display: none;">
+      <div class="modal-card cockpit-menu-card">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">⚙️ COCKPIT MENU</h2>
+            <p class="modal-subtitle">Expedition settings & controls</p>
+          </div>
+          <button class="btn-icon" id="glove-modal-close">&times;</button>
+        </div>
+        <div class="modal-body cockpit-menu-body">
+          <button id="glove-btn-trips" class="menu-item-btn menu-btn-trips">
+            <span class="menu-item-icon">📂</span>
+            <div class="menu-item-text">
+              <span class="menu-item-title">EXPEDITION ROUTES LOGBOOK</span>
+              <span class="menu-item-sub">Load saved routes & waypoints</span>
+            </div>
+          </button>
+
+          <button id="glove-btn-full" class="menu-item-btn menu-btn-fullscreen">
+            <span class="menu-item-icon">📺</span>
+            <div class="menu-item-text">
+              <span class="menu-item-title">TOGGLE FULLSCREEN</span>
+              <span class="menu-item-sub">Expand cockpit to full screen</span>
+            </div>
+          </button>
+
+          <button id="glove-btn-auth" class="menu-item-btn menu-btn-auth">
+            <span class="menu-item-icon">🔑</span>
+            <div class="menu-item-text">
+              <span class="menu-item-title" id="glove-auth-label">SIGN IN / ACCOUNT</span>
+              <span class="menu-item-sub">Manage PocketBase cloud account</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

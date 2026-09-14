@@ -386,22 +386,30 @@ if (btnNavDashboard) btnNavDashboard.addEventListener("click", () => router.navi
 if (btnBackToDashboard) btnBackToDashboard.addEventListener("click", () => router.navigateToDashboard());
 if (headerBrandLink) headerBrandLink.addEventListener("click", () => router.navigateToDashboard());
 
-// Intercept in-page section anchor links (#section-...) to prevent SPA hash routing collisions
+// Intercept in-page section & subsection anchor links (#...) to prevent SPA hash routing collisions
 document.addEventListener("click", (e) => {
   const target = (e.target as HTMLElement).closest("a");
   if (!target) return;
 
   const href = target.getAttribute("href");
-  if (href && (href.startsWith("#section-") || href.startsWith("#"))) {
+  if (href && href.startsWith("#")) {
     const rawTarget = href.replace(/^#\/?/, "");
-    const sectionId = rawTarget.startsWith("section-") ? rawTarget : `section-${rawTarget}`;
-    const targetEl = document.getElementById(sectionId);
+    if (!rawTarget) return;
+
+    // Check for exact element ID first (e.g. #table-tactics or #custom-line), then fallback to section card ID
+    const targetEl =
+      document.getElementById(rawTarget) ||
+      document.getElementById(`section-${rawTarget}`);
+
     if (targetEl) {
       e.preventDefault();
       targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
 
-      // Highlight matching TOC chip in sidebar
-      if (stickyTocBar) {
+      const sectionId = targetEl.id.startsWith("section-")
+        ? targetEl.id
+        : targetEl.closest(".field-manual-section-card")?.id;
+
+      if (sectionId && stickyTocBar) {
         stickyTocBar.querySelectorAll(".toc-chip").forEach((c) => c.classList.remove("active"));
         const activeChip = stickyTocBar.querySelector(`[data-target="${sectionId}"]`);
         if (activeChip) activeChip.classList.add("active");

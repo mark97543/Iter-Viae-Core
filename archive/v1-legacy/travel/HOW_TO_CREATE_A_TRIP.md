@@ -172,7 +172,45 @@ You can paste raw HTML tables directly inside any `.md` file for advanced format
 
 ---
 
-## ⚡ Step 4: Save & View
+## 🔗 Step 4: Linking Between Sections, Subsections & Lines
+
+You can link across any `.md` file in a trip to jump directly to main sections, sub-headings, or specific line items:
+
+### 1. Linking to Main Sections
+To link to a main section defined in `trip.json` (such as To Do, Thai Food, Packing, or Day 1), use `#slug`:
+
+```markdown
+- [View To Do List](#todo)
+- [Check Out Thai Food Guide](#thai-food)
+- [See Packing Loadouts](#packing)
+- [Jump to Day 1](#day-1)
+```
+
+### 2. Linking to Subsections (Headers)
+Any markdown header line (`## Header Title` or `### Header Title`) automatically generates a lowercase dashed ID:
+
+```markdown
+- [Table Tactics](#table-tactics)               <-- Links to: ## Table Tactics
+- [Must-Try Thai Foods](#thai-foods-must-try)   <-- Links to: ## Thai Foods Must Try
+- [Beer Rosetta & Ice Rules](#beer)             <-- Links to: ## Beer
+```
+
+### 3. Linking to a Specific Line or Item
+To jump directly to a specific bullet point or line that doesn't have a header, add a target tag `<a id="custom-id"></a>` next to the line:
+
+**In Target File (e.g., `todo.md`):**
+```markdown
+- [ ] Singapore Arrival Card <a id="sg-arrival-card"></a>
+```
+
+**In Source File (e.g., `updates.md`):**
+```markdown
+- See instructions for [Singapore Arrival Card](#sg-arrival-card)
+```
+
+---
+
+## ⚡ Step 5: Save & View
 
 1. Save your `trip.json` and `.md` files in your new `src/trips/<slug>/` folder.
 2. The site will instantly hot-reload and build your trip page at `https://travel.wade-usa.com/#/trips/<slug>`.

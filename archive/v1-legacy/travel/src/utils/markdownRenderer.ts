@@ -209,10 +209,19 @@ export function renderMarkdown(markdown: string): string {
   // Standalone callout lines starting with bold labels
   html = html.replace(/^(\*\*(?:Fun Fact|Field Tip|Note|Warning|Tip):?\*\*.*)$/gm, '<div class="field-callout-box">$1</div>');
 
-  // 3. Headers
-  html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+  // Helper to slugify header text for subsection anchor links
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/<[^>]*>/g, '')
+      .replace(/[^\w\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
+
+  // 3. Headers (with auto-generated anchor IDs for subsection linking)
+  html = html.replace(/^### (.*$)/gm, (_m, title) => `<h3 id="${slugify(title)}">${title}</h3>`);
+  html = html.replace(/^## (.*$)/gm, (_m, title) => `<h2 id="${slugify(title)}">${title}</h2>`);
+  html = html.replace(/^# (.*$)/gm, (_m, title) => `<h1 id="${slugify(title)}">${title}</h1>`);
 
   // 4. Parse Lists with nesting, checkbox & lookahead support
   html = parseListsInMarkdown(html);

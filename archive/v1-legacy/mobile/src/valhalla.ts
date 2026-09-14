@@ -29,29 +29,3 @@ export function formatDuration(seconds: number): string {
   return `${minutes}M`;
 }
 
-export async function fetchExpeditionRoute(locations: Array<{ lat: number; lon: number }>) {
-  if (locations.length < 2) return null;
-
-  const body = {
-    locations: locations.map((loc) => ({ lat: loc.lat, lon: loc.lon })),
-    costing: "auto",
-    units: "miles"
-  };
-
-  try {
-    const res = await fetch("https://valhalla1.openstreetmap.de/route", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    if (!res.ok) {
-      throw new Error(`Valhalla API error: ${res.status}`);
-    }
-
-    return await res.json();
-  } catch (err) {
-    console.warn("Failed to fetch Valhalla route, falling back to straight lines:", err);
-    return null;
-  }
-}

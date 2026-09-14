@@ -14,6 +14,12 @@
   },
   "sections": [
     {
+      "slug": "updates",
+      "title": "Updates",
+      "icon": "📅",
+      "file": "updates.md"
+    },
+    {
       "slug": "overview",
       "title": "Trip Overview",
       "icon": "🏠",

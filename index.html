@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITER VIAE — Tactical Travel & Expedition Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800;900&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header Banner -->
+      <header class="main-header">
+        <div class="header-container">
+          <div class="brand-group">
+            <span class="brand-logo">🧭</span>
+            <div class="brand-titles">
+              <h1 class="brand-name">ITER VIAE</h1>
+              <span class="brand-sub">TACTICAL TRAVEL & EXPEDITION PLATFORM</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button id="btn-header-auth" class="btn btn-outline">
+              <span class="btn-icon">🔑</span>
+              <span id="header-auth-label">SIGN IN</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Hero Section -->
+      <main class="main-content">
+        <section class="hero-section">
+          <div class="hero-badge">🏍️ ENGINE DRIVEN TRAVEL PLATFORM</div>
+          <h1 class="hero-headline">ENGINEERED FOR THE OPEN ROAD.</h1>
+          <p class="hero-subtext">
+            Plan overland expeditions and road trips on desktop. Sync instantly to high-contrast mobile handlebar cockpits. Track waypoints with zero clutter.
+          </p>
+
+          <div class="hero-cta-group">
+            <button id="btn-launch-cockpit" class="btn btn-primary btn-hero">
+              <span>🚀 LAUNCH MOBILE COCKPIT</span>
+            </button>
+            <button id="btn-hero-auth" class="btn btn-secondary btn-hero">
+              <span class="btn-icon">🔑</span>
+              <span id="hero-auth-label">SIGN IN TO CLOUD</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Feature Grid -->
+        <section class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🗺️</div>
+            <h3 class="feature-title">Valhalla Route Planning</h3>
+            <p class="feature-desc">
+              Drag-and-drop waypoint builder powered by Valhalla turn-by-turn routing, fuel stop estimation, and budget tracking.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3 class="feature-title">Tactical Handlebar HUD</h3>
+            <p class="feature-desc">
+              Single-focus Active Stop Page View built for motorcycle mounts. One-tap "NEXT STOP" check-off with Google Maps deep-linking.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">☁️</div>
+            <h3 class="feature-title">PocketBase Cloud Sync</h3>
+            <p class="feature-desc">
+              Private, single sign-on user cloud backup. Saved routes sync seamlessly between desktop travel planner and mobile HUD.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <!-- PocketBase Auth Modal -->
+      <div class="modal-overlay" id="auth-modal" style="display: none;">
+        <div class="modal-card auth-modal-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title" id="auth-modal-title">ITER VIAE ACCOUNT AUTH</h2>
+              <p class="modal-subtitle" id="auth-modal-subtitle">Sign in to access your saved expedition routes</p>
+            </div>
+            <button class="btn-icon-close" id="auth-modal-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="login-form">
+              <div class="form-group">
+                <label>EMAIL OR USERNAME</label>
+                <input type="text" id="auth-email" required placeholder="user@wade-usa.com" />
+              </div>
+              <div class="form-group">
+                <label>PASSWORD</label>
+                <input type="password" id="auth-password" required placeholder="••••••••" />
+              </div>
+              <div id="auth-error-msg" class="auth-error" style="display: none;"></div>
+              <button type="submit" id="btn-submit-auth" class="btn btn-primary btn-full">
+                🚀 Sign In to Iter Viae
+              </button>
+              <div class="form-toggle-row">
+                <button type="button" id="btn-toggle-auth-mode">
+                  Need an account? Create one here
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Dashboard Modal -->
+      <div class="modal-overlay" id="dashboard-modal" style="display: none;">
+        <div class="modal-card dashboard-modal-card">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">👤 EXPEDITION PROFILE</h2>
+              <p class="modal-subtitle" id="dash-user-email">Logged in as rider</p>
+            </div>
+            <button class="btn-icon-close" id="dash-modal-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="dashboard-user-box">
+              <div class="user-avatar-badge">🏍️</div>
+              <div class="user-info-text">
+                <h3 id="dash-user-name">RIDER ACCOUNT</h3>
+                <span class="user-status-tag">ACTIVE CLOUD SESSION</span>
+              </div>
+            </div>
+
+            <div class="dashboard-section-title">YOUR EXPEDITION ROUTES</div>
+            <div id="user-trips-list" class="user-trips-list">
+              <div class="empty-trips-msg">No saved trips found. Create a route to sync to mobile cockpit.</div>
+            </div>
+
+            <button id="btn-user-logout" class="btn btn-danger btn-full" style="margin-top: 16px;">
+              🚪 Sign Out of Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
