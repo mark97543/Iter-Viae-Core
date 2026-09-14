@@ -164,14 +164,41 @@ export async function leaveSharedTripRecord(tripId: string): Promise<boolean> {
   if (!user || !pb.authStore.isValid) {
     throw new Error("Authentication required to leave shared trip.");
   }
+
   try {
     const trip = await pb.collection("trips").getOne<SavedTripRecord>(tripId, { requestKey: null });
-    const updatedShared = (trip.shared || []).filter((id) => id !== user.id);
-    await pb.collection("trips").update(tripId, { shared: updatedShared });
+    
+    // Filter out the current user's ID, email, or username from the shared list
+    const currentUserId = user.id;
+    const currentUserEmail = user.email ? user.email.toLowerCase() : "";
+    const currentUsername = user.username ? user.username.toLowerCase() : "";
+
+    const updatedShared = (trip.shared || []).filter((item: any) => {
+      const itemStr = typeof item === "string" ? item : (item?.id || item?.email || "");
+      const normalized = String(itemStr).toLowerCase().trim();
+      return (
+        normalized !== currentUserId.toLowerCase() &&
+        normalized !== currentUserEmail &&
+        normalized !== currentUsername
+      );
+    });
+
+    await pb.collection("trips").update(tripId, { shared: updatedShared }, { requestKey: null });
     return true;
   } catch (err: any) {
-    console.error("Failed to leave shared trip:", err);
-    throw new Error(err?.message || "Failed to remove self from shared trip.");
+    console.error("Failed to leave shared trip error details:", err?.data || err);
+    if (err?.status === 403) {
+      throw new Error("Permission denied by PocketBase Update Rule. Please ensure 'trips' Update Rule is set to: user = @request.auth.id || shared ~ @request.auth.id");
+    }
+    let detail = err?.message || "Failed to remove self from shared trip.";
+    if (err?.data && typeof err.data === "object") {
+      const parts: string[] = [];
+      for (const k of Object.keys(err.data)) {
+        if (err.data[k]?.message) parts.push(`${k}: ${err.data[k].message}`);
+      }
+      if (parts.length > 0) detail += ` (${parts.join(", ")})`;
+    }
+    throw new Error(detail);
   }
 }
 

@@ -91,7 +91,8 @@ async function renderTripsWorkspace() {
 
   tripsGrid.innerHTML = "";
   trips.forEach((t) => {
-    const isOwner = user && t.user === user.id;
+    const ownerId = typeof t.user === "object" ? (t.user as any)?.id : t.user;
+    const isOwner = Boolean(user && ownerId === user.id);
     const isShared = t.shared && t.shared.length > 0;
     const isSelected = activeSelectedTripId === t.id;
 
