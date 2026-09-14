@@ -59,3 +59,16 @@ export async function fetchUserTrips(): Promise<SavedTripRecord[]> {
     return [];
   }
 }
+
+export async function fetchLatestTripForCard(): Promise<SavedTripRecord | null> {
+  try {
+    const records = await pb.collection("trips").getList<SavedTripRecord>(1, 1, {
+      sort: "-updated",
+      requestKey: null
+    });
+    return records.items.length > 0 ? records.items[0] : null;
+  } catch (err) {
+    console.warn("Failed to fetch DB item for centered card:", err);
+    return null;
+  }
+}

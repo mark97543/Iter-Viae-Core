@@ -143,52 +143,79 @@ html, body {
   gap: 60px;
 }
 
-/* Hero Section */
-.hero-section {
-  text-align: center;
+/* Centered DB Card Layout */
+.centered-card-wrapper {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 20px;
-  padding: 40px 20px;
-  background: linear-gradient(180deg, rgba(30,41,59,0.3) 0%, rgba(7,10,18,0) 100%);
-  border-radius: 24px;
-  border: 1px solid rgba(255,255,255,0.05);
+  min-height: 60vh;
+  width: 100%;
 }
 
-.hero-badge {
+.centered-db-card {
+  width: 100%;
+  max-width: 580px;
+  background: linear-gradient(145deg, #0f172a, #16243d);
+  border: 2px solid var(--border-color);
+  border-radius: 22px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.centered-db-card:hover {
+  border-color: var(--accent-cyan);
+}
+
+.db-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.db-card-badge {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 800;
   color: var(--accent-cyan);
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  padding: 6px 14px;
-  border-radius: 20px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 4px 12px;
+  border-radius: 8px;
   letter-spacing: 0.06em;
 }
 
-.hero-headline {
-  font-size: 2.8rem;
+.db-card-updated {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.db-card-title {
+  font-size: 1.8rem;
   font-weight: 900;
   color: #ffffff;
-  letter-spacing: 0.04em;
-  max-width: 800px;
-  line-height: 1.15;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
 }
 
-.hero-subtext {
-  font-size: 1.1rem;
+.db-card-intro {
+  font-size: 0.98rem;
   color: var(--text-sub);
-  max-width: 650px;
+  line-height: 1.65;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  padding: 16px;
+  border-radius: 12px;
 }
 
-.hero-cta-group {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 10px;
+.db-card-actions {
+  margin-top: 8px;
 }
 
 /* Feature Grid */
