@@ -357,66 +357,78 @@ function setupEventListeners() {
 }
 
   // Auth Modal Handlers
-  authCloseBtn.addEventListener("click", () => closeAuthModal());
-  authTabLogin.addEventListener("click", () => setAuthMode(false));
-  authTabRegister.addEventListener("click", () => setAuthMode(true));
+  if (authCloseBtn) authCloseBtn.addEventListener("click", () => closeAuthModal());
+  if (authTabLogin) authTabLogin.addEventListener("click", () => setAuthMode(false));
+  if (authTabRegister) authTabRegister.addEventListener("click", () => setAuthMode(true));
 
-  authForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    authErrorMsg.innerText = "";
-    authSubmitBtn.disabled = true;
-    authSubmitBtn.innerText = "Processing...";
-
-    const email = authEmailInput.value.trim();
-    const pass = authPasswordInput.value.trim();
-    const name = authNameInput.value.trim();
-
-    try {
-      if (isRegisterMode) {
-        await registerUser(email, pass, name);
-      } else {
-        await loginUser(email, pass);
+  if (authForm) {
+    authForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (authErrorMsg) authErrorMsg.innerText = "";
+      if (authSubmitBtn) {
+        authSubmitBtn.disabled = true;
+        authSubmitBtn.innerText = "Processing...";
       }
 
-      closeAuthModal();
-      renderAuthStatus();
-      await loadAndRenderTrips();
-    } catch (err: any) {
-      authErrorMsg.innerText = err.message || "Authentication failed.";
-    } finally {
-      authSubmitBtn.disabled = false;
-      authSubmitBtn.innerText = isRegisterMode ? "Register Account" : "Log In";
-    }
-  });
+      const email = authEmailInput?.value.trim() || "";
+      const pass = authPasswordInput?.value.trim() || "";
+      const name = authNameInput?.value.trim() || "";
+
+      try {
+        if (isRegisterMode) {
+          await registerUser(email, pass, name);
+        } else {
+          await loginUser(email, pass);
+        }
+
+        closeAuthModal();
+        renderAuthStatus();
+        await loadAndRenderTrips();
+      } catch (err: any) {
+        if (authErrorMsg) authErrorMsg.innerText = err.message || "Authentication failed.";
+      } finally {
+        if (authSubmitBtn) {
+          authSubmitBtn.disabled = false;
+          authSubmitBtn.innerText = isRegisterMode ? "Register Account" : "Log In";
+        }
+      }
+    });
+  }
 
   // Share Modal Handlers
-  shareCloseBtn.addEventListener("click", () => closeShareModal());
-  shareCancelBtn.addEventListener("click", () => closeShareModal());
+  if (shareCloseBtn) shareCloseBtn.addEventListener("click", () => closeShareModal());
+  if (shareCancelBtn) shareCancelBtn.addEventListener("click", () => closeShareModal());
 
-  shareSubmitBtn.addEventListener("click", async () => {
-    if (!activeShareTripId) return;
-    const email = shareEmailInput.value.trim();
-    if (!email) {
-      shareFeedbackMsg.innerText = "Please enter an email address.";
-      shareFeedbackMsg.className = "share-feedback error";
-      return;
-    }
+  if (shareSubmitBtn) {
+    shareSubmitBtn.addEventListener("click", async () => {
+      if (!activeShareTripId) return;
+      const email = shareEmailInput?.value.trim() || "";
+      if (!email) {
+        if (shareFeedbackMsg) {
+          shareFeedbackMsg.innerText = "Please enter an email address.";
+          shareFeedbackMsg.className = "share-feedback error";
+        }
+        return;
+      }
 
-    shareSubmitBtn.disabled = true;
-    shareSubmitBtn.innerText = "Sharing...";
+      shareSubmitBtn.disabled = true;
+      shareSubmitBtn.innerText = "Sharing...";
 
-    const res = await shareTripByEmail(activeShareTripId, email);
+      const res = await shareTripByEmail(activeShareTripId, email);
 
-    shareSubmitBtn.disabled = false;
-    shareSubmitBtn.innerText = "Share Trip";
+      shareSubmitBtn.disabled = false;
+      shareSubmitBtn.innerText = "Share Trip";
 
-    shareFeedbackMsg.innerText = res.message;
-    shareFeedbackMsg.className = res.success ? "share-feedback success" : "share-feedback error";
+      if (shareFeedbackMsg) {
+        shareFeedbackMsg.innerText = res.message;
+        shareFeedbackMsg.className = res.success ? "share-feedback success" : "share-feedback error";
+      }
 
-    if (res.success) {
-      shareEmailInput.value = "";
-    }
-  });
+      if (res.success && shareEmailInput) {
+        shareEmailInput.value = "";
+      }
+    });
+  }
 }
 
 function openCreateTripModal() {
