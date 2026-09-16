@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Multi-Trip Engine — Direct Trip Routing & Field Manuals</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="travel-app-body">
+
+    <!-- Top HUD Header Banner -->
+    <header class="hud-banner">
+      <div class="dash-app-branding" id="header-brand-link" title="Travel Book Dashboard">
+        <span class="dash-app-logo">✈️</span>
+        <div class="dash-app-titles">
+          <h1 class="dash-app-name">FAMILY TRAVEL BOOK</h1>
+          <span class="dash-app-sub">travel.wade-usa.com</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="app-main-container">
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 1: DASHBOARD (#/)                                               -->
+      <!-- ==================================================================== -->
+      <section id="dashboard-view" class="view-section">
+
+        <!-- Filter / Search Controls Bar -->
+        <div class="library-toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="trip-search-input" placeholder="Search trips by slug, destination, or title..." />
+          </div>
+          <div class="filter-status-group">
+            <button class="filter-btn active" data-status="all">ALL TRIPS</button>
+            <button class="filter-btn" data-status="active">🟢 ACTIVE</button>
+            <button class="filter-btn" data-status="upcoming">🔵 UPCOMING</button>
+            <button class="filter-btn" data-status="archive">🟠 ARCHIVE</button>
+          </div>
+        </div>
+
+        <!-- Trip Slug Cards Grid -->
+        <div class="slug-cards-grid" id="slug-cards-grid">
+          <!-- Dynamically populated via main.ts -->
+        </div>
+      </section>
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 2: DIRECT TRIP PAGE FIELD MANUAL VIEW (#/trips/:slug)           -->
+      <!-- ==================================================================== -->
+      <section id="trip-detail-view" class="view-section" style="display: none;">
+        <!-- Navigation Back & Quick Direct Link Bar -->
+        <div class="detail-nav-bar">
+          <button id="btn-back-to-dashboard" class="btn-back">
+            &larr; Back to Master Dashboard
+          </button>
+        </div>
+
+        <!-- Dynamic Slug Header Container -->
+        <div id="trip-header-container">
+          <!-- Populated by main.ts -->
+        </div>
+
+        <!-- 2-Column Field Book Layout (Left Sidebar TOC + Main Content Column) -->
+        <div class="field-book-layout">
+          <!-- Left Sidebar Table of Contents -->
+          <aside id="sticky-toc-bar" class="sticky-toc-sidebar">
+            <!-- Populated dynamically by main.ts -->
+          </aside>
+
+          <!-- Main Content Column -->
+          <div class="field-book-main-col">
+            <!-- Field Manual Continuous Book Sections -->
+            <div id="field-manual-sections-container" class="field-manual-sections-container">
+              <!-- Populated dynamically by main.ts -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

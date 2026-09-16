@@ -1,0 +1,3 @@
+This entire 24-hour calendar day does not exist. It has been completely vaporized by the International Date Line somewhere over the empty expanse of the Pacific Ocean.
+You board the aircraft late Thursday night, you close your eyes, you wake up in an aluminum tube smelling like instant coffee, and the calendar on your phone magically displays Saturday.
+Some theoretical physicist time-travel nonsense happens between California and Asia, and honestly, the less you think about it, the better. You will never get Friday back. Do not attempt to calculate the hours in your head, do not ask the flight attendant where Friday went, and do not try to file a lost-property report with the government. Friday is gone forever. Accept the void and hydrate.

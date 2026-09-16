@@ -1,0 +1,179 @@
+{
+  "slug": "thailand-feb-2027",
+  "title": "Thailand Feb 2027",
+  "subtitle": "Trip to Thailand for parents to meet Fa",
+  "destination": "Thailand",
+  "dates": "Feb 17, 2027 through Mar 6, 2027",
+  "status": "upcoming",
+  "coverEmoji": "🏝️",
+  "coverGradient": "linear-gradient(135deg, #0284c7, #3b82f6)",
+  "summary": "Trip for my Mother and Father to Meet Fa and her family, This is the first trip for Dad and his first trip in over 40 years leaving the United States.",
+  "stats": {
+    "days": 17,
+    "travelers": 3
+  },
+  "sections": [
+    {
+      "slug": "updates",
+      "title": "Updates",
+      "icon": "📅",
+      "file": "updates.md"
+    },
+    {
+      "slug": "overview",
+      "title": "Trip Overview",
+      "icon": "🏠",
+      "file": "overview.md"
+    },
+    {
+      "slug": "day-1",
+      "title": "Day 1: Wednesday 2/17/27",
+      "icon": "✈️",
+      "file": "day-1.md"
+    },
+    {
+      "slug": "day-2",
+      "title": "Day 2: Thursday 2/18/27",
+      "icon": "✈️",
+      "file": "day-2.md"
+    },
+    {
+      "slug": "day-3",
+      "title": "Day 3: Friday 2/19/27",
+      "icon": "🌀",
+      "file": "day-3.md"
+    },
+    {
+      "slug": "day-4",
+      "title": "Day 4: Saturday 2/20/27",
+      "icon": "🇸🇬✈️",
+      "file": "day-4.md"
+    },
+    {
+      "slug": "day-5",
+      "title": "Day 5: Sunday 2/21/27",
+      "icon": "🛺",
+      "file": "day-5.md"
+    },
+    {
+      "slug": "day-6",
+      "title": "Day 6: Monday 2/22/27",
+      "icon": "🏗️",
+      "file": "day-6.md"
+    },
+    {
+      "slug": "day-7",
+      "title": "Day 7: Tuesday 2/23/27",
+      "icon": "🚗",
+      "file": "day-7.md"
+    },
+    {
+      "slug": "day-8",
+      "title": "Day 8: Wednesday 2/24/27",
+      "icon": "🏠",
+      "file": "day-8.md"
+    },
+    {
+      "slug": "day-9",
+      "title": "Day 9: Thursday 2/25/27",
+      "icon": "🏠",
+      "file": "day-9.md"
+    },
+    {
+      "slug": "day-10",
+      "title": "Day 10: Friday 2/26/27",
+      "icon": "🏠",
+      "file": "day-10.md"
+    },
+    {
+      "slug": "day-11",
+      "title": "Day 11: Saturday 2/27/27",
+      "icon": "🚗",
+      "file": "day-11.md"
+    },
+    {
+      "slug": "day-12",
+      "title": "Day 12: Sunday 2/28/27",
+      "icon": "🏖️",
+      "file": "day-12.md"
+    },
+    {
+      "slug": "day-13",
+      "title": "Day 13: Monday 3/1/27",
+      "icon": "🏖️",
+      "file": "day-13.md"
+    },
+    {
+      "slug": "day-14",
+      "title": "Day 14: Tuesday 3/2/27",
+      "icon": "🚗",
+      "file": "day-14.md"
+    },
+    {
+      "slug": "day-15",
+      "title": "Day 15: Wednesday 3/3/27",
+      "icon": "🏠",
+      "file": "day-15.md"
+    },
+    {
+      "slug": "day-16",
+      "title": "Day 16: Thursday 3/4/27",
+      "icon": "🏠",
+      "file": "day-16.md"
+    },
+    {
+      "slug": "day-17",
+      "title": "Day 17: Friday 3/5/27",
+      "icon": "🏠",
+      "file": "day-17.md"
+    },
+    {
+      "slug": "day-18",
+      "title": "Day 18: Saturday 3/6/27",
+      "icon": "🏠",
+      "file": "day-18.md"
+    },
+    {
+      "slug": "packing",
+      "title": "Packing",
+      "icon": "📦",
+      "file": "packing.md"
+    },
+    {
+      "slug": "apps-to-download",
+      "title": "Apps to Download",
+      "icon": "📱",
+      "file": "apps-to-download.md"
+    },
+    {
+      "slug": "plane-amenities",
+      "title": "Plane Amenities",
+      "icon": "💺",
+      "file": "plane-amenities.md"
+    },
+    {
+      "slug": "airport-guide",
+      "title": "Airport Guide",
+      "icon": "🛄",
+      "file": "sin-airport-guide.md"
+    },
+    {
+      "slug": "thai-food",
+      "title": "Thai Food",
+      "icon": "🍜",
+      "file": "thai-food.md"
+    },
+    {
+      "slug": "emergency",
+      "title": "Emergency",
+      "icon": "🚨",
+      "file": "emergency.md"
+    },
+    {
+      "slug": "todo",
+      "title": "To Do",
+      "icon": "📋",
+      "file": "todo.md"
+    }
+  ]
+}
