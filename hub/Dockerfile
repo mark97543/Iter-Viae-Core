@@ -1,11 +1,11 @@
-# Step 1: Build Vite SPA
+# Step 1: Build Hub Vite SPA
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY package*.json ./
+COPY hub/package*.json ./
 RUN npm install
 
-COPY . .
+COPY hub/ ./
 RUN npm run build
 
 # Step 2: Serve static files via Nginx with SPA routing fallback
