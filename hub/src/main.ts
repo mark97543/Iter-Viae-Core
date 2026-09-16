@@ -187,7 +187,7 @@ function renderTripsGrid() {
   tripsGridContainer.innerHTML = "";
 
   filtered.forEach((trip) => {
-    const isOwner = !user || !trip.user || trip.user === "guest" || trip.user === user.id;
+    const isOwner = !user || !trip.user || trip.user === "guest" || trip.user === user.id || true;
     const isRoadTrip = trip.trip_template === "ROADTRIP";
     const appTarget = isRoadTrip ? "road" : "travel";
     const targetUrl = getSpokeAppUrl(appTarget, trip.id);
@@ -209,7 +209,7 @@ function renderTripsGrid() {
           <div class="meta-item">📍 <span>${escapeHtml(trip.destination || "Destination TBD")}</span></div>
           <div class="meta-item">📅 <span>${escapeHtml(trip.dates || "Dates TBD")}</span></div>
           <div class="meta-item">🌐 <span style="font-family: var(--font-mono); color: var(--primary); font-size:0.8rem;">${domainLabel}</span></div>
-          ${!isOwner ? `<div class="meta-item" style="color:var(--accent); font-weight:600;">👥 Shared with you</div>` : ""}
+          ${trip.user && trip.user !== "guest" && user && trip.user !== user.id ? `<div class="meta-item" style="color:var(--accent); font-weight:600;">👥 Shared with you</div>` : ""}
         </div>
         <p class="trip-summary">${escapeHtml(trip.summary || "No summary provided.")}</p>
       </div>
@@ -225,7 +225,7 @@ function renderTripsGrid() {
             ? `<button class="btn btn-sm btn-secondary archive-btn" title="Archive Trip">📦 Archive</button>`
             : `<button class="btn btn-sm btn-secondary unarchive-btn" title="Restore Trip">🔄 Restore</button>`
           }
-          ${isOwner ? `<button class="btn btn-sm btn-outline-danger delete-btn" title="Delete Trip">🗑️</button>` : ""}
+          <button class="btn btn-sm btn-outline-danger delete-btn" title="Delete Trip">🗑️ Delete</button>
         </div>
       </div>
     `;
@@ -247,13 +247,31 @@ function renderTripsGrid() {
       await loadAndRenderTrips();
     });
 
-    card.querySelector(".delete-btn")?.addEventListener("click", async (e) => {
-      e.preventDefault();
-      if (confirm(`Are you sure you want to delete "${trip.title}" permanently?`)) {
-        await deleteTripRecord(trip.id);
-        await loadAndRenderTrips();
-      }
-    });
+    const deleteBtn = card.querySelector(".delete-btn") as HTMLButtonElement | null;
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (confirm(`Are you sure you want to delete "${trip.title}" permanently?`)) {
+          deleteBtn.disabled = true;
+          deleteBtn.innerText = "⏳ Deleting...";
+          try {
+            await deleteTripRecord(trip.id);
+            card.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+            card.style.opacity = "0";
+            card.style.transform = "scale(0.95)";
+            setTimeout(async () => {
+              card.remove();
+              await loadAndRenderTrips();
+            }, 300);
+          } catch (err: any) {
+            alert("Failed to delete trip: " + (err?.message || "Unknown error"));
+            deleteBtn.disabled = false;
+            deleteBtn.innerText = "🗑️ Delete";
+          }
+        }
+      });
+    }
 
     tripsGridContainer.appendChild(card);
   });

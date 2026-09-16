@@ -215,7 +215,8 @@ export async function deleteTripRecord(tripId: string): Promise<boolean> {
   try {
     await pb.collection("trips").delete(tripId);
   } catch (err: any) {
-    console.warn("Could not delete from PocketBase trips collection:", err?.message || err);
+    console.error("Could not delete from PocketBase trips collection:", err?.message || err);
+    throw err;
   }
 
   // Clear any legacy local storage caches
