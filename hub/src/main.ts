@@ -334,7 +334,7 @@ function setupEventListeners() {
       closeCreateTripModal();
 
       const targetApp = template === "ROADTRIP" ? "road" : "travel";
-      window.location.href = getSpokeAppUrl(targetApp, createdRecord.id);
+      window.location.href = getSpokeAppUrl(targetApp, createdRecord.id, createdRecord.slug);
     } catch (err: any) {
       createTripError.innerText = err.message || "Failed to create trip.";
       createTripSubmitBtn.disabled = false;

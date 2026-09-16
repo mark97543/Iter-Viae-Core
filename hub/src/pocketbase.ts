@@ -11,6 +11,7 @@ export interface TripRecord {
   user: string;
   shared?: string[];
   title: string;
+  slug?: string;
   subtitle?: string;
   status: "active" | "archived";
   summary?: string;
@@ -21,6 +22,7 @@ export interface TripRecord {
   trip_template: TripTemplate;
   waypoints?: any[];
   bookings?: any[];
+  sections?: any[];
   packingList?: any[];
   dayNotes?: Record<string, string>;
   coverEmoji?: string;
@@ -48,7 +50,7 @@ function saveLocalTrips(trips: TripRecord[]) {
 }
 
 // Single Sign-On (SSO) URL generator
-export function getSpokeAppUrl(app: "road" | "travel", tripId?: string): string {
+export function getSpokeAppUrl(app: "road" | "travel", tripId?: string, slug?: string): string {
   const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
   let baseUrl = "";
 
@@ -60,6 +62,7 @@ export function getSpokeAppUrl(app: "road" | "travel", tripId?: string): string 
 
   const params = new URLSearchParams();
   if (tripId) params.set("tripId", tripId);
+  if (slug) params.set("slug", slug);
   if (pb.authStore.isValid && pb.authStore.token) {
     params.set("token", pb.authStore.token);
   }
@@ -165,14 +168,14 @@ export async function createTripRecord(data: {
   summary?: string;
 }): Promise<TripRecord> {
   const user = getCurrentUser();
-  if (!user) {
-    throw new Error("Must be logged in to create a trip.");
-  }
+  const userId = user?.id || "guest";
+  const generatedSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `trip-${Date.now()}`;
 
   const payload: any = {
-    user: user.id,
+    user: userId,
     shared: [],
     title: data.title.trim(),
+    slug: generatedSlug,
     destination: data.destination || "",
     startDate: data.startDate || "",
     endDate: data.endDate || "",
@@ -185,18 +188,32 @@ export async function createTripRecord(data: {
       { id: "wp-2", title: "Final Destination", lat: 36.1699, lon: -115.1398, type: "destination" }
     ] : [],
     bookings: data.trip_template === "TRAVEL" ? [
-      { id: "book-1", type: "flight", title: "Dummy Flight Booking", locationOrConfirmation: "CONF-DUMMY123", notes: "Placeholder travel booking" }
+      { id: "book-1", type: "flight", title: "Flight Operations & Staging", locationOrConfirmation: "CONF-STAGING123", notes: "Flight check-in 3 hours prior" }
     ] : [],
-    dayNotes: data.trip_template === "TRAVEL" ? { "1": "<h3>Day 1 - Travel Staging</h3><p>Dummy travel itinerary placeholder...</p>" } : {},
+    sections: data.trip_template === "TRAVEL" ? [
+      {
+        slug: "flight-ops",
+        title: "Flight Operations & Staging",
+        icon: "✈️",
+        content: "<p>Check-in opens 3 hours prior to departure. Ensure all physical passports have at least 6 months validity remaining from date of entry.</p>"
+      },
+      {
+        slug: "emergency-cards",
+        title: "Emergency Flashcards",
+        icon: "🚑",
+        content: "<p>Show these full-screen flashcards to taxi drivers, hotel concierges, or emergency responders.</p>"
+      }
+    ] : [],
+    dayNotes: data.trip_template === "TRAVEL" ? { "1": "<h3>Day 1 - Travel Staging</h3><p>Travel staging and arrival...</p>" } : {},
     coverEmoji: data.trip_template === "ROADTRIP" ? "🚗" : "✈️",
     coverGradient: data.trip_template === "ROADTRIP" ? "linear-gradient(135deg, #0ea5e9, #3b82f6)" : "linear-gradient(135deg, #06b6d4, #8b5cf6)",
   };
 
   try {
     const record = await pb.collection("trips").create(payload);
-    return { ...payload, id: record.id };
+    return { ...payload, id: record.id, slug: record.slug || generatedSlug };
   } catch (err: any) {
-    console.warn("Server collection 'trips' returned error/404. Creating trip in fallback local DB.");
+    console.warn("Server collection 'trips' returned error/404. Creating trip in fallback local DB:", err?.message || err);
     const localTrips = getLocalTrips();
     const newRecord: TripRecord = { ...payload, id: "trip_" + Date.now(), created: new Date().toISOString() };
     localTrips.unshift(newRecord);
