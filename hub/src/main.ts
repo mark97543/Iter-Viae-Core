@@ -187,7 +187,7 @@ function renderTripsGrid() {
   tripsGridContainer.innerHTML = "";
 
   filtered.forEach((trip) => {
-    const isOwner = trip.user === user?.id;
+    const isOwner = !user || !trip.user || trip.user === "guest" || trip.user === user.id;
     const isRoadTrip = trip.trip_template === "ROADTRIP";
     const appTarget = isRoadTrip ? "road" : "travel";
     const targetUrl = getSpokeAppUrl(appTarget, trip.id);

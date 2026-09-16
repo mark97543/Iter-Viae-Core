@@ -247,10 +247,22 @@ export async function unarchiveTripRecord(tripId: string): Promise<any> {
 export async function deleteTripRecord(tripId: string): Promise<boolean> {
   try {
     await pb.collection("trips").delete(tripId);
-  } catch (err) {}
+  } catch (err: any) {
+    console.warn("Could not delete from PocketBase trips collection:", err?.message || err);
+  }
   
   const localTrips = getLocalTrips().filter((t) => t.id !== tripId);
   saveLocalTrips(localTrips);
+
+  try {
+    const travelCache = localStorage.getItem("travel_pb_cache");
+    if (travelCache) {
+      const parsed = JSON.parse(travelCache);
+      const filtered = parsed.filter((t: any) => t.id !== tripId && t.slug !== tripId);
+      localStorage.setItem("travel_pb_cache", JSON.stringify(filtered));
+    }
+  } catch (e) {}
+
   return true;
 }
 
