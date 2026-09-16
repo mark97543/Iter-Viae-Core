@@ -1932,6 +1932,19 @@ del {
   color: #38bdf8;
 }
 
+.tiptap-btn.table-btn {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  font-size: 0.78rem;
+  padding: 4px 8px;
+}
+
+.tiptap-btn.table-btn:hover {
+  background: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+
 .tiptap-editor-element {
   min-height: 220px;
   max-height: 400px;
@@ -1941,6 +1954,35 @@ del {
   font-family: var(--font-family);
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+.tiptap-editor-element table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.tiptap-editor-element th,
+.tiptap-editor-element td {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 8px 12px;
+  position: relative;
+  vertical-align: top;
+}
+
+.tiptap-editor-element th {
+  background-color: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.tiptap-editor-element .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(139, 92, 246, 0.25);
+  pointer-events: none;
 }
 
 .tiptap-editor-element:focus {

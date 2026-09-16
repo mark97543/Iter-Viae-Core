@@ -580,8 +580,23 @@ function initTipTapEditor() {
             tiptapEditor
               .chain()
               .focus()
-              .insertContent('<table class="field-rosetta-table"><thead><tr><th>Header 1</th><th>Header 2</th></tr></thead><tbody><tr><td>Data 1</td><td>Data 2</td></tr></tbody></table>')
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
               .run();
+            break;
+          case "add-column-after":
+            tiptapEditor.chain().focus().addColumnAfter().run();
+            break;
+          case "delete-column":
+            tiptapEditor.chain().focus().deleteColumn().run();
+            break;
+          case "add-row-after":
+            tiptapEditor.chain().focus().addRowAfter().run();
+            break;
+          case "delete-row":
+            tiptapEditor.chain().focus().deleteRow().run();
+            break;
+          case "delete-table":
+            tiptapEditor.chain().focus().deleteTable().run();
             break;
           case "insert-flashcards":
             tiptapEditor
