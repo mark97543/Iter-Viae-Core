@@ -163,6 +163,13 @@ const sectionIconInput = document.getElementById("section-icon-input") as HTMLIn
 const sectionSlugInput = document.getElementById("section-slug-input") as HTMLInputElement | null;
 const sectionContentInput = document.getElementById("section-content-input") as HTMLTextAreaElement | null;
 
+function escapeHtml(str: string): string {
+  if (!str) return "";
+  return str.replace(/[&<>"']/g, (m) => {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m] || m;
+  });
+}
+
 // Toast Notification
 function showToast(message: string) {
   const container = document.getElementById("toast-container");
@@ -354,6 +361,8 @@ if (tripSearchInput) {
 
 // RENDER VIEW 2: DIRECT TRIP FIELD MANUAL VIEW
 function renderTripFieldManual(trip: Trip) {
+  document.title = `${trip.title} — Wade USA Field Manual`;
+
   // Render Header Card
   if (tripHeaderContainer) {
     const statusClass = `status-${trip.status}`;
@@ -361,17 +370,24 @@ function renderTripFieldManual(trip: Trip) {
       <div class="slug-header-card" style="background: ${trip.coverGradient}">
         <div class="slug-header-top">
           <span class="status-badge ${statusClass}">${trip.status}</span>
+          <button id="btn-edit-trip-header-card" class="btn-edit-header" title="Edit Trip Title & Subtitle">
+            ✏️ Edit Title
+          </button>
         </div>
-        <h1 class="slug-header-title">${trip.title}</h1>
-        <p class="slug-header-sub">${trip.subtitle || trip.destination}</p>
-        ${trip.summary ? `<p class="slug-header-summary">${trip.summary}</p>` : ""}
+        <h1 class="slug-header-title">${escapeHtml(trip.title)}</h1>
+        <p class="slug-header-sub">${escapeHtml(trip.subtitle || trip.destination)}</p>
+        ${trip.summary ? `<p class="slug-header-summary">${escapeHtml(trip.summary)}</p>` : ""}
         <div class="slug-header-stats-row">
-          <span class="header-stat-badge">🗓️ ${trip.dates}</span>
+          <span class="header-stat-badge">🗓️ ${escapeHtml(trip.dates)}</span>
           ${trip.stats?.days ? `<span class="header-stat-badge">📅 ${trip.stats.days} Days</span>` : ""}
           ${trip.stats?.travelers ? `<span class="header-stat-badge">👥 ${trip.stats.travelers} Travelers</span>` : ""}
         </div>
       </div>
     `;
+
+    tripHeaderContainer.querySelector("#btn-edit-trip-header-card")?.addEventListener("click", () => {
+      openTripHeaderModal();
+    });
   }
 
   // Provide default field book sections if none exist yet on trip
@@ -751,9 +767,72 @@ if (sectionForm) {
   });
 }
 
-// Top Nav & Back Handlers
+// Trip Header Modal References & Handlers
+const tripHeaderModal = document.getElementById("trip-header-modal");
+const btnOpenEditHeaderModal = document.getElementById("btn-open-edit-header-modal");
+const tripHeaderModalClose = document.getElementById("trip-header-modal-close");
+const tripHeaderModalCancel = document.getElementById("trip-header-modal-cancel");
+const tripHeaderForm = document.getElementById("trip-header-form") as HTMLFormElement | null;
+
+const editTripTitleInput = document.getElementById("edit-trip-title-input") as HTMLInputElement | null;
+const editTripSubtitleInput = document.getElementById("edit-trip-subtitle-input") as HTMLInputElement | null;
+const editTripDatesInput = document.getElementById("edit-trip-dates-input") as HTMLInputElement | null;
+const editTripSummaryInput = document.getElementById("edit-trip-summary-input") as HTMLTextAreaElement | null;
+
+function openTripHeaderModal() {
+  if (!currentTrip || !tripHeaderModal) return;
+  if (editTripTitleInput) editTripTitleInput.value = currentTrip.title || "";
+  if (editTripSubtitleInput) editTripSubtitleInput.value = currentTrip.subtitle || currentTrip.destination || "";
+  if (editTripDatesInput) editTripDatesInput.value = currentTrip.dates || "";
+  if (editTripSummaryInput) editTripSummaryInput.value = currentTrip.summary || "";
+
+  tripHeaderModal.style.display = "flex";
+  setTimeout(() => {
+    editTripTitleInput?.focus();
+  }, 100);
+}
+
+function closeTripHeaderModal() {
+  if (tripHeaderModal) tripHeaderModal.style.display = "none";
+}
+
+if (btnOpenEditHeaderModal) btnOpenEditHeaderModal.addEventListener("click", openTripHeaderModal);
+if (tripHeaderModalClose) tripHeaderModalClose.addEventListener("click", closeTripHeaderModal);
+if (tripHeaderModalCancel) tripHeaderModalCancel.addEventListener("click", closeTripHeaderModal);
+
+if (tripHeaderForm) {
+  tripHeaderForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentTrip) return;
+
+    const newTitle = editTripTitleInput?.value.trim() || currentTrip.title;
+    const newSubtitle = editTripSubtitleInput?.value.trim() || "";
+    const newDates = editTripDatesInput?.value.trim() || currentTrip.dates;
+    const newSummary = editTripSummaryInput?.value.trim() || "";
+
+    currentTrip.title = newTitle;
+    currentTrip.subtitle = newSubtitle;
+    currentTrip.destination = newSubtitle || currentTrip.destination;
+    currentTrip.dates = newDates;
+    currentTrip.summary = newSummary;
+
+    saveTripsState();
+    renderTripFieldManual(currentTrip);
+    closeTripHeaderModal();
+
+    showToast(`💾 Saving updated title "${newTitle}" to PocketBase DB...`);
+
+    const saved = await saveTripToPB(currentTrip);
+    if (saved) {
+      showToast(`✅ Trip title updated successfully on PocketBase DB!`);
+    } else {
+      showToast(`💾 Trip title updated.`);
+    }
+  });
+}
+
+// Top Nav Handlers
 if (btnNavDashboard) btnNavDashboard.addEventListener("click", () => router.navigateToDashboard());
-if (btnBackToDashboard) btnBackToDashboard.addEventListener("click", () => router.navigateToDashboard());
 if (headerBrandLink) headerBrandLink.addEventListener("click", () => router.navigateToDashboard());
 
 // Intercept in-page section & subsection anchor links (#...) to prevent SPA hash routing collisions

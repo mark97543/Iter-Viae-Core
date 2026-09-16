@@ -59,16 +59,18 @@
       <section id="trip-detail-view" class="view-section" style="display: none;">
         <!-- Navigation Back & Quick Direct Link Bar -->
         <div class="detail-nav-bar">
-          <button id="btn-back-to-dashboard" class="btn-back">
-            &larr; Back to Travel List
-          </button>
           <a id="btn-back-to-hub-detail" class="btn-back btn-hub-back" href="#" title="Return to Wade USA Master Hub Portal">
             <span>🏠</span>
             <span>Hub Portal</span>
           </a>
-          <button id="btn-open-add-section-modal" class="btn-add-section">
-            ➕ Add Topic Section
-          </button>
+          <div style="display: flex; gap: 0.6rem; align-items: center;">
+            <button id="btn-open-edit-header-modal" class="btn-back" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">
+              ✏️ Edit Trip Title & Header
+            </button>
+            <button id="btn-open-add-section-modal" class="btn-add-section">
+              ➕ Add Topic Section
+            </button>
+          </div>
         </div>
 
         <!-- Dynamic Slug Header Container -->
@@ -94,6 +96,38 @@
       </section>
 
     </main>
+
+    <!-- Edit Trip Title & Header Modal -->
+    <div id="trip-header-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">✏️ Edit Trip Title & Header</h2>
+          <button id="trip-header-modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <form id="trip-header-form" class="modal-form">
+          <div class="form-group">
+            <label for="edit-trip-title-input">Trip Title</label>
+            <input type="text" id="edit-trip-title-input" required placeholder="e.g. Thailand Expedition 2027" />
+          </div>
+          <div class="form-group">
+            <label for="edit-trip-subtitle-input">Subtitle / Destination</label>
+            <input type="text" id="edit-trip-subtitle-input" placeholder="e.g. Bangkok, Chiang Mai & Islands" />
+          </div>
+          <div class="form-group">
+            <label for="edit-trip-dates-input">Dates</label>
+            <input type="text" id="edit-trip-dates-input" placeholder="e.g. Feb 10 - Feb 28, 2027" />
+          </div>
+          <div class="form-group">
+            <label for="edit-trip-summary-input">Summary / Overview</label>
+            <textarea id="edit-trip-summary-input" rows="3" placeholder="Brief summary of the travel itinerary..."></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="trip-header-modal-cancel" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">💾 Save Title & Header</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Add / Edit Topic Section Modal -->
     <div id="section-modal" class="modal-backdrop" style="display: none;">
