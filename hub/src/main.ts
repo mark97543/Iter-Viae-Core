@@ -260,19 +260,23 @@ function renderTripsGrid() {
 }
 
 function setupEventListeners() {
-  tabActiveTrips.addEventListener("click", () => {
-    currentTab = "active";
-    tabActiveTrips.classList.add("active");
-    tabArchiveTrips.classList.remove("active");
-    loadAndRenderTrips();
-  });
+  if (tabActiveTrips) {
+    tabActiveTrips.addEventListener("click", () => {
+      currentTab = "active";
+      tabActiveTrips.classList.add("active");
+      if (tabArchiveTrips) tabArchiveTrips.classList.remove("active");
+      loadAndRenderTrips();
+    });
+  }
 
-  tabArchiveTrips.addEventListener("click", () => {
-    currentTab = "archived";
-    tabArchiveTrips.classList.add("active");
-    tabActiveTrips.classList.remove("active");
-    loadAndRenderTrips();
-  });
+  if (tabArchiveTrips) {
+    tabArchiveTrips.addEventListener("click", () => {
+      currentTab = "archived";
+      tabArchiveTrips.classList.add("active");
+      if (tabActiveTrips) tabActiveTrips.classList.remove("active");
+      loadAndRenderTrips();
+    });
+  }
 
   filterPills.forEach((pill) => {
     pill.addEventListener("click", () => {
@@ -283,31 +287,40 @@ function setupEventListeners() {
     });
   });
 
-  searchInput.addEventListener("input", (e) => {
-    searchQuery = (e.target as HTMLInputElement).value;
-    renderTripsGrid();
-  });
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      searchQuery = (e.target as HTMLInputElement).value;
+      renderTripsGrid();
+    });
+  }
 
-  btnCreateTripMain.addEventListener("click", () => openCreateTripModal());
+  if (btnCreateTripMain) btnCreateTripMain.addEventListener("click", () => openCreateTripModal());
 
-  typeCardRoad.addEventListener("click", () => {
-    typeCardRoad.classList.add("selected");
-    typeCardTravel.classList.remove("selected");
-    (typeCardRoad.querySelector("input") as HTMLInputElement).checked = true;
-  });
+  if (typeCardRoad) {
+    typeCardRoad.addEventListener("click", () => {
+      typeCardRoad.classList.add("selected");
+      if (typeCardTravel) typeCardTravel.classList.remove("selected");
+      const radio = typeCardRoad.querySelector("input") as HTMLInputElement | null;
+      if (radio) radio.checked = true;
+    });
+  }
 
-  typeCardTravel.addEventListener("click", () => {
-    typeCardTravel.classList.add("selected");
-    typeCardRoad.classList.remove("selected");
-    (typeCardTravel.querySelector("input") as HTMLInputElement).checked = true;
-  });
+  if (typeCardTravel) {
+    typeCardTravel.addEventListener("click", () => {
+      typeCardTravel.classList.add("selected");
+      if (typeCardRoad) typeCardRoad.classList.remove("selected");
+      const radio = typeCardTravel.querySelector("input") as HTMLInputElement | null;
+      if (radio) radio.checked = true;
+    });
+  }
 
-  createTripCloseBtn.addEventListener("click", () => closeCreateTripModal());
-  createTripCancelBtn.addEventListener("click", () => closeCreateTripModal());
+  if (createTripCloseBtn) createTripCloseBtn.addEventListener("click", () => closeCreateTripModal());
+  if (createTripCancelBtn) createTripCancelBtn.addEventListener("click", () => closeCreateTripModal());
 
-  createTripForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    createTripError.innerText = "";
+  if (createTripForm) {
+    createTripForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (createTripError) createTripError.innerText = "";
 
     const title = newTripTitle.value.trim();
     if (!title) {
@@ -341,6 +354,7 @@ function setupEventListeners() {
       createTripSubmitBtn.innerText = "Create & Launch App 🚀";
     }
   });
+}
 
   // Auth Modal Handlers
   authCloseBtn.addEventListener("click", () => closeAuthModal());

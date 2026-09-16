@@ -189,12 +189,9 @@ export async function createTripRecord(data: {
   summary?: string;
 }): Promise<TripRecord> {
   const user = getCurrentUser();
-  const userId = user?.id || "guest";
   const generatedSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `trip-${Date.now()}`;
 
   const payload: any = {
-    user: userId,
-    shared: [],
     title: data.title.trim(),
     slug: generatedSlug,
     destination: data.destination || "",
@@ -230,11 +227,15 @@ export async function createTripRecord(data: {
     coverGradient: data.trip_template === "ROADTRIP" ? "linear-gradient(135deg, #0ea5e9, #3b82f6)" : "linear-gradient(135deg, #06b6d4, #8b5cf6)",
   };
 
+  if (user?.id) {
+    payload.user = user.id;
+  }
+
   try {
     const record = await pb.collection("trips").create(payload);
     return { ...payload, id: record.id, slug: record.slug || generatedSlug };
   } catch (err: any) {
-    console.warn("Server collection 'trips' returned error/404. Creating trip in fallback local DB:", err?.message || err);
+    console.warn("Server collection 'trips' returned error. Creating trip in fallback local DB:", err?.message || err);
     const localTrips = getLocalTrips();
     const newRecord: TripRecord = { ...payload, id: "trip_" + Date.now(), created: new Date().toISOString() };
     localTrips.unshift(newRecord);
