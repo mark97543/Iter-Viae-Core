@@ -86,6 +86,7 @@ async function init() {
 }
 
 function renderAuthStatus() {
+  if (!authStatusContainer) return;
   if (isUserAuthenticated()) {
     const user = getCurrentUser();
     const displayName = user?.name || user?.username || user?.email || "Traveler";
@@ -109,22 +110,7 @@ function renderAuthStatus() {
 }
 
 async function loadAndRenderTrips() {
-  // USER LOCK-DOWN: Must be authenticated to view trips!
-  if (!isUserAuthenticated()) {
-    tripsGridContainer.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🔐</div>
-        <h3>User Authentication Required</h3>
-        <p>Please log in or register a Wade USA account to access your personal trips and shared itineraries.</p>
-        <button id="btn-lockdown-login" class="btn btn-primary">Log In / Sign Up</button>
-      </div>
-    `;
-    document.getElementById("btn-lockdown-login")?.addEventListener("click", () => openAuthModal(false));
-    activeCountBadge.innerText = "0";
-    archiveCountBadge.innerText = "0";
-    openAuthModal(false);
-    return;
-  }
+  if (!tripsGridContainer) return;
 
   tripsGridContainer.innerHTML = `
     <div class="loading-state">
@@ -137,19 +123,21 @@ async function loadAndRenderTrips() {
     const activeTrips = await fetchUserTrips("active");
     const archivedTrips = await fetchUserTrips("archived");
 
-    activeCountBadge.innerText = String(activeTrips.length);
-    archiveCountBadge.innerText = String(archivedTrips.length);
+    if (activeCountBadge) activeCountBadge.innerText = String(activeTrips.length);
+    if (archiveCountBadge) archiveCountBadge.innerText = String(archivedTrips.length);
 
     loadedTrips = currentTab === "active" ? activeTrips : archivedTrips;
     renderTripsGrid();
   } catch (err) {
-    tripsGridContainer.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">⚠️</div>
-        <h3>Failed to load trips</h3>
-        <p>Could not connect to PocketBase backend (api.wade-usa.com).</p>
-      </div>
-    `;
+    if (tripsGridContainer) {
+      tripsGridContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⚠️</div>
+          <h3>Failed to load trips</h3>
+          <p>Could not connect to PocketBase backend (api.wade-usa.com).</p>
+        </div>
+      `;
+    }
   }
 }
 
@@ -248,27 +236,45 @@ function renderTripsGrid() {
     });
 
     const deleteBtn = card.querySelector(".delete-btn") as HTMLButtonElement | null;
+    let isConfirming = false;
+
     if (deleteBtn) {
       deleteBtn.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (confirm(`Are you sure you want to delete "${trip.title}" permanently?`)) {
-          deleteBtn.disabled = true;
-          deleteBtn.innerText = "⏳ Deleting...";
-          try {
-            await deleteTripRecord(trip.id);
-            card.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-            card.style.opacity = "0";
-            card.style.transform = "scale(0.95)";
-            setTimeout(async () => {
-              card.remove();
-              await loadAndRenderTrips();
-            }, 300);
-          } catch (err: any) {
-            alert("Failed to delete trip: " + (err?.message || "Unknown error"));
-            deleteBtn.disabled = false;
-            deleteBtn.innerText = "🗑️ Delete";
-          }
+
+        if (!isConfirming) {
+          isConfirming = true;
+          deleteBtn.classList.add("btn-danger-confirm");
+          deleteBtn.innerText = "⚠️ Confirm Delete?";
+          setTimeout(() => {
+            if (isConfirming) {
+              isConfirming = false;
+              deleteBtn.classList.remove("btn-danger-confirm");
+              deleteBtn.innerText = "🗑️ Delete";
+            }
+          }, 4000);
+          return;
+        }
+
+        deleteBtn.disabled = true;
+        deleteBtn.classList.remove("btn-danger-confirm");
+        deleteBtn.innerText = "⏳ Deleting...";
+
+        try {
+          await deleteTripRecord(trip.id);
+          card.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+          card.style.opacity = "0";
+          card.style.transform = "scale(0.95)";
+          setTimeout(async () => {
+            card.remove();
+            await loadAndRenderTrips();
+          }, 300);
+        } catch (err: any) {
+          alert("Failed to delete trip: " + (err?.message || "Unknown error"));
+          isConfirming = false;
+          deleteBtn.disabled = false;
+          deleteBtn.innerText = "🗑️ Delete";
         }
       });
     }
@@ -511,4 +517,8 @@ function escapeHtml(str: string): string {
   });
 }
 
-init();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
