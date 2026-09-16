@@ -1,8 +1,25 @@
 import "./styles.css";
 import { Trip, TripStatus, TripSection } from "./types/trip";
 import { router, RouteState } from "./router";
-import { fetchTripsFromPB, fetchTripBySlugFromPB, saveTripToPB, POCKETBASE_URL } from "./pocketbase";
+import { fetchTripsFromPB, fetchTripBySlugFromPB, saveTripToPB, POCKETBASE_URL, pb } from "./pocketbase";
 import { loadLocalFolderTrips } from "./utils/tripLoader";
+
+// Cross-subdomain SSO Token Handler from Hub (wade-usa.com)
+(function handleSSOToken() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("token");
+  if (token) {
+    try {
+      pb.authStore.save(token, null);
+      urlParams.delete("token");
+      const newQuery = urlParams.toString();
+      const newUrl = window.location.pathname + (newQuery ? "?" + newQuery : "") + window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+    } catch (e) {
+      console.warn("Failed to process SSO token from Hub:", e);
+    }
+  }
+})();
 
 console.log("MULTI-TRIP ENGINE — Direct Routing & DB Sync Initialized.");
 

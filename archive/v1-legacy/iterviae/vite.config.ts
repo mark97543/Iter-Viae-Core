@@ -2,6 +2,12 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   clearScreen: false,
+  optimizeDeps: {
+    exclude: ["maplibre-gl"]
+  },
+  worker: {
+    format: "es"
+  },
   server: {
     port: 5173,
     host: true,

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wade USA — Expedition & Travel Hub (wade-usa.com)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Ambient Radial Background Glow -->
+    <div class="ambient-glow"></div>
+
+    <!-- Header Navbar -->
+    <header class="hub-header">
+      <div class="header-container">
+        <div class="brand-group">
+          <div class="brand-logo-icon">🧭</div>
+          <div class="brand-text">
+            <div class="brand-title-row">
+              <h1 class="brand-title">WADE-USA</h1>
+              <span class="brand-badge-pill">HUB PORTAL</span>
+            </div>
+            <span class="brand-subtitle">Expedition & Travel Command • wade-usa.com</span>
+          </div>
+        </div>
+
+        <nav class="hub-nav">
+          <button class="nav-tab active" id="tab-active-trips">
+            <span>🗺️ Active Trips</span>
+            <span class="badge-count" id="active-count">0</span>
+          </button>
+          <button class="nav-tab" id="tab-archive-trips">
+            <span>📦 Archive</span>
+            <span class="badge-count" id="archive-count">0</span>
+          </button>
+        </nav>
+
+        <div class="user-action-group">
+          <button id="btn-create-trip-main" class="btn btn-primary pulse-glow">
+            <span>➕ Create Trip</span>
+          </button>
+          <div id="auth-status-container"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="hub-main">
+      <!-- Search & Filters Toolbar -->
+      <section class="toolbar-section">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="trip-search-input" placeholder="Search trips by title, destination, or date..." />
+        </div>
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="all">All Trips</button>
+          <button class="filter-pill" data-filter="roadtrip">🚗 Road Trips</button>
+          <button class="filter-pill" data-filter="travel">✈️ Travel Plans</button>
+          <button class="filter-pill" data-filter="shared">👥 Shared</button>
+        </div>
+      </section>
+
+      <!-- Trips Grid -->
+      <section id="trips-grid-container" class="trips-grid">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Connecting to Wade USA database...</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Auth Lockdown Modal -->
+    <div id="auth-modal" class="modal-overlay hidden">
+      <div class="modal-card auth-card glass-modal">
+        <div class="modal-header">
+          <div class="auth-header-title">
+            <span class="lock-icon">🔐</span>
+            <div>
+              <h3 id="auth-modal-title">Sign In to Wade USA Hub</h3>
+              <p class="auth-modal-subtitle">Locked workspace • Log in to access trips</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="auth-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="auth-tabs">
+            <button class="auth-tab active" id="auth-tab-login">Log In</button>
+            <button class="auth-tab" id="auth-tab-register">Register Account</button>
+          </div>
+
+          <form id="auth-form" class="auth-form">
+            <div id="name-field-group" class="form-group hidden">
+              <label for="auth-name-input">Full Name</label>
+              <input type="text" id="auth-name-input" placeholder="Mark Wade" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="auth-email-input">Email Address or Username</label>
+              <input type="text" id="auth-email-input" placeholder="user@wade-usa.com" required class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="auth-password-input">Password</label>
+              <input type="password" id="auth-password-input" placeholder="••••••••" required class="form-control" />
+            </div>
+
+            <div id="auth-error-msg" class="auth-error"></div>
+
+            <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">Log In & Access Hub →</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Trip Modal -->
+    <div id="create-trip-modal" class="modal-overlay hidden">
+      <div class="modal-card create-trip-card glass-modal">
+        <div class="modal-header">
+          <div>
+            <h3>🧭 Create New Expedition or Travel Plan</h3>
+            <p class="modal-subtitle">Choose your application engine & initialize trip record</p>
+          </div>
+          <button class="modal-close-btn" id="create-trip-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="create-trip-form">
+            <div class="form-group">
+              <label>Trip Title <span class="required">*</span></label>
+              <input type="text" id="new-trip-title" placeholder="e.g. Pacific Northwest Expedition 2026" required class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label>Select Application Engine <span class="required">*</span></label>
+              <div class="type-selector-grid">
+                <label class="type-card selected" id="type-card-road">
+                  <input type="radio" name="trip_template" value="ROADTRIP" checked />
+                  <div class="type-icon">🚗</div>
+                  <div class="type-info">
+                    <h4>Iter Viae Road Trip</h4>
+                    <span class="domain-tag">road.wade-usa.com</span>
+                    <p>Tactical vector maps, Valhalla turn-by-turn routing, custom waypoints, fuel budget, and logbook.</p>
+                  </div>
+                </label>
+
+                <label class="type-card" id="type-card-travel">
+                  <input type="radio" name="trip_template" value="TRAVEL" />
+                  <div class="type-icon">✈️</div>
+                  <div class="type-info">
+                    <h4>Travel Site Trip (Dummy)</h4>
+                    <span class="domain-tag">travel.wade-usa.com</span>
+                    <p>Travel itinerary plan placeholder for travel.wade-usa.com site.</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col">
+                <label>Start Date</label>
+                <input type="date" id="new-trip-start" class="form-control" />
+              </div>
+              <div class="form-group col">
+                <label>End Date</label>
+                <input type="date" id="new-trip-end" class="form-control" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Destination / Primary Location</label>
+              <input type="text" id="new-trip-destination" placeholder="e.g. Seattle, WA or Tokyo, Japan" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label>Summary / Notes</label>
+              <textarea id="new-trip-summary" rows="2" placeholder="Notes on trip objectives or companions..." class="form-control"></textarea>
+            </div>
+
+            <div id="create-trip-error" class="auth-error"></div>
+
+            <div class="modal-footer">
+              <button type="button" id="create-trip-cancel-btn" class="btn btn-secondary">Cancel</button>
+              <button type="submit" id="create-trip-submit-btn" class="btn btn-primary">Create & Launch App 🚀</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Trip Modal (Share by Email) -->
+    <div id="share-modal" class="modal-overlay hidden">
+      <div class="modal-card glass-modal">
+        <div class="modal-header">
+          <div>
+            <h3 id="share-modal-title">👥 Share Trip</h3>
+            <p class="modal-subtitle">Grant co-traveler access via email</p>
+          </div>
+          <button class="modal-close-btn" id="share-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="share-email-input">Traveler Email Address</label>
+            <input type="email" id="share-email-input" placeholder="colleague@wade-usa.com" class="form-control" />
+          </div>
+          <div id="share-feedback-msg" class="share-feedback"></div>
+          <div class="modal-footer">
+            <button type="button" id="share-cancel-btn" class="btn btn-secondary">Close</button>
+            <button type="button" id="share-submit-btn" class="btn btn-primary">Share Trip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

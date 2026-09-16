@@ -12,7 +12,7 @@ export class PocketBaseAuth {
   }
 
   static getUser() {
-    return pb.authStore.record;
+    return pb.authStore.model;
   }
 
   static async login(identity: string, password: string) {

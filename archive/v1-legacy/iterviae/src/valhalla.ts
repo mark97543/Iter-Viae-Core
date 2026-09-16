@@ -209,7 +209,8 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
  * EXCLUSIVELY uses user production dedicated server (https://valhalla.wade-usa.com/route).
  */
 const VALHALLA_SERVERS = [
-  "/valhalla-proxy/route"
+  "/valhalla-proxy/route",
+  "https://valhalla.wade-usa.com/route"
 ];
 
 async function fetchValhallaRoute(locations: RouteLocation[]): Promise<RouteResult | null> {
@@ -251,7 +252,7 @@ async function fetchValhallaRoute(locations: RouteLocation[]): Promise<RouteResu
         const legDur = (leg.summary?.time || 0);
         legs.push({ distanceMi: legDist, durationSec: legDur });
 
-        const legCoords = leg.shape ? downsamplePolyline(decodePolyline6(leg.shape)) : [];
+        const legCoords = leg.shape ? decodePolyline6(leg.shape) : [];
         if (legCoords.length >= 2) {
           routeLegs.push({
             startLat: startLoc ? startLoc.lat : legCoords[0][1],
@@ -686,7 +687,7 @@ export async function fetchIncrementalExpeditionRoute(
   }
 
   return {
-    coordinates: downsamplePolyline(combinedCoordinates),
+    coordinates: combinedCoordinates,
     distanceMi: totalDistanceMi,
     durationSec: totalDurationSec,
     legs: legMetrics,

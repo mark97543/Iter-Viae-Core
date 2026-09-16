@@ -1,7 +1,24 @@
 import "./styles.css";
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchIncrementalExpeditionRoute, haversineDistance, encodePolyline6, decodePolyline6, LegMetric, RouteLeg } from "./valhalla";
+
+// Cross-subdomain SSO Token Handler from Hub (wade-usa.com)
+(function handleSSOToken() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("token");
+  if (token) {
+    try {
+      pb.authStore.save(token, null);
+      urlParams.delete("token");
+      const newQuery = urlParams.toString();
+      const newUrl = window.location.pathname + (newQuery ? "?" + newQuery : "") + window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+    } catch (e) {
+      console.warn("Failed to process SSO token from Hub:", e);
+    }
+  }
+})();
 
 console.log("Iter Viae Tactical Surface initialized - Click-to-Focus Waypoint Engine.");
 
@@ -266,52 +283,53 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
   vector: {
     version: 8 as const,
     sources: {
-      "esri-street": {
+      "osm-street": {
         type: "raster" as const,
         tiles: [
-          "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+          "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         ],
         tileSize: 256,
-        maxzoom: 17,
-        attribution: "© Esri, HERE, Garmin, USGS, NGA, EPA, USDA, NPS"
+        maxzoom: 19,
+        attribution: "© OpenStreetMap contributors"
       }
     },
     layers: [
-      { id: "esri-street-layer", type: "raster" as const, source: "esri-street", minzoom: 0, maxzoom: 17 }
+      { id: "osm-street-layer", type: "raster" as const, source: "osm-street", minzoom: 0, maxzoom: 19 }
     ]
   },
   dark: {
     version: 8 as const,
     sources: {
-      "esri-dark": {
+      "osm-dark": {
         type: "raster" as const,
         tiles: [
-          "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
         ],
         tileSize: 256,
-        maxzoom: 16,
-        attribution: "© Esri, HERE, Garmin, NGA, USGS"
+        maxzoom: 19,
+        attribution: "© OpenStreetMap contributors"
       }
     },
     layers: [
-      { id: "esri-dark-layer", type: "raster" as const, source: "esri-dark", minzoom: 0, maxzoom: 16 }
+      { id: "osm-dark-layer", type: "raster" as const, source: "osm-dark", minzoom: 0, maxzoom: 19 }
     ]
   },
   topo: {
     version: 8 as const,
     sources: {
-      "esri-topo": {
+      "opentopo": {
         type: "raster" as const,
         tiles: [
-          "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          "https://tile.opentopomap.org/{z}/{x}/{y}.png"
         ],
         tileSize: 256,
         maxzoom: 17,
-        attribution: "© Esri, HERE, Garmin, Intermap, USGS, NPS"
+        attribution: "© OpenTopoMap contributors"
       }
     },
     layers: [
-      { id: "esri-topo-layer", type: "raster" as const, source: "esri-topo", minzoom: 0, maxzoom: 17 }
+      { id: "opentopo-layer", type: "raster" as const, source: "opentopo", minzoom: 0, maxzoom: 17 }
     ]
   },
   terrain3d: {
@@ -435,36 +453,50 @@ function redrawRouteLine() {
   const daySegments = splitCoordinatesIntoDaySegments(lastRouteCoordinates, waypoints, currentRouteLegs);
   console.log(`Redrawing route line: ${daySegments.length} day segment(s), ${lastRouteCoordinates.length} total road points.`);
 
-  const routeGeoJSON: GeoJSON.FeatureCollection = {
-    type: "FeatureCollection",
-    features: daySegments.map((seg, dayIdx) => ({
+  const routeFeatures: GeoJSON.Feature[] = daySegments.map((seg, dayIdx) => ({
+    type: "Feature",
+    properties: {
+      dayIndex: dayIdx + 1,
+      color: getDayColor(dayIdx + 1) || "#38bdf8"
+    },
+    geometry: {
+      type: "LineString",
+      coordinates: seg
+    }
+  }));
+
+  if (routeFeatures.length === 0 && lastRouteCoordinates.length >= 2) {
+    routeFeatures.push({
       type: "Feature",
       properties: {
-        dayIndex: dayIdx + 1,
-        color: getDayColor(dayIdx + 1)
+        dayIndex: 1,
+        color: "#38bdf8"
       },
       geometry: {
         type: "LineString",
-        coordinates: seg
+        coordinates: lastRouteCoordinates
       }
-    }))
+    });
+  }
+
+  const routeGeoJSON: GeoJSON.FeatureCollection = {
+    type: "FeatureCollection",
+    features: routeFeatures
   };
 
   const applyLayers = () => {
     if (!map) return;
 
     try {
-      const src = map.getSource("expedition-route-src") as maplibregl.GeoJSONSource;
-      if (src) {
-        src.setData(routeGeoJSON);
-      } else {
+      let src = map.getSource("expedition-route-src") as maplibregl.GeoJSONSource;
+      if (!src) {
         map.addSource("expedition-route-src", {
           type: "geojson",
           data: routeGeoJSON
         });
+      } else {
+        src.setData(routeGeoJSON);
       }
-
-      const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
 
       if (!map.getLayer("expedition-route-casing")) {
         map.addLayer({
@@ -476,11 +508,11 @@ function redrawRouteLine() {
             "line-cap": "round"
           },
           paint: {
-            "line-color": "#000000",
-            "line-width": 8,
-            "line-opacity": 0.6
+            "line-color": "#090d16",
+            "line-width": 10,
+            "line-opacity": 0.9
           }
-        }, beforeId);
+        });
       }
 
       if (!map.getLayer("expedition-route-layer")) {
@@ -493,13 +525,14 @@ function redrawRouteLine() {
             "line-cap": "round"
           },
           paint: {
-            "line-color": ["get", "color"],
-            "line-width": 5,
-            "line-opacity": 0.95
+            "line-color": "#38bdf8",
+            "line-width": 6,
+            "line-opacity": 1.0
           }
-        }, beforeId);
+        });
       }
 
+      // Ensure pin markers are on top of polyline
       if (map.getLayer("waypoints-symbols-pins")) {
         map.moveLayer("waypoints-symbols-pins");
       }
@@ -515,8 +548,7 @@ function redrawRouteLine() {
   };
 
   applyLayers();
-  setTimeout(applyLayers, 80);
-  setTimeout(applyLayers, 300);
+  setTimeout(applyLayers, 100);
 }
 
 function changeMapStyle(styleKey: string) {
@@ -1204,6 +1236,7 @@ async function updateExpeditionRoute(forceClearCache: boolean = false) {
     if (metricDuration) metricDuration.textContent = formatDuration(durationSec);
 
     redrawRouteLine();
+    fitMapToAllWaypoints();
 
     // Cache active trip draft locally in LocalStorage for instant refresh speed
     try {
@@ -1363,7 +1396,7 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
   }
 
   if (!map.getLayer("expedition-empty-route-casing")) {
-    const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
+    const beforeId = map.getLayer("expedition-route-casing") ? "expedition-route-casing" : undefined;
     map.addLayer({
       id: "expedition-empty-route-casing",
       type: "line",
@@ -1381,7 +1414,7 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
   }
 
   if (!map.getLayer("expedition-empty-route-layer")) {
-    const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
+    const beforeId = map.getLayer("expedition-route-casing") ? "expedition-route-casing" : undefined;
     map.addLayer({
       id: "expedition-empty-route-layer",
       type: "line",
@@ -1399,15 +1432,18 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
     }, beforeId);
   }
 
-  if (map.getLayer("expedition-empty-route-layer")) {
-    const beforeId = map.getLayer("waypoints-symbols-pins") ? "waypoints-symbols-pins" : undefined;
-    if (beforeId) {
-      map.moveLayer("expedition-empty-route-layer", beforeId);
-    } else {
-      map.moveLayer("expedition-empty-route-layer");
-    }
+  if (map.getLayer("expedition-route-casing")) {
+    map.moveLayer("expedition-route-casing");
   }
-
+  if (map.getLayer("expedition-route-layer")) {
+    map.moveLayer("expedition-route-layer");
+  }
+  if (map.getLayer("expedition-empty-route-casing")) {
+    map.moveLayer("expedition-empty-route-casing");
+  }
+  if (map.getLayer("expedition-empty-route-layer")) {
+    map.moveLayer("expedition-empty-route-layer");
+  }
   if (map.getLayer("waypoints-symbols-pins")) {
     map.moveLayer("waypoints-symbols-pins");
   }
@@ -2235,6 +2271,69 @@ if (waypointsContainer) {
     }
   });
 
+  const commitTitleChange = async (target: HTMLInputElement) => {
+    const id = target.dataset.id;
+    if (!id) return;
+    const wp = waypoints.find((w) => w.id === id);
+    if (!wp) return;
+
+    const titleText = target.value.trim();
+    if (!titleText || titleText.length < 2) return;
+    if (/^(stop|origin|destination|waypoint)\s*#?\d*$/i.test(titleText)) return;
+
+    // Geocode if waypoint lacks coordinates or title text was updated
+    if (wp.lat === null || wp.lon === null || wp.title !== titleText) {
+      wp.title = titleText;
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(titleText)}&format=json&limit=1`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            wp.lat = lat;
+            wp.lon = lon;
+            renderWaypointsUI();
+            renderWaypointMapMarkers();
+            updateExpeditionRoute();
+          }
+        }
+      } catch (err) {
+        console.warn("Auto-geocoding title failed:", err);
+      }
+    }
+  };
+
+  const commitCoordinatesChange = (target: HTMLInputElement) => {
+    const id = target.dataset.id;
+    if (!id) return;
+    const wp = waypoints.find((w) => w.id === id);
+    if (!wp) return;
+
+    const val = target.value.trim();
+    if (!val) {
+      wp.lat = null;
+      wp.lon = null;
+      renderWaypointMapMarkers();
+      updateExpeditionRoute();
+      return;
+    }
+
+    const parts = val.split(/[\s,]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const lat = parseFloat(parts[0]);
+      const lon = parseFloat(parts[1]);
+      if (!isNaN(lat) && !isNaN(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        wp.lat = lat;
+        wp.lon = lon;
+        renderWaypointMapMarkers();
+        updateExpeditionRoute();
+      }
+    }
+  };
+
   waypointsContainer.addEventListener("input", (e) => {
     const target = e.target as HTMLInputElement;
     if (!target) return;
@@ -2248,44 +2347,40 @@ if (waypointsContainer) {
 
     if (field === "title") {
       wp.title = target.value;
-      // If user typed coordinates directly into title (e.g. "41.25, -95.93"), parse coords
-      const parts = target.value.split(/[\s,]+/).filter(Boolean);
-      if (parts.length >= 2) {
-        const pLat = parseFloat(parts[0]);
-        const pLon = parseFloat(parts[1]);
-        if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
-          wp.lat = pLat;
-          wp.lon = pLon;
-          renderWaypointMapMarkers();
-          updateExpeditionRoute();
-        }
-      }
     } else if (field === "coords") {
-      const parts = target.value.split(/[\s,]+/).filter(Boolean);
-      if (parts.length >= 2) {
+      // Check if user entered a full valid coordinate string while typing
+      const parts = target.value.trim().split(/[\s,]+/).filter(Boolean);
+      if (parts.length >= 2 && parts[1].length >= 2) {
         const lat = parseFloat(parts[0]);
         const lon = parseFloat(parts[1]);
-        if (!isNaN(lat) && !isNaN(lon)) {
+        if (!isNaN(lat) && !isNaN(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && Math.abs(lon) >= 1) {
           wp.lat = lat;
           wp.lon = lon;
-          focusOnWaypoint(wp.id);
-          renderWaypointMapMarkers();
-          updateExpeditionRoute();
-        } else {
-          wp.lat = null;
-          wp.lon = null;
           renderWaypointMapMarkers();
           updateExpeditionRoute();
         }
-      } else {
-        wp.lat = null;
-        wp.lon = null;
-        renderWaypointMapMarkers();
-        updateExpeditionRoute();
       }
     }
+  });
 
-    renderWaypointMapMarkers();
+  waypointsContainer.addEventListener("change", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target) return;
+    if (target.dataset.field === "coords") {
+      commitCoordinatesChange(target);
+    } else if (target.dataset.field === "title") {
+      commitTitleChange(target);
+    }
+  });
+
+  waypointsContainer.addEventListener("keydown", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target) return;
+    if (e.key === "Enter" && target.dataset.field === "coords") {
+      commitCoordinatesChange(target);
+    } else if (e.key === "Enter" && target.dataset.field === "title") {
+      commitTitleChange(target);
+    }
   });
 }
 
@@ -3978,6 +4073,11 @@ async function publishActiveTripToCloud() {
   }
 
   const user = PocketBaseAuth.getUser() as any;
+  if (!user || !user.id) {
+    alert("Authentication error: Please sign in again.");
+    openAuthModal();
+    return;
+  }
 
   try {
     showToast("Publishing expedition route to cloud... ☁️");
@@ -3992,6 +4092,24 @@ async function publishActiveTripToCloud() {
       distanceMi: Number(leg.distanceMi.toFixed(2)),
       durationSec: Math.round(leg.durationSec)
     }));
+
+    const cleanWaypoints = waypoints.map((wp: any, idx) => ({
+      id: wp.id || `wp-${idx}`,
+      title: wp.title || (idx === 0 ? "Origin" : idx === waypoints.length - 1 ? "Destination" : `Stop #${idx + 1}`),
+      lat: wp.lat !== null && !isNaN(Number(wp.lat)) ? Number(wp.lat) : null,
+      lon: wp.lon !== null && !isNaN(Number(wp.lon)) ? Number(wp.lon) : null,
+      type: idx === 0 ? "origin" : idx === waypoints.length - 1 ? "destination" : "stop",
+      category: wp.category || "general",
+      breakMin: wp.breakMin || 15,
+      budget: wp.budget || 0,
+      isOvernight: Boolean(wp.isOvernight),
+      arrivalEst: wp.arrivalEst || "",
+      departureEst: wp.departureEst || "",
+      stayDurationMins: wp.stayDurationMins || 0,
+      notes: wp.notes || ""
+    }));
+
+    const destinationTitle = cleanWaypoints.length > 0 ? (cleanWaypoints[cleanWaypoints.length - 1].title || "Destination") : "";
 
     const baseMetrics = {
       distance: metricDistance?.textContent || "0.0 MI",
@@ -4009,24 +4127,29 @@ async function publishActiveTripToCloud() {
     const payload1: any = {
       user: user.id,
       title: currentTripTitle,
+      destination: destinationTitle,
       summary: currentTripSummary,
-      waypoints: waypoints,
+      waypoints: cleanWaypoints,
+      trip_template: "ROADTRIP",
+      status: "active",
+      coverEmoji: "🚗",
       route_geometry: {
         type: "Polyline6",
         polyline: encodedPolyline
       },
       itinerary: {
         startTime: expeditionStartTime,
-        waypoints: waypoints
+        waypoints: cleanWaypoints
       },
       metrics: baseMetrics
     };
 
     try {
+      let record: any = null;
       if (currentTripId) {
-        await pb.collection("trips").update(currentTripId, payload1);
+        record = await pb.collection("trips").update(currentTripId, payload1);
       } else {
-        const record = await pb.collection("trips").create(payload1);
+        record = await pb.collection("trips").create(payload1);
         currentTripId = record.id;
       }
       saveActiveDraftToLocalStorage();
@@ -4037,16 +4160,22 @@ async function publishActiveTripToCloud() {
       const payload2: any = {
         user: user.id,
         title: currentTripTitle,
-        waypoints: waypoints,
+        destination: destinationTitle,
+        summary: currentTripSummary,
+        waypoints: cleanWaypoints,
+        trip_template: "ROADTRIP",
+        status: "active",
+        coverEmoji: "🚗",
         route_geometry: {},
         metrics: baseMetrics
       };
 
       try {
+        let record: any = null;
         if (currentTripId) {
-          await pb.collection("trips").update(currentTripId, payload2);
+          record = await pb.collection("trips").update(currentTripId, payload2);
         } else {
-          const record = await pb.collection("trips").create(payload2);
+          record = await pb.collection("trips").create(payload2);
           currentTripId = record.id;
         }
         saveActiveDraftToLocalStorage();
@@ -4057,15 +4186,21 @@ async function publishActiveTripToCloud() {
         const payload3: any = {
           user: user.id,
           title: currentTripTitle,
-          waypoints: waypoints,
+          destination: destinationTitle,
+          summary: currentTripSummary,
+          waypoints: cleanWaypoints,
+          trip_template: "ROADTRIP",
+          status: "active",
+          coverEmoji: "🚗",
           metrics: baseMetrics
         };
 
         try {
+          let record: any = null;
           if (currentTripId) {
-            await pb.collection("trips").update(currentTripId, payload3);
+            record = await pb.collection("trips").update(currentTripId, payload3);
           } else {
-            const record = await pb.collection("trips").create(payload3);
+            record = await pb.collection("trips").create(payload3);
             currentTripId = record.id;
           }
           saveActiveDraftToLocalStorage();
@@ -4083,7 +4218,7 @@ async function publishActiveTripToCloud() {
   }
 }
 
-// Load User Saved Trips from PocketBase (Strictly User-Scoped Filter for Privacy)
+// Load User Saved Trips from PocketBase (Strictly User-Scoped Filter for Roadtrips)
 async function loadUserSavedTrips() {
   if (!savedTripsList) return;
   if (!PocketBaseAuth.isAuthenticated()) {
@@ -4093,15 +4228,16 @@ async function loadUserSavedTrips() {
   }
 
   const user = PocketBaseAuth.getUser() as any;
+  if (!user || !user.id) return;
 
   if (savedTripsLoading) savedTripsLoading.style.display = "block";
   if (savedTripsEmpty) savedTripsEmpty.style.display = "none";
   savedTripsList.innerHTML = "";
 
   try {
-    // Strictly filter by current authenticated user ID so users never see other users' routes!
+    // Strictly filter by authenticated user (or shared) AND roadtrip template
     const records = await pb.collection("trips").getFullList({
-      filter: `user = "${user.id}"`,
+      filter: `(user = "${user.id}" || shared ~ "${user.id}") && (trip_template = "ROADTRIP" || trip_template = "" || trip_template = null)`,
       sort: "-updated"
     });
 
@@ -4172,6 +4308,12 @@ function fitMapToAllWaypoints() {
     bounds.extend([w.lon!, w.lat!]);
   });
 
+  if (lastRouteCoordinates && lastRouteCoordinates.length > 1) {
+    lastRouteCoordinates.forEach((coord) => {
+      bounds.extend(coord);
+    });
+  }
+
   map.fitBounds(bounds, {
     padding: { top: 80, bottom: 80, left: 380, right: 80 },
     maxZoom: 14,
@@ -4203,19 +4345,30 @@ async function loadTripIntoWorkspace(tripId: string) {
   }
 
   try {
-    const record = await pb.collection("trips").getOne(tripId);
-
-    // If cancelled while fetching record
-    if (activeRouteLoadingToken !== loadingToken) {
-      console.log("Route loading cancelled by user.");
-      return;
+    let record: any = null;
+    try {
+      record = await pb.collection("trips").getOne(tripId);
+    } catch (err: any) {
+      // Fallback to local storage DB if server collection is 404 or offline
+      try {
+        const raw = localStorage.getItem("wade_usa_trips_local_db");
+        if (raw) {
+          const localTrips = JSON.parse(raw);
+          record = localTrips.find((t: any) => t.id === tripId);
+        }
+      } catch (e) {}
     }
 
-    if (!record) {
-      if (routeLoadingModal) routeLoadingModal.style.display = "none";
-      activeRouteLoadingToken = null;
-      return;
-    }
+  if (activeRouteLoadingToken !== loadingToken) {
+    console.log("Route loading cancelled by user.");
+    return;
+  }
+
+  if (!record) {
+    if (routeLoadingModal) routeLoadingModal.style.display = "none";
+    activeRouteLoadingToken = null;
+    return;
+  }
 
     const titleUpper = (record.title || "MY EXPEDITION ROUTE").toUpperCase();
     if (routeLoadingSubtitle) {
@@ -4609,7 +4762,7 @@ function initializeMapSurface() {
   });
 
   // Right-Click Context Menu Handler
-  map.on("contextmenu", (e) => {
+  map.on("contextmenu", (e: any) => {
     e.preventDefault();
     if (!contextMenu || !contextCoordsText) return;
 
@@ -4994,3 +5147,6 @@ if (unverifiedLogoutBtn) unverifiedLogoutBtn.addEventListener("click", performLo
 
 // Initial UI & View Setup
 updateAuthStateUI();
+
+(window as any).getMapInstance = () => map;
+(window as any).getLastRouteCoordinates = () => lastRouteCoordinates;
