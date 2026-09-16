@@ -20,7 +20,8 @@ migrate((db) => {
       },
       {
         "name": "shared",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "subtitle",
@@ -64,35 +65,43 @@ migrate((db) => {
       },
       {
         "name": "waypoints",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "bookings",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "dayNotes",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "sections",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "schedule",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "reservations",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "packingList",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       },
       {
         "name": "notes",
-        "type": "json"
+        "type": "json",
+        "options": { "maxSize": 5242880 }
       }
     ],
     "listRule": "",
