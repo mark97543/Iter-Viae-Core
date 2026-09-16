@@ -12,8 +12,15 @@ migrate((db) => {
       },
       {
         "name": "slug",
-        "type": "text",
-        "required": true
+        "type": "text"
+      },
+      {
+        "name": "user",
+        "type": "text"
+      },
+      {
+        "name": "shared",
+        "type": "json"
       },
       {
         "name": "subtitle",
@@ -24,11 +31,23 @@ migrate((db) => {
         "type": "text"
       },
       {
+        "name": "startDate",
+        "type": "text"
+      },
+      {
+        "name": "endDate",
+        "type": "text"
+      },
+      {
         "name": "dates",
         "type": "text"
       },
       {
         "name": "status",
+        "type": "text"
+      },
+      {
+        "name": "trip_template",
         "type": "text"
       },
       {
@@ -42,6 +61,18 @@ migrate((db) => {
       {
         "name": "summary",
         "type": "text"
+      },
+      {
+        "name": "waypoints",
+        "type": "json"
+      },
+      {
+        "name": "bookings",
+        "type": "json"
+      },
+      {
+        "name": "dayNotes",
+        "type": "json"
       },
       {
         "name": "sections",
