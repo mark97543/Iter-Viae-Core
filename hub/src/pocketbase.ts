@@ -173,24 +173,9 @@ export async function createTripRecord(data: {
       { id: "wp-1", title: "Start Origin", lat: 39.8283, lon: -98.5795, type: "origin" },
       { id: "wp-2", title: "Final Destination", lat: 36.1699, lon: -115.1398, type: "destination" }
     ] : [],
-    bookings: data.trip_template === "TRAVEL" ? [
-      { id: "book-1", type: "flight", title: "Flight Operations & Staging", locationOrConfirmation: "CONF-STAGING123", notes: "Flight check-in 3 hours prior" }
-    ] : [],
-    sections: data.trip_template === "TRAVEL" ? [
-      {
-        slug: "flight-ops",
-        title: "Flight Operations & Staging",
-        icon: "✈️",
-        content: "<p>Check-in opens 3 hours prior to departure. Ensure all physical passports have at least 6 months validity remaining from date of entry.</p>"
-      },
-      {
-        slug: "emergency-cards",
-        title: "Emergency Flashcards",
-        icon: "🚑",
-        content: "<p>Show these full-screen flashcards to taxi drivers, hotel concierges, or emergency responders.</p>"
-      }
-    ] : [],
-    dayNotes: data.trip_template === "TRAVEL" ? { "1": "<h3>Day 1 - Travel Staging</h3><p>Travel staging and arrival...</p>" } : {},
+    bookings: [],
+    sections: [],
+    dayNotes: {},
     coverEmoji: data.trip_template === "ROADTRIP" ? "🚗" : "✈️",
     coverGradient: data.trip_template === "ROADTRIP" ? "linear-gradient(135deg, #0ea5e9, #3b82f6)" : "linear-gradient(135deg, #06b6d4, #8b5cf6)",
   };

@@ -390,152 +390,140 @@ function renderTripFieldManual(trip: Trip) {
     });
   }
 
-  // Provide default field book sections if none exist yet on trip
-  const activeSections: TripSection[] = (trip.sections && trip.sections.length > 0) ? trip.sections : [
-    {
-      slug: "flight-ops",
-      title: "Flight Operations & Staging",
-      icon: "✈️",
-      content: `
-        <p>Check-in opens 3 hours prior to departure. Ensure all physical passports have at least 6 months validity remaining from date of entry.</p>
-        <ul>
-          <li><strong>Baggage Allowance:</strong> 2x 23kg Checked Bags + 1 Carry-on item per traveler.</li>
-          <li><strong>E-Visa / Arrival Form:</strong> Digital QR codes saved offline on mobile devices.</li>
-        </ul>
-      `
-    },
-    {
-      slug: "changi-gauntlet",
-      title: "Singapore Changi Layover",
-      icon: "🇸🇬",
-      content: `
-        <p>During the Changi layover, follow transit signs directly to Terminal 1/2 for the Jewel Rain Vortex.</p>
-        <ul>
-          <li><strong>Jewel Rain Vortex Light Show:</strong> Operates hourly until 10:00 PM.</li>
-          <li><strong>SATS Ambassador Lounge:</strong> Terminal 3 Level 3 (Free shower & buffet access).</li>
-          <li><strong>Staging Gate:</strong> Boarding gate closes 20 minutes prior to final departure.</li>
-        </ul>
-      `
-    },
-    {
-      slug: "table-tactics",
-      title: "Table Tactics & Food Ops",
-      icon: "🍜",
-      content: `
-        <p>Always order bottled water with ice. Street food stalls with high local turnover are the safest and best.</p>
-        <div class="field-callout-box">
-          <strong>Essential Phrases:</strong><br/>
-          • <em>"Mai Phet"</em> (ไม่เผ็ด) = Not Spicy<br/>
-          • <em>"Phet Noi"</em> (เผ็ดน้อย) = Slightly Spicy<br/>
-          • <em>"Aroy Mak"</em> (อร่อยมาก) = Delicious!
-        </div>
-      `
-    },
-    {
-      slug: "beer-rosetta",
-      title: "Beer Rosetta Stone & Heineken Rule",
-      icon: "🍺",
-      content: `
-        <p>Note: Legal alcohol sales hours in Thailand are strictly <strong>11:00 AM – 2:00 PM</strong> and <strong>5:00 PM – Midnight</strong>.</p>
-        <table class="field-rosetta-table">
-          <thead>
-            <tr><th>Brand</th><th>Style</th><th>Notes</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><strong>Singha (สิงห์)</strong></td><td>Lager (5.0%)</td><td>Full-bodied original Thai pilsner. Best with spicy dishes.</td></tr>
-            <tr><td><strong>Chang (ช้าง)</strong></td><td>Classic (5.0%)</td><td>Crisp rice lager. Served over ice ("Nam Kheng").</td></tr>
-            <tr><td><strong>Leo (ลีโอ)</strong></td><td>Smooth Lager</td><td>Most popular local choice, light & easy drinking.</td></tr>
-          </tbody>
-        </table>
-      `
-    },
-    {
-      slug: "emergency-cards",
-      title: "Emergency Flashcards (Thai Script)",
-      icon: "🚑",
-      content: `
-        <p>Show these full-screen flashcards to taxi drivers, hotel concierges, or emergency responders:</p>
-        <div class="flashcards-grid">
-          <div class="flashcard-item">
-            <div class="flashcard-th">กรุณาเปิดมิเตอร์ด้วยครับ</div>
-            <div class="flashcard-en">"Please turn on the meter" (Taxi)</div>
-          </div>
-          <div class="flashcard-item">
-            <div class="flashcard-th">ช่วยพาไปส่งที่โรงแรมหน่อยครับ</div>
-            <div class="flashcard-en">"Please take me to the hotel"</div>
-          </div>
-          <div class="flashcard-item">
-            <div class="flashcard-th">ไม่ใส่ผงชูรส และ ไม่เผ็ด</div>
-            <div class="flashcard-en">"No MSG and Not Spicy"</div>
-          </div>
-        </div>
-      `
-    }
-  ];
-
-  // Store activeSections back on trip object for consistent editing
-  if (!trip.sections || trip.sections.length === 0) {
-    trip.sections = activeSections;
-  }
+  const activeSections: TripSection[] = trip.sections || [];
 
   // Render Sticky Table of Contents Sidebar
   if (stickyTocBar) {
-    stickyTocBar.innerHTML = `
-      <div class="toc-sidebar-header">
-        <span>📖</span>
-        <span>CONTENTS</span>
-      </div>
-      ${activeSections.map((sec) => `
-        <button class="toc-chip" data-target="section-${sec.slug}">
-          ${sec.icon ? `<span>${sec.icon}</span>` : ""}
-          <span>${sec.title}</span>
-        </button>
-      `).join("")}
-    `;
+    if (activeSections.length === 0) {
+      stickyTocBar.innerHTML = `
+        <div class="toc-sidebar-header">
+          <span>📖</span>
+          <span>CONTENTS</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-dim); padding:0.5rem 0;">No sections yet</p>
+      `;
+    } else {
+      stickyTocBar.innerHTML = `
+        <div class="toc-sidebar-header">
+          <span>📖</span>
+          <span>CONTENTS</span>
+        </div>
+        ${activeSections.map((sec) => `
+          <button class="toc-chip" data-target="section-${sec.slug}">
+            ${sec.icon ? `<span>${sec.icon}</span>` : ""}
+            <span>${sec.title}</span>
+          </button>
+        `).join("")}
+      `;
 
-    stickyTocBar.querySelectorAll(".toc-chip").forEach((chip) => {
-      chip.addEventListener("click", (e) => {
-        const targetId = (e.currentTarget as HTMLElement).getAttribute("data-target");
-        if (targetId) {
-          const targetEl = document.getElementById(targetId);
-          if (targetEl) {
-            targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
-            stickyTocBar.querySelectorAll(".toc-chip").forEach((c) => c.classList.remove("active"));
-            (e.currentTarget as HTMLElement).classList.add("active");
+      stickyTocBar.querySelectorAll(".toc-chip").forEach((chip) => {
+        chip.addEventListener("click", (e) => {
+          const targetId = (e.currentTarget as HTMLElement).getAttribute("data-target");
+          if (targetId) {
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+              targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+              stickyTocBar.querySelectorAll(".toc-chip").forEach((c) => c.classList.remove("active"));
+              (e.currentTarget as HTMLElement).classList.add("active");
+            }
           }
-        }
+        });
       });
-    });
+    }
   }
 
   // Render Field Manual Continuous Sections
   if (fieldManualSectionsContainer) {
-    fieldManualSectionsContainer.innerHTML = activeSections.map((sec, idx) => `
-      <div class="field-manual-section-card" id="section-${sec.slug}">
-        <div class="section-card-header">
-          <div class="section-card-title-group">
-            ${sec.icon ? `<span class="section-card-icon">${sec.icon}</span>` : ""}
-            <h2 class="section-card-title">${sec.title}</h2>
-          </div>
-          <button class="btn-edit-section" data-index="${idx}" title="Edit Topic Section">
-            ✏️ Edit
-          </button>
+    if (activeSections.length === 0) {
+      fieldManualSectionsContainer.innerHTML = `
+        <div class="empty-sections-card" style="text-align:center; padding:3.5rem 1.5rem; background:var(--bg-card); border:1px dashed var(--border-color); border-radius:var(--radius-xl);">
+          <div style="font-size:3rem; margin-bottom:0.75rem;">📄</div>
+          <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:0.4rem; color:var(--text-main);">No Topic Sections Added Yet</h3>
+          <p style="color:var(--text-muted); font-size:0.92rem; max-width:480px; margin:0 auto 1.5rem auto;">This travel field book is currently empty. Click below to add your first topic section, flight ops, or emergency cards.</p>
+          <button id="btn-empty-add-topic" class="btn-primary" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.7rem 1.4rem;">➕ Add First Topic Section</button>
         </div>
-        <div class="section-card-body">
-          ${sec.content}
-        </div>
-      </div>
-    `).join("");
-
-    fieldManualSectionsContainer.querySelectorAll(".btn-edit-section").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const indexStr = (e.currentTarget as HTMLElement).getAttribute("data-index");
-        if (indexStr !== null) {
-          const idx = parseInt(indexStr, 10);
-          openSectionModal(idx);
-        }
+      `;
+      fieldManualSectionsContainer.querySelector("#btn-empty-add-topic")?.addEventListener("click", () => {
+        openSectionModal(-1);
       });
-    });
+    } else {
+      fieldManualSectionsContainer.innerHTML = activeSections.map((sec, idx) => `
+        <div class="field-manual-section-card" id="section-${sec.slug}">
+          <div class="section-card-header">
+            <div class="section-card-title-group">
+              ${sec.icon ? `<span class="section-card-icon">${sec.icon}</span>` : ""}
+              <h2 class="section-card-title">${escapeHtml(sec.title)}</h2>
+            </div>
+            <div class="section-card-actions" style="display:flex; gap:0.5rem;">
+              <button class="btn-edit-section" data-index="${idx}" title="Edit Topic Section">
+                ✏️ Edit
+              </button>
+              <button class="btn-delete-section" data-index="${idx}" title="Delete Topic Section" style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#f87171; border-radius:var(--radius-sm); padding:0.35rem 0.75rem; font-weight:700; font-size:0.8rem; cursor:pointer; transition:all 0.2s ease;">
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+          <div class="section-card-body">
+            ${sec.content}
+          </div>
+        </div>
+      `).join("");
+
+      fieldManualSectionsContainer.querySelectorAll(".btn-edit-section").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const indexStr = (e.currentTarget as HTMLElement).getAttribute("data-index");
+          if (indexStr !== null) {
+            const idx = parseInt(indexStr, 10);
+            openSectionModal(idx);
+          }
+        });
+      });
+
+      fieldManualSectionsContainer.querySelectorAll(".btn-delete-section").forEach((btn) => {
+        let isConfirmingSection = false;
+        btn.addEventListener("click", async (e) => {
+          const target = e.currentTarget as HTMLButtonElement;
+          const indexStr = target.getAttribute("data-index");
+          if (indexStr !== null) {
+            const idx = parseInt(indexStr, 10);
+            const targetSection = activeSections[idx];
+            if (!targetSection) return;
+
+            if (!isConfirmingSection) {
+              isConfirmingSection = true;
+              target.innerText = "⚠️ Confirm Delete?";
+              target.style.background = "rgba(239,68,68,0.3)";
+              target.style.color = "#ffffff";
+              setTimeout(() => {
+                if (isConfirmingSection) {
+                  isConfirmingSection = false;
+                  target.innerText = "🗑️ Delete";
+                  target.style.background = "rgba(239,68,68,0.12)";
+                  target.style.color = "#f87171";
+                }
+              }, 4000);
+              return;
+            }
+
+            target.disabled = true;
+            target.innerText = "⏳ Deleting...";
+
+            if (!trip.sections) trip.sections = [];
+            trip.sections.splice(idx, 1);
+            saveTripsState();
+            renderTripFieldManual(trip);
+
+            showToast(`💾 Deleting topic "${targetSection.title}"...`);
+            const saved = await saveTripToPB(trip);
+            if (saved) {
+              showToast(`✅ Topic "${targetSection.title}" deleted from PocketBase DB!`);
+            } else {
+              showToast(`🗑️ Topic section deleted.`);
+            }
+          }
+        });
+      });
+    }
   }
 }
 
