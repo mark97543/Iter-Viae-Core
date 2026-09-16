@@ -138,6 +138,18 @@ const btnBackToDashboard = document.getElementById("btn-back-to-dashboard");
 const btnOpenAddSectionModal = document.getElementById("btn-open-add-section-modal");
 const headerBrandLink = document.getElementById("header-brand-link");
 
+export function getHubUrl(): string {
+  const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:3000/" : "https://wade-usa.com/";
+}
+
+// Update Hub Portal Links
+const hubUrl = getHubUrl();
+const btnBackToHubHeader = document.getElementById("btn-back-to-hub-header") as HTMLAnchorElement | null;
+const btnBackToHubDetail = document.getElementById("btn-back-to-hub-detail") as HTMLAnchorElement | null;
+if (btnBackToHubHeader) btnBackToHubHeader.href = hubUrl;
+if (btnBackToHubDetail) btnBackToHubDetail.href = hubUrl;
+
 // Modal DOM References
 const sectionModal = document.getElementById("section-modal");
 const sectionModalTitle = document.getElementById("section-modal-title");

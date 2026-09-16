@@ -188,6 +188,18 @@ const menuUserDisplayName = document.getElementById("menu-user-display-name");
 const menuUserVerificationBadge = document.getElementById("menu-user-verification-badge");
 const menuLogoutBtn = document.getElementById("menu-logout-btn");
 
+export function getHubUrl(): string {
+  const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  return isLocal ? "http://localhost:3000/" : "https://wade-usa.com/";
+}
+
+// Set Hub Portal links
+const hubUrl = getHubUrl();
+const btnBackToHubNav = document.getElementById("btn-back-to-hub-nav") as HTMLAnchorElement | null;
+const menuHubPortalBtn = document.getElementById("menu-hub-portal-btn") as HTMLAnchorElement | null;
+if (btnBackToHubNav) btnBackToHubNav.href = hubUrl;
+if (menuHubPortalBtn) menuHubPortalBtn.href = hubUrl;
+
 // DOM Route Loading Overlay References
 const routeLoadingModal = document.getElementById("route-loading-modal");
 const routeLoadingSubtitle = document.getElementById("route-loading-subtitle");

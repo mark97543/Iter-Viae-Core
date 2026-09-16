@@ -30,6 +30,9 @@
         <div class="nav-actions">
           <input type="file" id="import-gpx-input" accept=".gpx,.kml" style="display: none;" />
           <input type="file" id="import-iterviae-input" accept=".iterviae,.json" style="display: none;" />
+          <a id="btn-back-to-hub-nav" class="btn btn-outline btn-sm hub-portal-btn" href="#" title="Return to Wade USA Master Hub Portal">
+            🏠 Hub Portal
+          </a>
           <!-- Expedition Command Dropdown Menu -->
           <div id="nav-expedition-menu" class="nav-dropdown-wrapper" style="display: none; margin-right: 6px;">
             <button id="toggle-nav-menu-btn" class="btn btn-outline btn-sm dropdown-trigger-btn" title="Expedition Cloud & Tools Menu">
@@ -92,7 +95,11 @@
                 <span>Vehicle & Fuel Specs</span>
               </button>
               <div class="dropdown-menu-divider"></div>
-              <div class="dropdown-header-title">ACCOUNT</div>
+              <div class="dropdown-header-title">ACCOUNT & PORTAL</div>
+              <a id="menu-hub-portal-btn" class="dropdown-menu-item" href="#" title="Return to Wade USA Master Hub Portal">
+                <span class="dropdown-icon">🏠</span>
+                <span>Back to Hub Portal</span>
+              </a>
               <div id="menu-user-info" class="dropdown-user-card" style="display: none;">
                 <span id="menu-user-display-name" class="dropdown-user-name">User</span>
                 <span id="menu-user-verification-badge" class="badge badge-warning">Unverified</span>
