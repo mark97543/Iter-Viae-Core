@@ -220,6 +220,14 @@ export interface VehicleProfile {
   enabled?: boolean;
 }
 
+export function getMapLibreClass(className: string): any {
+  const m = maplibregl as any;
+  if (m && m[className]) return m[className];
+  if (m && m.default && m.default[className]) return m.default[className];
+  if ((window as any).maplibregl && (window as any).maplibregl[className]) return (window as any).maplibregl[className];
+  return m ? (m[className] || m.default?.[className]) : undefined;
+}
+
 // Global State References
 let map: maplibregl.Map | null = null;
 let searchMarker: maplibregl.Marker | null = null;
@@ -1348,7 +1356,9 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
       el.className = "fuel-exhaustion-marker";
       el.innerHTML = "⚠️";
 
-      const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
+      const PopupConstructor = getMapLibreClass("Popup");
+      const MarkerConstructor = getMapLibreClass("Marker");
+      const popup = new PopupConstructor({ offset: 15 }).setHTML(`
         <div style="font-family:var(--font-mono); font-size:0.75rem; font-weight:800; color:#ef4444;">
           ⚠️ FUEL EXHAUSTION POINT
         </div>
@@ -1358,7 +1368,7 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
         </div>
       `);
 
-      fuelExhaustionMarkerInstance = new maplibregl.Marker({ element: el })
+      fuelExhaustionMarkerInstance = new MarkerConstructor({ element: el })
         .setLngLat([exhaustionPoint[0], exhaustionPoint[1]])
         .setPopup(popup)
         .addTo(map);
@@ -1756,9 +1766,11 @@ function renderWaypointMapMarkers() {
     el.innerText = indexString;
 
     const popupHtml = createMarkerPopupHtml(wp, idx, markerColor, `STOP #${indexString} • ${catDetails ? catDetails.icon : "📍"}`);
-    const popup = new maplibregl.Popup({ offset: 18, closeButton: true }).setHTML(popupHtml);
+    const PopupConstructor = getMapLibreClass("Popup");
+    const MarkerConstructor = getMapLibreClass("Marker");
+    const popup = new PopupConstructor({ offset: 18, closeButton: true }).setHTML(popupHtml);
 
-    const marker = new maplibregl.Marker({ element: el, draggable: true })
+    const marker = new MarkerConstructor({ element: el, draggable: true })
       .setLngLat([wp.lon!, wp.lat!])
       .setPopup(popup)
       .addTo(map!);
@@ -1906,7 +1918,8 @@ function fitMapToDayBounds(dayIndex: number) {
     return;
   }
 
-  const bounds = new maplibregl.LngLatBounds();
+  const LngLatBoundsConstructor = getMapLibreClass("LngLatBounds");
+  const bounds = new LngLatBoundsConstructor();
   valid.forEach((w) => bounds.extend([w.lon!, w.lat!]));
 
   map.fitBounds(bounds, {
@@ -2506,7 +2519,11 @@ export function open3DViewerModal() {
 
   if (!map3D) {
     console.log("Initializing Dedicated 3D Terrain Command Surface...");
-    map3D = new maplibregl.Map({
+    const MapConstructor = getMapLibreClass("Map");
+    const NavControlConstructor = getMapLibreClass("NavigationControl");
+    const FullscreenControlConstructor = getMapLibreClass("FullscreenControl");
+
+    map3D = new MapConstructor({
       container: "map-3d-container",
       style: {
         version: 8,
@@ -2545,14 +2562,16 @@ export function open3DViewerModal() {
       attributionControl: false
     });
 
-    map3D.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
-    map3D.addControl(new maplibregl.FullscreenControl(), "bottom-right");
+    if (map3D) {
+      map3D.addControl(new NavControlConstructor({ visualizePitch: true }), "bottom-right");
+      map3D.addControl(new FullscreenControlConstructor(), "bottom-right");
 
-    map3D.on("pitch", () => {
-      if (hudPitchVal && map3D) {
-        hudPitchVal.textContent = `${Math.round(map3D.getPitch())}°`;
-      }
-    });
+      map3D.on("pitch", () => {
+        if (hudPitchVal && map3D) {
+          hudPitchVal.textContent = `${Math.round(map3D.getPitch())}°`;
+        }
+      });
+    }
   }
 
   setTimeout(() => {
@@ -2610,7 +2629,8 @@ export function open3DViewerModal() {
     }
 
     if (lastRouteCoordinates.length > 1) {
-      const bounds = new maplibregl.LngLatBounds(lastRouteCoordinates[0], lastRouteCoordinates[0]);
+      const LngLatBoundsConstructor = getMapLibreClass("LngLatBounds");
+      const bounds = new LngLatBoundsConstructor(lastRouteCoordinates[0], lastRouteCoordinates[0]);
       lastRouteCoordinates.forEach((coord) => bounds.extend(coord));
       map3D.fitBounds(bounds, { padding: 80, pitch: 60, duration: 1000 });
     }
@@ -2634,7 +2654,8 @@ function reset3DCamera() {
   if (!map3D) return;
 
   if (lastRouteCoordinates.length > 1) {
-    const bounds = new maplibregl.LngLatBounds(lastRouteCoordinates[0], lastRouteCoordinates[0]);
+    const LngLatBoundsConstructor = getMapLibreClass("LngLatBounds");
+    const bounds = new LngLatBoundsConstructor(lastRouteCoordinates[0], lastRouteCoordinates[0]);
     lastRouteCoordinates.forEach((coord) => bounds.extend(coord));
     map3D.fitBounds(bounds, { padding: 80, pitch: 65, duration: 1000 });
   } else {
@@ -3886,7 +3907,8 @@ function renderPOISearchResults(results: any[], defaultCat: StopCategory, defaul
     address: item.display_name
   }));
 
-  const bounds = new maplibregl.LngLatBounds();
+  const LngLatBoundsConstructor = getMapLibreClass("LngLatBounds");
+  const bounds = new LngLatBoundsConstructor();
   let html = "";
 
   items.forEach((poi, i) => {
@@ -3916,9 +3938,11 @@ function renderPOISearchResults(results: any[], defaultCat: StopCategory, defaul
         </div>
       `;
 
-      const marker = new maplibregl.Marker({ element: el })
+      const MarkerConstructor = getMapLibreClass("Marker");
+      const PopupConstructor = getMapLibreClass("Popup");
+      const marker = new MarkerConstructor({ element: el })
         .setLngLat([poi.lon, poi.lat])
-        .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(popupHtml))
+        .setPopup(new PopupConstructor({ offset: 12 }).setHTML(popupHtml))
         .addTo(map);
 
       activePoiSearchMarkers.push(marker);
@@ -4080,7 +4104,7 @@ async function publishActiveTripToCloud() {
   }
 
   try {
-    showToast("Publishing expedition route to cloud... ☁️");
+    showToast("Saving route to cloud... 💾");
 
     const encodedPolyline = encodePolyline6(lastRouteCoordinates);
     const compactLegs = currentRouteLegs.map((leg) => ({
@@ -4153,7 +4177,7 @@ async function publishActiveTripToCloud() {
         currentTripId = record.id;
       }
       saveActiveDraftToLocalStorage();
-      showToast(`Published "${currentTripTitle}" to Cloud! ☁️`);
+      showToast(`Saved "${currentTripTitle}"! 💾`);
     } catch (err1: any) {
       console.warn("Save attempt 1 (Full Payload) failed:", extractPocketBaseError(err1));
 
@@ -4179,7 +4203,7 @@ async function publishActiveTripToCloud() {
           currentTripId = record.id;
         }
         saveActiveDraftToLocalStorage();
-        showToast(`Published "${currentTripTitle}" to Cloud! ☁️`);
+        showToast(`Saved "${currentTripTitle}"! 💾`);
       } catch (err2: any) {
         console.warn("Save attempt 2 failed:", extractPocketBaseError(err2));
 
@@ -4204,11 +4228,11 @@ async function publishActiveTripToCloud() {
             currentTripId = record.id;
           }
           saveActiveDraftToLocalStorage();
-          showToast(`Published "${currentTripTitle}" to Cloud! ☁️`);
+          showToast(`Saved "${currentTripTitle}"! 💾`);
         } catch (err3: any) {
-          console.error("All publish attempts failed. Final error:", err3);
+          console.error("All save attempts failed. Final error:", err3);
           const errDetails = extractPocketBaseError(err3);
-          alert("Failed to publish trip to Cloud:\n\n" + errDetails);
+          alert("Failed to save trip to Cloud:\n\n" + errDetails);
         }
       }
     }
@@ -4303,7 +4327,8 @@ function fitMapToAllWaypoints() {
     return;
   }
 
-  const bounds = new maplibregl.LngLatBounds();
+  const LngLatBoundsConstructor = getMapLibreClass("LngLatBounds");
+  const bounds = new LngLatBoundsConstructor();
   valid.forEach((w) => {
     bounds.extend([w.lon!, w.lat!]);
   });
@@ -4704,14 +4729,19 @@ function addPinAtLocation(lat: number, lon: number) {
     </div>
   `;
 
-  const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupHtml);
 
-  searchMarker = new maplibregl.Marker({ color: "#ef4444" })
+  const PopupConstructor = getMapLibreClass("Popup");
+  const MarkerConstructor = getMapLibreClass("Marker");
+  const popup = new PopupConstructor({ offset: 25, closeButton: false }).setHTML(popupHtml);
+
+  searchMarker = new MarkerConstructor({ color: "#ef4444" })
     .setLngLat([lon, lat])
     .setPopup(popup)
     .addTo(map);
 
-  searchMarker.togglePopup();
+  if (searchMarker) {
+    searchMarker.togglePopup();
+  }
 }
 
 function initializeMapSurface() {
@@ -4726,7 +4756,11 @@ function initializeMapSurface() {
 
   console.log("Initializing MapLibre GL Map Surface - Local TileServer GL Engine...");
 
-  map = new maplibregl.Map({
+  const MapConstructor = getMapLibreClass("Map");
+  const NavControlConstructor = getMapLibreClass("NavigationControl");
+  const FullscreenControlConstructor = getMapLibreClass("FullscreenControl");
+
+  map = new MapConstructor({
     container: "map-container",
     style: MAP_SURFACE_STYLES["vector"],
     center: DEFAULT_CENTER,
@@ -4746,9 +4780,11 @@ function initializeMapSurface() {
     });
   }
 
+  if (!map) return;
+
   // Add Navigation & Fullscreen Controls
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
-  map.addControl(new maplibregl.FullscreenControl(), "bottom-right");
+  map.addControl(new NavControlConstructor({ visualizePitch: true }), "bottom-right");
+  map.addControl(new FullscreenControlConstructor(), "bottom-right");
 
   // Dismiss marker, popup & context menu when user left clicks anywhere on the map canvas
   map.on("click", () => {
