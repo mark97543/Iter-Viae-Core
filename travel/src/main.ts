@@ -155,6 +155,7 @@ const sectionModal = document.getElementById("section-modal");
 const sectionModalTitle = document.getElementById("section-modal-title");
 const sectionModalClose = document.getElementById("section-modal-close");
 const sectionModalCancel = document.getElementById("section-modal-cancel");
+const btnDeleteSectionModal = document.getElementById("btn-delete-section-modal") as HTMLButtonElement | null;
 const sectionForm = document.getElementById("section-form") as HTMLFormElement | null;
 
 const sectionEditIndexInput = document.getElementById("section-edit-index") as HTMLInputElement | null;
@@ -454,12 +455,9 @@ function renderTripFieldManual(trip: Trip) {
               ${sec.icon ? `<span class="section-card-icon">${sec.icon}</span>` : ""}
               <h2 class="section-card-title">${escapeHtml(sec.title)}</h2>
             </div>
-            <div class="section-card-actions" style="display:flex; gap:0.5rem;">
+            <div class="section-card-actions">
               <button class="btn-edit-section" data-index="${idx}" title="Edit Topic Section">
                 ✏️ Edit
-              </button>
-              <button class="btn-delete-section" data-index="${idx}" title="Delete Topic Section" style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#f87171; border-radius:var(--radius-sm); padding:0.35rem 0.75rem; font-weight:700; font-size:0.8rem; cursor:pointer; transition:all 0.2s ease;">
-                🗑️ Delete
               </button>
             </div>
           </div>
@@ -475,51 +473,6 @@ function renderTripFieldManual(trip: Trip) {
           if (indexStr !== null) {
             const idx = parseInt(indexStr, 10);
             openSectionModal(idx);
-          }
-        });
-      });
-
-      fieldManualSectionsContainer.querySelectorAll(".btn-delete-section").forEach((btn) => {
-        let isConfirmingSection = false;
-        btn.addEventListener("click", async (e) => {
-          const target = e.currentTarget as HTMLButtonElement;
-          const indexStr = target.getAttribute("data-index");
-          if (indexStr !== null) {
-            const idx = parseInt(indexStr, 10);
-            const targetSection = activeSections[idx];
-            if (!targetSection) return;
-
-            if (!isConfirmingSection) {
-              isConfirmingSection = true;
-              target.innerText = "⚠️ Confirm Delete?";
-              target.style.background = "rgba(239,68,68,0.3)";
-              target.style.color = "#ffffff";
-              setTimeout(() => {
-                if (isConfirmingSection) {
-                  isConfirmingSection = false;
-                  target.innerText = "🗑️ Delete";
-                  target.style.background = "rgba(239,68,68,0.12)";
-                  target.style.color = "#f87171";
-                }
-              }, 4000);
-              return;
-            }
-
-            target.disabled = true;
-            target.innerText = "⏳ Deleting...";
-
-            if (!trip.sections) trip.sections = [];
-            trip.sections.splice(idx, 1);
-            saveTripsState();
-            renderTripFieldManual(trip);
-
-            showToast(`💾 Deleting topic "${targetSection.title}"...`);
-            const saved = await saveTripToPB(trip);
-            if (saved) {
-              showToast(`✅ Topic "${targetSection.title}" deleted from PocketBase DB!`);
-            } else {
-              showToast(`🗑️ Topic section deleted.`);
-            }
           }
         });
       });
@@ -676,12 +629,27 @@ function updateToolbarActiveStates() {
 }
 
 // Section Modal Functions
+let isConfirmingModalDelete = false;
+
+function resetModalDeleteBtn() {
+  isConfirmingModalDelete = false;
+  if (btnDeleteSectionModal) {
+    btnDeleteSectionModal.innerText = "🗑️ Delete Section";
+    btnDeleteSectionModal.style.background = "rgba(239, 68, 68, 0.14)";
+    btnDeleteSectionModal.style.color = "#f87171";
+    btnDeleteSectionModal.style.borderColor = "rgba(239, 68, 68, 0.4)";
+    btnDeleteSectionModal.disabled = false;
+  }
+}
+
 function openSectionModal(editIndex: number = -1) {
   if (!sectionModal || !currentTrip) return;
 
   if (!tiptapEditor) {
     initTipTapEditor();
   }
+
+  resetModalDeleteBtn();
 
   const activeSections = (currentTrip.sections && currentTrip.sections.length > 0)
     ? currentTrip.sections
@@ -696,12 +664,14 @@ function openSectionModal(editIndex: number = -1) {
     if (sectionIconInput) sectionIconInput.value = sec.icon || "💡";
     if (sectionSlugInput) sectionSlugInput.value = sec.slug;
     if (tiptapEditor) tiptapEditor.commands.setContent(sec.content || "<p></p>");
+    if (btnDeleteSectionModal) btnDeleteSectionModal.style.display = "inline-flex";
   } else {
     if (sectionModalTitle) sectionModalTitle.textContent = "➕ Add New Topic Section";
     if (sectionTitleInput) sectionTitleInput.value = "";
     if (sectionIconInput) sectionIconInput.value = "💡";
     if (sectionSlugInput) sectionSlugInput.value = "";
     if (tiptapEditor) tiptapEditor.commands.setContent("<p></p>");
+    if (btnDeleteSectionModal) btnDeleteSectionModal.style.display = "none";
   }
 
   sectionModal.style.display = "flex";
@@ -712,11 +682,52 @@ function openSectionModal(editIndex: number = -1) {
 
 function closeSectionModal() {
   if (sectionModal) sectionModal.style.display = "none";
+  resetModalDeleteBtn();
 }
 
 if (btnOpenAddSectionModal) btnOpenAddSectionModal.addEventListener("click", () => openSectionModal(-1));
 if (sectionModalClose) sectionModalClose.addEventListener("click", closeSectionModal);
 if (sectionModalCancel) sectionModalCancel.addEventListener("click", closeSectionModal);
+
+if (btnDeleteSectionModal) {
+  btnDeleteSectionModal.addEventListener("click", async () => {
+    if (!currentTrip) return;
+    const editIndex = sectionEditIndexInput ? parseInt(sectionEditIndexInput.value, 10) : -1;
+    if (editIndex < 0 || !currentTrip.sections || editIndex >= currentTrip.sections.length) return;
+
+    const targetSection = currentTrip.sections[editIndex];
+
+    if (!isConfirmingModalDelete) {
+      isConfirmingModalDelete = true;
+      btnDeleteSectionModal.innerText = "⚠️ Confirm Delete Section?";
+      btnDeleteSectionModal.style.background = "rgba(239, 68, 68, 0.4)";
+      btnDeleteSectionModal.style.color = "#ffffff";
+      btnDeleteSectionModal.style.borderColor = "rgba(239, 68, 68, 0.8)";
+      setTimeout(() => {
+        if (isConfirmingModalDelete) {
+          resetModalDeleteBtn();
+        }
+      }, 4000);
+      return;
+    }
+
+    btnDeleteSectionModal.disabled = true;
+    btnDeleteSectionModal.innerText = "⏳ Deleting...";
+
+    currentTrip.sections.splice(editIndex, 1);
+    saveTripsState();
+    closeSectionModal();
+    renderTripFieldManual(currentTrip);
+
+    showToast(`💾 Deleting topic "${targetSection.title}"...`);
+    const saved = await saveTripToPB(currentTrip);
+    if (saved) {
+      showToast(`✅ Topic section "${targetSection.title}" deleted from PocketBase DB!`);
+    } else {
+      showToast(`🗑️ Topic section deleted.`);
+    }
+  });
+}
 
 if (sectionForm) {
   sectionForm.addEventListener("submit", async (e) => {

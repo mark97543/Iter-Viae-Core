@@ -1842,6 +1842,27 @@ del {
   opacity: 0.95;
 }
 
+.btn-danger-modal {
+  padding: 0.65rem 1.2rem;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-danger-modal:hover {
+  background: rgba(239, 68, 68, 0.28);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.7);
+}
+
 /* TipTap Rich Text Editor Styles */
 .tiptap-editor-wrapper {
   background: rgba(11, 15, 25, 0.85);
