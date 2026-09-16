@@ -7,7 +7,7 @@ import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { Trip, TripStatus, TripSection } from "./types/trip";
 import { router, RouteState } from "./router";
-import { fetchTripsFromPB, fetchTripBySlugFromPB, saveTripToPB, POCKETBASE_URL, pb } from "./pocketbase";
+import { fetchTripsFromPB, fetchTripBySlugFromPB, fetchTripByIdFromPB, saveTripToPB, POCKETBASE_URL, pb } from "./pocketbase";
 import { loadLocalFolderTrips } from "./utils/tripLoader";
 
 // Custom TipTap Extensions for Field Manual Preset Components
@@ -86,20 +86,31 @@ const FlashcardEnglish = Node.create({
   },
 });
 
-// Cross-subdomain SSO Token Handler from Hub (wade-usa.com)
+// Cross-subdomain SSO Token & Hub Trip Launch Handler
 (function handleSSOToken() {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
+  const tripId = urlParams.get("tripId") || urlParams.get("trip");
+
   if (token) {
     try {
       pb.authStore.save(token, null);
-      urlParams.delete("token");
-      const newQuery = urlParams.toString();
-      const newUrl = window.location.pathname + (newQuery ? "?" + newQuery : "") + window.location.hash;
-      window.history.replaceState(null, "", newUrl);
     } catch (e) {
       console.warn("Failed to process SSO token from Hub:", e);
     }
+  }
+
+  if (tripId) {
+    window.location.hash = `#/trips/${tripId}`;
+  }
+
+  if (token || tripId) {
+    urlParams.delete("token");
+    urlParams.delete("tripId");
+    urlParams.delete("trip");
+    const newQuery = urlParams.toString();
+    const newUrl = window.location.pathname + (newQuery ? "?" + newQuery : "") + window.location.hash;
+    window.history.replaceState(null, "", newUrl);
   }
 })();
 
@@ -229,11 +240,16 @@ async function renderRoute(route: RouteState) {
     if (btnNavDashboard) btnNavDashboard.classList.add("chip-active");
     renderDashboardGrid();
   } else if (route.view === "trip" && route.slug) {
-    let found = trips.find((t) => t.slug.toLowerCase() === route.slug?.toLowerCase());
+    let found = trips.find(
+      (t) => t.id === route.slug || t.slug.toLowerCase() === route.slug?.toLowerCase()
+    );
 
-    // Fallback: Query PocketBase DB directly if not in local cache
+    // Fallback: Query PocketBase DB directly by slug or ID if not in local cache
     if (!found) {
-      const pbTrip = await fetchTripBySlugFromPB(route.slug);
+      let pbTrip = await fetchTripBySlugFromPB(route.slug);
+      if (!pbTrip) {
+        pbTrip = await fetchTripByIdFromPB(route.slug);
+      }
       if (pbTrip) {
         found = pbTrip;
         trips.unshift(pbTrip);

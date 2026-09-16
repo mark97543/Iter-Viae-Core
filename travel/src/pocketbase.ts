@@ -129,6 +129,23 @@ export async function fetchTripBySlugFromPB(slug: string): Promise<Trip | null> 
 }
 
 /**
+ * Fetch a single travel itinerary by PocketBase ID (`trips` collection)
+ */
+export async function fetchTripByIdFromPB(id: string): Promise<Trip | null> {
+  try {
+    const record = await pb.collection("trips").getOne(id);
+    if (record) {
+      return mapPBRecordToTrip(record);
+    }
+  } catch (err: any) {
+    if (err.status !== 404) {
+      console.warn(`PocketBase fetch trips by ID "${id}" warning:`, err.message);
+    }
+  }
+  return null;
+}
+
+/**
  * Save or update travel itinerary strictly in PocketBase DB (`trips` collection)
  */
 export async function saveTripToPB(trip: Trip): Promise<Trip | null> {
