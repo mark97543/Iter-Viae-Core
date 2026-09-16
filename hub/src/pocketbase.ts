@@ -111,26 +111,36 @@ export function logoutUser() {
   pb.authStore.clear();
 }
 
-// User-Locked Trip Database API with 404 Graceful Fallback
+// User-Locked & Guest Trip Database API with Local Storage Fallback Sync
 export async function fetchUserTrips(statusFilter: "active" | "archived" = "active"): Promise<TripRecord[]> {
   const user = getCurrentUser();
-  if (!user) return [];
-
   const results: TripRecord[] = [];
-  const filterQuery = `(user = "${user.id}" || shared ~ "${user.id}") && status = "${statusFilter}"`;
 
   try {
-    const records = await pb.collection("trips").getFullList<any>({
-      filter: filterQuery,
-      sort: "-updated,-created",
-      requestKey: null,
-    });
+    let records: any[] = [];
+    if (user) {
+      const filterQuery = `(user = "${user.id}" || shared ~ "${user.id}" || user = "guest" || user = "") && status = "${statusFilter}"`;
+      records = await pb.collection("trips").getFullList<any>({
+        filter: filterQuery,
+        sort: "-updated,-created",
+        requestKey: null,
+      });
+    } else {
+      // Unauthenticated / Guest Mode: Fetch all active or archived trips
+      records = await pb.collection("trips").getFullList<any>({
+        filter: `status = "${statusFilter}"`,
+        sort: "-updated,-created",
+        requestKey: null,
+      });
+    }
+
     records.forEach((r) => {
       results.push({
         id: r.id,
-        user: r.user || user.id,
+        user: r.user || "guest",
         shared: r.shared || [],
         title: r.title || r.name || "Untitled Trip",
+        slug: r.slug || r.id,
         subtitle: r.subtitle || "",
         status: (r.status as any) || "active",
         summary: r.summary || "",
@@ -141,12 +151,23 @@ export async function fetchUserTrips(statusFilter: "active" | "archived" = "acti
         trip_template: r.trip_template || (r.waypoints ? "ROADTRIP" : "TRAVEL"),
         waypoints: r.waypoints || [],
         bookings: r.bookings || r.reservations || [],
+        sections: r.sections || [],
         coverEmoji: r.coverEmoji || (r.trip_template === "TRAVEL" ? "✈️" : "🚗"),
         coverGradient: r.coverGradient || "linear-gradient(135deg, #0ea5e9, #3b82f6)",
         created: r.created,
         updated: r.updated,
       });
     });
+
+    // Merge with any local storage fallback trips not yet synced
+    const localTrips = getLocalTrips().filter((t) => (t.status || "active") === statusFilter);
+    const remoteIds = new Set(results.map((r) => r.id));
+    localTrips.forEach((lTrip) => {
+      if (!remoteIds.has(lTrip.id)) {
+        results.push(lTrip);
+      }
+    });
+
     return results;
   } catch (err: any) {
     if (err?.status === 404) {
@@ -154,9 +175,9 @@ export async function fetchUserTrips(statusFilter: "active" | "archived" = "acti
     }
   }
 
-  // Fallback to local trips DB if 404 or offline
+  // Fallback to local trips DB if offline or collection missing
   const localTrips = getLocalTrips();
-  return localTrips.filter((t) => (t.user === user.id || (t.shared || []).includes(user.id)) && (t.status || "active") === statusFilter);
+  return localTrips.filter((t) => (t.status || "active") === statusFilter);
 }
 
 export async function createTripRecord(data: {
