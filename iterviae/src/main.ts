@@ -4388,14 +4388,7 @@ async function loadTripIntoWorkspace(tripId: string) {
     try {
       record = await pb.collection("trips").getOne(tripId);
     } catch (err: any) {
-      // Fallback to local storage DB if server collection is 404 or offline
-      try {
-        const raw = localStorage.getItem("wade_usa_trips_local_db");
-        if (raw) {
-          const localTrips = JSON.parse(raw);
-          record = localTrips.find((t: any) => t.id === tripId);
-        }
-      } catch (e) {}
+      console.warn("Could not fetch trip record from PocketBase DB:", err?.message || err);
     }
 
   if (activeRouteLoadingToken !== loadingToken) {

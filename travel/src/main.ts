@@ -189,39 +189,27 @@ function mergeTrips(remoteTrips: Trip[], localTrips: Trip[]): Trip[] {
   return Array.from(tripMap.values());
 }
 
-// Load Trips from Local Trip Markdown Folders & LocalStorage
+// Load Trips strictly from PocketBase DB
 function loadTrips(): Trip[] {
-  const localFolderTrips = loadLocalFolderTrips();
-  const stored = localStorage.getItem("travel_pb_cache");
-  if (stored) {
-    try {
-      const parsed: Trip[] = JSON.parse(stored);
-      return mergeTrips(parsed, localFolderTrips);
-    } catch (e) {
-      console.error("Failed to parse cached travel data", e);
-    }
-  }
-  return localFolderTrips;
+  try {
+    localStorage.removeItem("travel_pb_cache");
+  } catch (e) {}
+  return [];
 }
 
-// Save Trips State Locally
-function saveTripsState() {
-  localStorage.setItem("travel_pb_cache", JSON.stringify(trips));
-}
+// Save Trips State
+function saveTripsState() {}
 
-// Sync strictly with PocketBase DB 'travel' Collection
+// Sync strictly with PocketBase DB 'trips' Collection
 async function syncWithPocketBaseDB() {
-  const localFolderTrips = loadLocalFolderTrips();
   const result = await fetchTripsFromPB();
   if (result.isForbidden) {
-    trips = mergeTrips([], localFolderTrips);
-    saveTripsState();
+    trips = [];
     renderRoute(router.getCurrentRoute());
     return;
   }
   if (result.trips) {
-    trips = mergeTrips(result.trips, localFolderTrips);
-    saveTripsState();
+    trips = result.trips;
     renderRoute(router.getCurrentRoute());
   }
 }

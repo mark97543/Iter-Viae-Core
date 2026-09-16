@@ -31,24 +31,6 @@ export interface TripRecord {
   updated?: string;
 }
 
-// Local Storage Fallback DB helpers (used when server collection doesn't exist / returns 404)
-const LOCAL_DB_KEY = "wade_usa_trips_local_db";
-
-function getLocalTrips(): TripRecord[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_DB_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveLocalTrips(trips: TripRecord[]) {
-  try {
-    localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(trips));
-  } catch (e) {}
-}
-
 // Single Sign-On (SSO) URL generator
 export function getSpokeAppUrl(app: "road" | "travel", tripId?: string, slug?: string): string {
   const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
@@ -111,7 +93,7 @@ export function logoutUser() {
   pb.authStore.clear();
 }
 
-// User-Locked & Guest Trip Database API with Local Storage Fallback Sync
+// User-Locked & Guest Trip Database API (Strictly PocketBase DB)
 export async function fetchUserTrips(statusFilter: "active" | "archived" = "active"): Promise<TripRecord[]> {
   const user = getCurrentUser();
   const results: TripRecord[] = [];
@@ -159,25 +141,11 @@ export async function fetchUserTrips(statusFilter: "active" | "archived" = "acti
       });
     });
 
-    // Merge with any local storage fallback trips not yet synced
-    const localTrips = getLocalTrips().filter((t) => (t.status || "active") === statusFilter);
-    const remoteIds = new Set(results.map((r) => r.id));
-    localTrips.forEach((lTrip) => {
-      if (!remoteIds.has(lTrip.id)) {
-        results.push(lTrip);
-      }
-    });
-
     return results;
   } catch (err: any) {
-    if (err?.status === 404) {
-      console.warn("PocketBase 'trips' collection not on server (404). Loading local fallback DB.");
-    }
+    console.warn("PocketBase fetchUserTrips error:", err?.message || err);
+    return [];
   }
-
-  // Fallback to local trips DB if offline or collection missing
-  const localTrips = getLocalTrips();
-  return localTrips.filter((t) => (t.status || "active") === statusFilter);
 }
 
 export async function createTripRecord(data: {
@@ -231,39 +199,16 @@ export async function createTripRecord(data: {
     payload.user = user.id;
   }
 
-  try {
-    const record = await pb.collection("trips").create(payload);
-    return { ...payload, id: record.id, slug: record.slug || generatedSlug };
-  } catch (err: any) {
-    console.warn("Server collection 'trips' returned error. Creating trip in fallback local DB:", err?.message || err);
-    const localTrips = getLocalTrips();
-    const newRecord: TripRecord = { ...payload, id: "trip_" + Date.now(), created: new Date().toISOString() };
-    localTrips.unshift(newRecord);
-    saveLocalTrips(localTrips);
-    return newRecord;
-  }
+  const record = await pb.collection("trips").create(payload);
+  return { ...payload, id: record.id, slug: record.slug || generatedSlug };
 }
 
 export async function archiveTripRecord(tripId: string): Promise<any> {
-  try {
-    return await pb.collection("trips").update(tripId, { status: "archived" });
-  } catch (err) {
-    const localTrips = getLocalTrips();
-    const item = localTrips.find((t) => t.id === tripId);
-    if (item) item.status = "archived";
-    saveLocalTrips(localTrips);
-  }
+  return await pb.collection("trips").update(tripId, { status: "archived" });
 }
 
 export async function unarchiveTripRecord(tripId: string): Promise<any> {
-  try {
-    return await pb.collection("trips").update(tripId, { status: "active" });
-  } catch (err) {
-    const localTrips = getLocalTrips();
-    const item = localTrips.find((t) => t.id === tripId);
-    if (item) item.status = "active";
-    saveLocalTrips(localTrips);
-  }
+  return await pb.collection("trips").update(tripId, { status: "active" });
 }
 
 export async function deleteTripRecord(tripId: string): Promise<boolean> {
@@ -272,17 +217,11 @@ export async function deleteTripRecord(tripId: string): Promise<boolean> {
   } catch (err: any) {
     console.warn("Could not delete from PocketBase trips collection:", err?.message || err);
   }
-  
-  const localTrips = getLocalTrips().filter((t) => t.id !== tripId);
-  saveLocalTrips(localTrips);
 
+  // Clear any legacy local storage caches
   try {
-    const travelCache = localStorage.getItem("travel_pb_cache");
-    if (travelCache) {
-      const parsed = JSON.parse(travelCache);
-      const filtered = parsed.filter((t: any) => t.id !== tripId && t.slug !== tripId);
-      localStorage.setItem("travel_pb_cache", JSON.stringify(filtered));
-    }
+    localStorage.removeItem("wade_usa_trips_local_db");
+    localStorage.removeItem("travel_pb_cache");
   } catch (e) {}
 
   return true;
@@ -303,27 +242,14 @@ export async function shareTripByEmail(tripId: string, email: string): Promise<{
     }
 
     const targetUser = users.items[0];
-
-    try {
-      const trip = await pb.collection("trips").getOne<TripRecord>(tripId);
-      const currentShared = trip.shared || [];
-      if (currentShared.includes(targetUser.id)) {
-        return { success: true, message: `Trip is already shared with ${targetUser.email}.` };
-      }
-
-      const updatedShared = [...currentShared, targetUser.id];
-      await pb.collection("trips").update(tripId, { shared: updatedShared });
-    } catch (err) {
-      // Local DB fallback for sharing
-      const localTrips = getLocalTrips();
-      const item = localTrips.find((t) => t.id === tripId);
-      if (item) {
-        if (!item.shared) item.shared = [];
-        if (!item.shared.includes(targetUser.id)) item.shared.push(targetUser.id);
-        saveLocalTrips(localTrips);
-      }
+    const trip = await pb.collection("trips").getOne<TripRecord>(tripId);
+    const currentShared = trip.shared || [];
+    if (currentShared.includes(targetUser.id)) {
+      return { success: true, message: `Trip is already shared with ${targetUser.email}.` };
     }
 
+    const updatedShared = [...currentShared, targetUser.id];
+    await pb.collection("trips").update(tripId, { shared: updatedShared });
     return { success: true, message: `Trip successfully shared with ${targetUser.name || targetUser.email}!` };
   } catch (err: any) {
     console.error("Error sharing trip:", err);
