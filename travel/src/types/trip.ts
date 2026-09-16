@@ -35,10 +35,12 @@ export interface PackingCategory {
 }
 
 export interface TripSection {
+  id?: string;
   slug: string;
   title: string;
   icon?: string;
   content: string;
+  order?: number;
 }
 
 export interface Trip {

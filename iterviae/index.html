@@ -28,21 +28,24 @@
         </div>
 
         <div class="nav-actions">
-          <!-- Primary Actions -->
-          <button id="new-trip-btn" class="btn btn-outline btn-sm" style="display: none; margin-right: 6px;" title="Start a New Blank Expedition Route">
-            ➕ New Trip
-          </button>
-          <button id="open-itinerary-btn" class="btn btn-emerald btn-sm" style="display: none; margin-right: 6px;" title="Open Detailed Itinerary">
-            📊 Itinerary
-          </button>
           <input type="file" id="import-gpx-input" accept=".gpx,.kml" style="display: none;" />
           <input type="file" id="import-iterviae-input" accept=".iterviae,.json" style="display: none;" />
           <!-- Expedition Command Dropdown Menu -->
-          <div id="nav-expedition-menu" class="nav-dropdown-wrapper" style="display: none; margin-right: 8px;">
+          <div id="nav-expedition-menu" class="nav-dropdown-wrapper" style="display: none; margin-right: 6px;">
             <button id="toggle-nav-menu-btn" class="btn btn-outline btn-sm dropdown-trigger-btn" title="Expedition Cloud & Tools Menu">
               ☰ Menu ▾
             </button>
             <div id="nav-menu-dropdown-card" class="dropdown-menu-card" style="display: none;">
+              <div class="dropdown-header-title">EXPEDITION ACTIONS</div>
+              <button id="menu-new-trip-btn" class="dropdown-menu-item" title="Start a New Blank Expedition Route">
+                <span class="dropdown-icon">➕</span>
+                <span>New Trip</span>
+              </button>
+              <button id="menu-itinerary-btn" class="dropdown-menu-item" title="Open Detailed Expedition Itinerary">
+                <span class="dropdown-icon">📊</span>
+                <span>Itinerary</span>
+              </button>
+              <div class="dropdown-menu-divider"></div>
               <div class="dropdown-header-title">CLOUD SYNC & BACKUP</div>
               <button id="menu-publish-btn" class="dropdown-menu-item" title="Save Active Route to Cloud">
                 <span class="dropdown-icon">💾</span>
@@ -88,17 +91,20 @@
                 <span class="dropdown-icon">⛽</span>
                 <span>Vehicle & Fuel Specs</span>
               </button>
-            </div>
-          </div>
-          <!-- User Auth Controls -->
-          <div id="user-auth-controls">
-            <button id="open-auth-btn" class="btn btn-primary">
-              Sign In
-            </button>
-            <div id="user-session-pill" class="user-pill" style="display: none;">
-              <span id="user-display-name" class="user-name">User</span>
-              <span id="user-verification-badge" class="badge badge-warning">Unverified</span>
-              <button id="logout-btn" class="btn-logout" title="Sign Out">✕</button>
+              <div class="dropdown-menu-divider"></div>
+              <div class="dropdown-header-title">ACCOUNT</div>
+              <div id="menu-user-info" class="dropdown-user-card" style="display: none;">
+                <span id="menu-user-display-name" class="dropdown-user-name">User</span>
+                <span id="menu-user-verification-badge" class="badge badge-warning">Unverified</span>
+              </div>
+              <button id="menu-open-auth-btn" class="dropdown-menu-item" style="display: none;" title="Sign In or Register">
+                <span class="dropdown-icon">🔑</span>
+                <span>Sign In / Account</span>
+              </button>
+              <button id="menu-logout-btn" class="dropdown-menu-item danger-item" style="display: none;" title="Sign Out of Session">
+                <span class="dropdown-icon">🚪</span>
+                <span>Sign Out</span>
+              </button>
             </div>
           </div>
         </div>

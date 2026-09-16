@@ -86,11 +86,6 @@ const loginForm = document.getElementById("login-form") as HTMLFormElement;
 const registerForm = document.getElementById("register-form") as HTMLFormElement;
 const authErrorBanner = document.getElementById("auth-error-banner");
 
-const userSessionPill = document.getElementById("user-session-pill");
-const userDisplayName = document.getElementById("user-display-name");
-const userVerificationBadge = document.getElementById("user-verification-badge");
-const logoutBtn = document.getElementById("logout-btn");
-
 const unverifiedUserEmail = document.getElementById("unverified-user-email");
 const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
 
@@ -175,6 +170,8 @@ const savedTripsList = document.getElementById("saved-trips-list");
 const navExpeditionMenu = document.getElementById("nav-expedition-menu");
 const toggleNavMenuBtn = document.getElementById("toggle-nav-menu-btn");
 const navMenuDropdownCard = document.getElementById("nav-menu-dropdown-card");
+const menuNewTripBtn = document.getElementById("menu-new-trip-btn");
+const menuItineraryBtn = document.getElementById("menu-itinerary-btn");
 const menuPublishBtn = document.getElementById("menu-publish-btn");
 const menuSyncCloudBtn = document.getElementById("menu-sync-cloud-btn");
 const menuSavedTripsBtn = document.getElementById("menu-saved-trips-btn");
@@ -185,6 +182,11 @@ const menuRecalculateBtn = document.getElementById("menu-recalculate-btn");
 const menuExportGpxBtn = document.getElementById("menu-export-gpx-btn");
 const menuImportGpxBtn = document.getElementById("menu-import-gpx-btn");
 const menuVehicleBtn = document.getElementById("menu-vehicle-btn");
+const menuOpenAuthBtn = document.getElementById("menu-open-auth-btn");
+const menuUserInfo = document.getElementById("menu-user-info");
+const menuUserDisplayName = document.getElementById("menu-user-display-name");
+const menuUserVerificationBadge = document.getElementById("menu-user-verification-badge");
+const menuLogoutBtn = document.getElementById("menu-logout-btn");
 
 // DOM Route Loading Overlay References
 const routeLoadingModal = document.getElementById("route-loading-modal");
@@ -2482,6 +2484,12 @@ function closeItineraryModal() {
 }
 
 if (openItineraryBtn) openItineraryBtn.addEventListener("click", openItineraryModal);
+if (menuItineraryBtn) {
+  menuItineraryBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    openItineraryModal();
+  });
+}
 if (itineraryModalClose) itineraryModalClose.addEventListener("click", closeItineraryModal);
 
 // Left Panel Accordions & Compact View Mode Toolbar Listeners
@@ -3509,6 +3517,12 @@ function resetTripToNewWorkspace() {
 }
 
 if (newTripBtn) newTripBtn.addEventListener("click", resetTripToNewWorkspace);
+if (menuNewTripBtn) {
+  menuNewTripBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    resetTripToNewWorkspace();
+  });
+}
 
 // Export Expedition Route as Standard GPX 1.1 XML File (Garmin / GPS Compatible)
 function exportExpeditionToGPX() {
@@ -4982,18 +4996,19 @@ function updateAuthStateUI() {
     const user = PocketBaseAuth.getUser() as any;
     const isVerified = Boolean(user?.verified);
 
-    // Update Navbar Pill
-    if (openAuthBtn) openAuthBtn.style.display = "none";
-    if (userSessionPill) userSessionPill.style.display = "flex";
-    if (userDisplayName) userDisplayName.textContent = user?.name || user?.email || "User";
+    // Update Dropdown Account Items
+    if (menuOpenAuthBtn) menuOpenAuthBtn.style.display = "none";
+    if (menuUserInfo) menuUserInfo.style.display = "flex";
+    if (menuLogoutBtn) menuLogoutBtn.style.display = "flex";
+    if (menuUserDisplayName) menuUserDisplayName.textContent = user?.name || user?.email || "User";
 
-    if (userVerificationBadge) {
+    if (menuUserVerificationBadge) {
       if (isVerified) {
-        userVerificationBadge.textContent = "VERIFIED";
-        userVerificationBadge.className = "badge badge-success";
+        menuUserVerificationBadge.textContent = "VERIFIED";
+        menuUserVerificationBadge.className = "badge badge-success";
       } else {
-        userVerificationBadge.textContent = "UNVERIFIED";
-        userVerificationBadge.className = "badge badge-warning";
+        menuUserVerificationBadge.textContent = "UNVERIFIED";
+        menuUserVerificationBadge.className = "badge badge-warning";
       }
     }
 
@@ -5028,7 +5043,7 @@ function updateAuthStateUI() {
       if (importGPXBtn) importGPXBtn.style.display = "none";
       if (navVehicleBtn) navVehicleBtn.style.display = "none";
       if (navSavedTripsBtn) navSavedTripsBtn.style.display = "none";
-      if (navExpeditionMenu) navExpeditionMenu.style.display = "none";
+      if (navExpeditionMenu) navExpeditionMenu.style.display = "inline-block";
       if (guestView) guestView.style.display = "none";
       if (verifiedView) verifiedView.style.display = "none";
       if (unverifiedView) unverifiedView.style.display = "flex";
@@ -5044,9 +5059,10 @@ function updateAuthStateUI() {
     if (importGPXBtn) importGPXBtn.style.display = "none";
     if (navVehicleBtn) navVehicleBtn.style.display = "none";
     if (navSavedTripsBtn) navSavedTripsBtn.style.display = "none";
-    if (navExpeditionMenu) navExpeditionMenu.style.display = "none";
-    if (openAuthBtn) openAuthBtn.style.display = "inline-flex";
-    if (userSessionPill) userSessionPill.style.display = "none";
+    if (navExpeditionMenu) navExpeditionMenu.style.display = "inline-block";
+    if (menuOpenAuthBtn) menuOpenAuthBtn.style.display = "flex";
+    if (menuUserInfo) menuUserInfo.style.display = "none";
+    if (menuLogoutBtn) menuLogoutBtn.style.display = "none";
 
     if (guestView) guestView.style.display = "flex";
     if (unverifiedView) unverifiedView.style.display = "none";
@@ -5178,7 +5194,19 @@ function performLogout() {
   updateAuthStateUI();
 }
 
-if (logoutBtn) logoutBtn.addEventListener("click", performLogout);
+if (menuOpenAuthBtn) {
+  menuOpenAuthBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    openAuthModal();
+  });
+}
+
+if (menuLogoutBtn) {
+  menuLogoutBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    performLogout();
+  });
+}
 if (unverifiedLogoutBtn) unverifiedLogoutBtn.addEventListener("click", performLogout);
 
 // Initial UI & View Setup

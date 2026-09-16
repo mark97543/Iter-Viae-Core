@@ -66,7 +66,7 @@ html, body {
 /* Navbar */
 .navbar {
   position: relative;
-  z-index: 10;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3113,6 +3113,7 @@ input:checked + .toggle-slider:before {
 .nav-dropdown-wrapper {
   position: relative;
   display: inline-block;
+  z-index: 10000;
 }
 
 .dropdown-menu-card {
@@ -3126,7 +3127,7 @@ input:checked + .toggle-slider:before {
   border-radius: 12px;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
   padding: 8px 0;
-  z-index: 1000;
+  z-index: 99999;
   display: flex;
   flex-direction: column;
   animation: fadeInDown 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3168,10 +3169,40 @@ input:checked + .toggle-slider:before {
   color: #38bdf8;
 }
 
+.dropdown-menu-item.danger-item {
+  color: #f87171;
+}
+
+.dropdown-menu-item.danger-item:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+}
+
 .dropdown-menu-divider {
   height: 1px;
   background: rgba(255, 255, 255, 0.1);
   margin: 6px 0;
+}
+
+.dropdown-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(30, 41, 59, 0.6);
+  border-radius: 8px;
+  margin: 4px 10px;
+}
+
+.dropdown-user-name {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Tactical Routing Progress Status Bar */
@@ -3268,6 +3299,37 @@ input:checked + .toggle-slider:before {
   border-radius: 999px;
   transition: width 0.2s ease-out;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+/* Responsive Navbar & Header Adaptations */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 1rem;
+    height: 58px;
+    min-height: 58px;
+  }
+
+  .brand-name {
+    font-size: 1.05rem;
+  }
+
+  .brand-version {
+    display: none;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .user-pill {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+
+  .dropdown-menu-card {
+    right: -10px;
+    width: 250px;
+  }
 }
 
 

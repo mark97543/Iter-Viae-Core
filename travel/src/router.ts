@@ -22,30 +22,30 @@ class Router {
     const rawHash = window.location.hash.replace(/^#\/?/, '').trim();
     const rawPath = window.location.pathname.replace(/^\//, '').trim();
 
-    // Ignore in-page section anchor hashes (e.g. #section-packing)
-    if (rawHash.startsWith('section-')) {
+    // Ignore in-page section anchor hashes when viewing a trip (e.g. #section-flight-ops or #table-tactics)
+    if (this.lastRoute.view === "trip" && !rawHash.startsWith("trips/")) {
       return this.lastRoute;
     }
 
-    // Check hash first (e.g. #/trips/thailand-2027 or #/thailand-2027)
+    // Check hash first (e.g. #/trips/thailand-feb-2027)
     let routeStr = rawHash;
     if (!routeStr && rawPath) {
       routeStr = rawPath;
     }
 
-    if (!routeStr || routeStr === 'dashboard' || routeStr === '') {
-      this.lastRoute = { view: 'dashboard' };
+    if (!routeStr || routeStr === "dashboard" || routeStr === "") {
+      this.lastRoute = { view: "dashboard" };
       return this.lastRoute;
     }
 
-    // Match trips/:slug or /:slug
-    const tripMatch = routeStr.match(/^(?:trips\/)?([a-zA-Z0-9_-]+)$/);
-    if (tripMatch && tripMatch[1] && tripMatch[1] !== 'dashboard') {
-      this.lastRoute = { view: 'trip', slug: tripMatch[1] };
+    // Match trips/:slug
+    const tripMatch = routeStr.match(/^trips\/([a-zA-Z0-9_-]+)$/);
+    if (tripMatch && tripMatch[1]) {
+      this.lastRoute = { view: "trip", slug: tripMatch[1] };
       return this.lastRoute;
     }
 
-    this.lastRoute = { view: 'dashboard' };
+    this.lastRoute = { view: "dashboard" };
     return this.lastRoute;
   }
 

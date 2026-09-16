@@ -22,6 +22,7 @@ export interface PBTripRecord {
   coverGradient: string;
   summary: string;
   stats: any;
+  sections?: any;
   schedule: any;
   reservations: any;
   packingList: any;
@@ -46,6 +47,7 @@ export function mapPBRecordToTrip(record: any): Trip {
     coverGradient: record.coverGradient || "linear-gradient(135deg, #06b6d4, #3b82f6)",
     summary: record.summary || "",
     stats: typeof record.stats === "string" ? parseJsonSafely(record.stats) : (record.stats || {}),
+    sections: typeof record.sections === "string" ? parseJsonSafely(record.sections) : (record.sections || []),
     schedule: typeof record.schedule === "string" ? parseJsonSafely(record.schedule) : (record.schedule || []),
     reservations: typeof record.reservations === "string" ? parseJsonSafely(record.reservations) : (record.reservations || []),
     packingList: typeof record.packingList === "string" ? parseJsonSafely(record.packingList) : (record.packingList || []),
@@ -76,6 +78,7 @@ export function mapTripToPBRecord(trip: Trip): PBTripRecord {
     coverGradient: trip.coverGradient,
     summary: trip.summary,
     stats: trip.stats || {},
+    sections: trip.sections || [],
     schedule: trip.schedule || [],
     reservations: trip.reservations || [],
     packingList: trip.packingList || [],
@@ -84,64 +87,74 @@ export function mapTripToPBRecord(trip: Trip): PBTripRecord {
 }
 
 /**
- * Fetch all travel itineraries strictly from PocketBase DB (`travel` collection)
+ * Fetch all travel itineraries strictly from PocketBase DB (`trips` collection)
  */
 export async function fetchTripsFromPB(): Promise<{ trips: Trip[]; isForbidden?: boolean }> {
   try {
-    const records = await pb.collection("travel").getFullList({
+    const records = await pb.collection("trips").getFullList({
       sort: "-created"
     });
     if (records) {
       return { trips: records.map(mapPBRecordToTrip) };
     }
   } catch (err: any) {
+    if (err.status === 404) {
+      console.info("ℹ️ PocketBase collection 'trips' not found (404) on https://api.wade-usa.com. Using local storage mode.");
+      return { trips: [] };
+    }
     if (err.status === 403) {
-      console.warn("🔒 PocketBase 403 Forbidden: API Rules for 'travel' collection are locked to Admin Only in PocketBase Admin UI (https://api.wade-usa.com/_/).");
+      console.warn("🔒 PocketBase 403 Forbidden: API Rules for 'trips' collection are locked in PocketBase Admin UI (https://api.wade-usa.com/_/).");
       return { trips: [], isForbidden: true };
     }
-    console.warn("PocketBase fetch travel warning:", err.message);
+    console.warn("PocketBase fetch trips warning:", err.message);
   }
   return { trips: [] };
 }
 
 /**
- * Fetch a single travel itinerary by URL slug strictly from PocketBase DB (`travel` collection)
+ * Fetch a single travel itinerary by URL slug strictly from PocketBase DB (`trips` collection)
  */
 export async function fetchTripBySlugFromPB(slug: string): Promise<Trip | null> {
   try {
-    const record = await pb.collection("travel").getFirstListItem(`slug = "${slug}"`);
+    const record = await pb.collection("trips").getFirstListItem(`slug = "${slug}"`);
     if (record) {
       return mapPBRecordToTrip(record);
     }
   } catch (err: any) {
-    console.warn(`PocketBase fetch travel by slug "${slug}" warning:`, err.message);
+    if (err.status !== 404) {
+      console.warn(`PocketBase fetch trips by slug "${slug}" warning:`, err.message);
+    }
   }
   return null;
 }
 
 /**
- * Save or update travel itinerary strictly in PocketBase DB (`travel` collection)
+ * Save or update travel itinerary strictly in PocketBase DB (`trips` collection)
  */
 export async function saveTripToPB(trip: Trip): Promise<Trip | null> {
   const payload = mapTripToPBRecord(trip);
   try {
     let existingRecord = null;
     try {
-      existingRecord = await pb.collection("travel").getFirstListItem(`slug = "${trip.slug}"`);
+      existingRecord = await pb.collection("trips").getFirstListItem(`slug = "${trip.slug}"`);
     } catch (_) {}
 
     let saved = null;
     if (existingRecord) {
-      saved = await pb.collection("travel").update(existingRecord.id, payload);
+      saved = await pb.collection("trips").update(existingRecord.id, payload);
     } else {
-      saved = await pb.collection("travel").create(payload);
+      saved = await pb.collection("trips").create(payload);
     }
 
     if (saved) {
       return mapPBRecordToTrip(saved);
     }
   } catch (err: any) {
-    console.error("Failed to save to PocketBase travel collection:", err.message);
+    if (err.status === 404) {
+      console.warn("ℹ️ Cannot save to PocketBase: 'trips' collection does not exist on https://api.wade-usa.com yet. Saved locally in browser.");
+    } else {
+      console.error("Failed to save to PocketBase trips collection:", err.message, err.data);
+    }
   }
   return null;
 }

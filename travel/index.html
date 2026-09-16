@@ -58,6 +58,9 @@
           <button id="btn-back-to-dashboard" class="btn-back">
             &larr; Back to Master Dashboard
           </button>
+          <button id="btn-open-add-section-modal" class="btn-add-section">
+            ➕ Add Topic Section
+          </button>
         </div>
 
         <!-- Dynamic Slug Header Container -->
@@ -83,6 +86,69 @@
       </section>
 
     </main>
+
+    <!-- Add / Edit Topic Section Modal -->
+    <div id="section-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title" id="section-modal-title">➕ Add New Topic Section</h2>
+          <button id="section-modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <form id="section-form" class="modal-form">
+          <input type="hidden" id="section-edit-index" value="-1" />
+          <div class="form-group">
+            <label for="section-title-input">Topic Section Title</label>
+            <input type="text" id="section-title-input" required placeholder="e.g., Flight Operations, Emergency Contacts, Food Guide..." />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="section-icon-input">Icon / Emoji</label>
+              <input type="text" id="section-icon-input" placeholder="e.g., ✈️, 🏨, 🍜, 💡" value="💡" />
+            </div>
+            <div class="form-group">
+              <label for="section-slug-input">Topic Slug (Optional)</label>
+              <input type="text" id="section-slug-input" placeholder="auto-generated-slug" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Topic Writeup & Rich Content (TipTap WYSIWYG Editor)</label>
+            <div class="tiptap-editor-wrapper">
+              <!-- TipTap Toolbar -->
+              <div id="tiptap-toolbar" class="tiptap-toolbar">
+                <button type="button" class="tiptap-btn" data-action="bold" title="Bold"><b>B</b></button>
+                <button type="button" class="tiptap-btn" data-action="italic" title="Italic"><i>I</i></button>
+                <button type="button" class="tiptap-btn" data-action="strike" title="Strikethrough"><s>S</s></button>
+                <button type="button" class="tiptap-btn" data-action="code" title="Inline Code"><code>&lt;/&gt;</code></button>
+                <span class="toolbar-separator"></span>
+                <button type="button" class="tiptap-btn" data-action="heading-1" title="Heading 1">H1</button>
+                <button type="button" class="tiptap-btn" data-action="heading-2" title="Heading 2">H2</button>
+                <button type="button" class="tiptap-btn" data-action="heading-3" title="Heading 3">H3</button>
+                <button type="button" class="tiptap-btn" data-action="paragraph" title="Paragraph">P</button>
+                <span class="toolbar-separator"></span>
+                <button type="button" class="tiptap-btn" data-action="bullet-list" title="Bullet List">• List</button>
+                <button type="button" class="tiptap-btn" data-action="ordered-list" title="Numbered List">1. List</button>
+                <button type="button" class="tiptap-btn" data-action="blockquote" title="Quote Block">“” Quote</button>
+                <button type="button" class="tiptap-btn" data-action="hr" title="Horizontal Divider">― Line</button>
+                <span class="toolbar-separator"></span>
+                <!-- Presets & Insertion Helpers -->
+                <button type="button" class="tiptap-btn preset-btn" data-action="insert-callout" title="Insert Field Callout Box">📌 Callout</button>
+                <button type="button" class="tiptap-btn preset-btn" data-action="insert-table" title="Insert Rosetta Table">📊 Table</button>
+                <button type="button" class="tiptap-btn preset-btn" data-action="insert-flashcards" title="Insert Emergency Flashcards">🎴 Cards</button>
+                <span class="toolbar-separator"></span>
+                <button type="button" class="tiptap-btn" data-action="undo" title="Undo">↩️</button>
+                <button type="button" class="tiptap-btn" data-action="redo" title="Redo">↪️</button>
+              </div>
+              <!-- TipTap Editor Content editable Surface -->
+              <div id="tiptap-editor-element" class="tiptap-editor-element"></div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="section-modal-cancel" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">💾 Save Topic Section</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
