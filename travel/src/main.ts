@@ -595,13 +595,6 @@ function initTipTapEditor() {
               .insertContent('<div class="field-callout-box"><strong>📌 Note:</strong><br/>Enter note details...</div>')
               .run();
             break;
-          case "insert-html-table":
-            tiptapEditor
-              .chain()
-              .focus()
-              .insertContent('<table class="field-rosetta-table"><thead><tr><th>Item / Service</th><th>Details / Reference</th><th>Status / Notes</th></tr></thead><tbody><tr><td>Flight Operations</td><td>TG-910 BKK &rarr; LHR</td><td>Confirmed (Seat 12A)</td></tr><tr><td>Hotel Booking</td><td>Grand Palace Resort</td><td>Paid in Full</td></tr><tr><td>Emergency Contact</td><td>+66 2 123 4567</td><td>24/7 Support Desk</td></tr></tbody></table><p></p>')
-              .run();
-            break;
           case "insert-flashcards":
             tiptapEditor
               .chain()

@@ -2067,16 +2067,34 @@ del {
   height: 0;
 }
 
-.tiptap-editor-element blockquote {
-  border-left: 3px solid var(--primary-purple);
-  padding-left: 1rem;
-  margin: 0.75rem 0;
-  color: var(--text-muted);
+blockquote,
+.tiptap-editor-element blockquote,
+.section-card-body blockquote {
+  position: relative;
+  margin: 1.25rem 0;
+  padding: 1rem 1.25rem 1rem 2.8rem;
+  background: rgba(139, 92, 246, 0.12);
+  border-left: 4px solid #a78bfa;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  color: #e2e8f0;
   font-style: italic;
-  background: rgba(139, 92, 246, 0.08);
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+blockquote::before,
+.tiptap-editor-element blockquote::before,
+.section-card-body blockquote::before {
+  content: "“";
+  position: absolute;
+  left: 0.8rem;
+  top: 0.3rem;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: #a78bfa;
+  font-family: Georgia, serif;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .tiptap-editor-element code {
