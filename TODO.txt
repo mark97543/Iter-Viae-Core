@@ -1,3 +1,2 @@
-- [x] Travel: Make the editor modal a bit wider.
-- [x] Travel: Allow for no Emoji
-- [x] wade-usa.com Hub blocks unauthenticated users until they sign in 
+- [x] need way to unshare trips
+- [x] Registered users should go to screen to wait for admin access

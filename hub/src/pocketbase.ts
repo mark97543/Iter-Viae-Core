@@ -62,6 +62,25 @@ export function getCurrentUser() {
   return pb.authStore.model;
 }
 
+export function isUserVerified(): boolean {
+  const user = getCurrentUser();
+  if (!user) return false;
+  return Boolean(user.verified);
+}
+
+export async function refreshVerificationStatus(): Promise<boolean> {
+  const user = getCurrentUser();
+  if (!user || !pb.authStore.token) return false;
+  try {
+    const authData = await pb.collection("users").authRefresh();
+    const updatedUser = authData.record;
+    pb.authStore.save(pb.authStore.token, updatedUser);
+    return Boolean(updatedUser.verified);
+  } catch (e) {
+    return Boolean(user.verified);
+  }
+}
+
 export async function loginUser(email: string, pass: string) {
   const identity = (email || "").trim();
   if (!identity || !pass) {
@@ -248,5 +267,27 @@ export async function shareTripByEmail(tripId: string, email: string): Promise<{
   } catch (err: any) {
     console.error("Error sharing trip:", err);
     return { success: false, message: err?.message || "Failed to share trip." };
+  }
+}
+
+// Unshare Trip User
+export async function unshareTripUser(tripId: string, targetIdentifier: string): Promise<{ success: boolean; message: string }> {
+  const cleanTarget = (targetIdentifier || "").trim().toLowerCase();
+  if (!cleanTarget) return { success: false, message: "Invalid target identifier." };
+
+  try {
+    const trip = await pb.collection("trips").getOne<TripRecord>(tripId, { requestKey: null });
+    const currentShared = trip.shared || [];
+
+    const updatedShared = currentShared.filter((item: string) => {
+      const itemClean = item.trim().toLowerCase();
+      return itemClean !== cleanTarget;
+    });
+
+    await pb.collection("trips").update(tripId, { shared: updatedShared }, { requestKey: null });
+    return { success: true, message: `Removed shared access for "${targetIdentifier}".` };
+  } catch (err: any) {
+    console.error("Error unsharing trip:", err);
+    return { success: false, message: err?.message || "Failed to remove shared access." };
   }
 }

@@ -12,6 +12,9 @@ import {
   unarchiveTripRecord,
   deleteTripRecord,
   shareTripByEmail,
+  unshareTripUser,
+  isUserVerified,
+  refreshVerificationStatus,
   getSpokeAppUrl,
   TripRecord,
   TripTemplate,
@@ -78,6 +81,13 @@ const shareCancelBtn = document.getElementById("share-cancel-btn") as HTMLElemen
 const shareEmailInput = document.getElementById("share-email-input") as HTMLInputElement;
 const shareSubmitBtn = document.getElementById("share-submit-btn") as HTMLButtonElement;
 const shareFeedbackMsg = document.getElementById("share-feedback-msg") as HTMLElement;
+const sharedUsersList = document.getElementById("shared-users-list") as HTMLElement;
+
+// Unverified Access Modal Elements
+const unverifiedModal = document.getElementById("unverified-modal") as HTMLElement;
+const unverifiedUserEmail = document.getElementById("unverified-user-email") as HTMLElement;
+const btnCheckVerification = document.getElementById("btn-check-verification") as HTMLButtonElement;
+const btnUnverifiedLogout = document.getElementById("btn-unverified-logout") as HTMLButtonElement;
 
 async function init() {
   setupEventListeners();
@@ -87,6 +97,7 @@ async function init() {
 
 async function checkAuthAndLoad() {
   if (!isUserAuthenticated()) {
+    if (unverifiedModal) unverifiedModal.classList.add("hidden");
     openAuthModal(false);
     if (authCloseBtn) authCloseBtn.style.display = "none";
     if (tripsGridContainer) {
@@ -98,7 +109,24 @@ async function checkAuthAndLoad() {
         </div>
       `;
     }
+  } else if (!isUserVerified()) {
+    authModal.classList.add("hidden");
+    const user = getCurrentUser();
+    if (unverifiedUserEmail && user) {
+      unverifiedUserEmail.textContent = user.email || user.username || "Registered User";
+    }
+    if (unverifiedModal) unverifiedModal.classList.remove("hidden");
+    if (tripsGridContainer) {
+      tripsGridContainer.innerHTML = `
+        <div class="empty-state" style="padding: 4rem 1.5rem; text-align: center;">
+          <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+          <h3 style="font-size: 1.4rem; font-weight: 800; color: #ffffff; margin-bottom: 0.5rem;">Admin Access Pending</h3>
+          <p style="color: var(--text-muted); max-width: 420px; margin: 0 auto;">Your account is awaiting administrator approval. You will gain access once verified by an admin.</p>
+        </div>
+      `;
+    }
   } else {
+    if (unverifiedModal) unverifiedModal.classList.add("hidden");
     if (authCloseBtn) authCloseBtn.style.display = "block";
     authModal.classList.add("hidden");
     await loadAndRenderTrips();
@@ -472,9 +500,42 @@ function setupEventListeners() {
         shareFeedbackMsg.className = res.success ? "share-feedback success" : "share-feedback error";
       }
 
-      if (res.success && shareEmailInput) {
+      if (res.success && shareEmailInput && activeShareTripId) {
         shareEmailInput.value = "";
+        const trip = loadedTrips.find((t) => t.id === activeShareTripId);
+        if (trip) {
+          renderSharedUsersList(trip);
+        }
+        await loadAndRenderTrips();
       }
+    });
+  }
+
+  // Unverified Admin Approval Action Listeners
+  if (btnCheckVerification) {
+    btnCheckVerification.addEventListener("click", async () => {
+      btnCheckVerification.disabled = true;
+      btnCheckVerification.innerText = "Checking...";
+      const verifiedNow = await refreshVerificationStatus();
+      btnCheckVerification.disabled = false;
+      btnCheckVerification.innerText = "🔄 Check Access Status";
+
+      if (verifiedNow) {
+        if (unverifiedModal) unverifiedModal.classList.add("hidden");
+        renderAuthStatus();
+        await checkAuthAndLoad();
+      } else {
+        alert("⏳ Verification pending. An administrator must approve your account access.");
+      }
+    });
+  }
+
+  if (btnUnverifiedLogout) {
+    btnUnverifiedLogout.addEventListener("click", () => {
+      logoutUser();
+      if (unverifiedModal) unverifiedModal.classList.add("hidden");
+      renderAuthStatus();
+      checkAuthAndLoad();
     });
   }
 }
@@ -530,7 +591,59 @@ function openShareModal(trip: TripRecord) {
   shareEmailInput.value = "";
   shareFeedbackMsg.innerText = "";
   shareFeedbackMsg.className = "share-feedback";
+  renderSharedUsersList(trip);
   shareModal.classList.remove("hidden");
+}
+
+function renderSharedUsersList(trip: TripRecord) {
+  if (!sharedUsersList) return;
+  const shared = trip.shared || [];
+  if (shared.length === 0) {
+    sharedUsersList.innerHTML = `<p style="font-size: 0.82rem; color: var(--text-muted); font-style: italic;">Not shared with any co-travelers yet.</p>`;
+    return;
+  }
+
+  sharedUsersList.innerHTML = "";
+  shared.forEach((identifier) => {
+    const item = document.createElement("div");
+    item.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+    `;
+    item.innerHTML = `
+      <span style="color: var(--text-main); font-weight: 500;">👤 ${escapeHtml(identifier)}</span>
+      <button type="button" class="btn-remove-share" data-id="${escapeHtml(identifier)}" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; cursor: pointer; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; transition: background 0.15s ease;">
+        🗑️ Unshare
+      </button>
+    `;
+
+    item.querySelector(".btn-remove-share")?.addEventListener("click", async () => {
+      if (!activeShareTripId) return;
+      const res = await unshareTripUser(activeShareTripId, identifier);
+      if (res.success) {
+        trip.shared = (trip.shared || []).filter((s) => s !== identifier);
+        renderSharedUsersList(trip);
+        await loadAndRenderTrips();
+        if (shareFeedbackMsg) {
+          shareFeedbackMsg.innerText = res.message;
+          shareFeedbackMsg.className = "share-feedback success";
+        }
+      } else {
+        if (shareFeedbackMsg) {
+          shareFeedbackMsg.innerText = res.message;
+          shareFeedbackMsg.className = "share-feedback error";
+        }
+      }
+    });
+
+    sharedUsersList.appendChild(item);
+  });
 }
 
 function closeShareModal() {
