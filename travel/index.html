@@ -194,12 +194,15 @@
                 <span class="toolbar-separator"></span>
 
                 <!-- Formatting Clean & History -->
+                <button type="button" class="tiptap-btn preset-btn" data-action="toggle-html-source" title="Toggle Raw HTML Source Mode">&lt;/&gt; HTML Source Mode</button>
                 <button type="button" class="tiptap-btn" data-action="clear-nodes" title="Clear Formatting">🧹 Clear</button>
                 <button type="button" class="tiptap-btn" data-action="undo" title="Undo">↩️</button>
                 <button type="button" class="tiptap-btn" data-action="redo" title="Redo">↪️</button>
               </div>
               <!-- TipTap Editor Content editable Surface -->
               <div id="tiptap-editor-element" class="tiptap-editor-element"></div>
+              <!-- TipTap Raw HTML Source Area -->
+              <textarea id="tiptap-html-source" class="tiptap-html-source" style="display: none; width: 100%; height: 100%; min-height: 220px; background: rgba(11, 15, 25, 0.95); color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.88rem; padding: 1rem; border: none; outline: none; resize: none;" placeholder="<p>Paste or write raw HTML code here...</p>"></textarea>
             </div>
           </div>
           <div class="modal-actions">

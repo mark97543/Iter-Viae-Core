@@ -481,6 +481,7 @@ function renderTripFieldManual(trip: Trip) {
 
 // TipTap WYSIWYG Editor Instance & Controls
 let tiptapEditor: Editor | null = null;
+let isHtmlSourceMode = false;
 
 function initTipTapEditor() {
   const container = document.getElementById("tiptap-editor-element");
@@ -602,6 +603,26 @@ function initTipTapEditor() {
               .insertContent('<div class="flashcards-grid"><div class="flashcard-item"><div class="flashcard-th">ข้อความภาษาไทย</div><div class="flashcard-en">"English Translation"</div></div></div>')
               .run();
             break;
+          case "toggle-html-source":
+            const editorEl = document.getElementById("tiptap-editor-element");
+            const htmlSourceEl = document.getElementById("tiptap-html-source") as HTMLTextAreaElement | null;
+            if (!editorEl || !htmlSourceEl) break;
+
+            isHtmlSourceMode = !isHtmlSourceMode;
+            if (isHtmlSourceMode) {
+              htmlSourceEl.value = tiptapEditor.getHTML();
+              editorEl.style.display = "none";
+              htmlSourceEl.style.display = "block";
+              target.classList.add("is-active");
+              target.innerText = "👁️ WYSIWYG Mode";
+            } else {
+              tiptapEditor.commands.setContent(htmlSourceEl.value || "<p></p>");
+              htmlSourceEl.style.display = "none";
+              editorEl.style.display = "block";
+              target.classList.remove("is-active");
+              target.innerText = "</> HTML Source Mode";
+            }
+            break;
         }
         updateToolbarActiveStates();
       });
@@ -693,6 +714,17 @@ function openSectionModal(editIndex: number = -1) {
     if (btnDeleteSectionModal) btnDeleteSectionModal.style.display = "none";
   }
 
+  isHtmlSourceMode = false;
+  const editorEl = document.getElementById("tiptap-editor-element");
+  const htmlSourceEl = document.getElementById("tiptap-html-source") as HTMLTextAreaElement | null;
+  const btnSourceToggle = document.querySelector('[data-action="toggle-html-source"]') as HTMLElement | null;
+  if (editorEl) editorEl.style.display = "block";
+  if (htmlSourceEl) htmlSourceEl.style.display = "none";
+  if (btnSourceToggle) {
+    btnSourceToggle.classList.remove("is-active");
+    btnSourceToggle.innerText = "</> HTML Source Mode";
+  }
+
   sectionModal.style.display = "flex";
   setTimeout(() => {
     tiptapEditor?.commands.focus();
@@ -752,6 +784,13 @@ if (sectionForm) {
   sectionForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!currentTrip) return;
+
+    if (isHtmlSourceMode) {
+      const htmlSourceEl = document.getElementById("tiptap-html-source") as HTMLTextAreaElement | null;
+      if (htmlSourceEl && tiptapEditor) {
+        tiptapEditor.commands.setContent(htmlSourceEl.value || "<p></p>");
+      }
+    }
 
     const editIndex = sectionEditIndexInput ? parseInt(sectionEditIndexInput.value, 10) : -1;
     const title = sectionTitleInput?.value.trim() || "Untitled Section";
