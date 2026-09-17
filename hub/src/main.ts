@@ -175,7 +175,12 @@ function renderTripsGrid() {
     if (!matchesSearch) return false;
     if (currentFilter === "roadtrip") return t.trip_template === "ROADTRIP";
     if (currentFilter === "travel") return t.trip_template === "TRAVEL";
-    if (currentFilter === "shared") return t.user !== user?.id && (t.shared || []).includes(user?.id || "");
+    if (currentFilter === "shared") {
+      const sharedArr = t.shared || [];
+      const uId = user?.id || "";
+      const uEmail = (user?.email || "").toLowerCase();
+      return t.user !== uId && (sharedArr.includes(uId) || sharedArr.some((s: string) => s.toLowerCase() === uEmail));
+    }
     return true;
   });
 

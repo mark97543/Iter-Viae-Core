@@ -102,7 +102,15 @@ export async function fetchUserTrips(statusFilter: "active" | "archived" = "acti
   const results: TripRecord[] = [];
 
   try {
-    const filterQuery = `(user = "${user.id}" || shared ~ "${user.id}" || user = "guest" || user = "") && status = "${statusFilter}"`;
+    const userId = user.id;
+    const userEmail = (user.email || "").toLowerCase().trim();
+    const username = (user.username || "").toLowerCase().trim();
+
+    let filterQuery = `(user = "${userId}" || shared ~ "${userId}"`;
+    if (userEmail) filterQuery += ` || shared ~ "${userEmail}"`;
+    if (username) filterQuery += ` || shared ~ "${username}"`;
+    filterQuery += ` || user = "guest" || user = "") && status = "${statusFilter}"`;
+
     const records = await pb.collection("trips").getFullList<any>({
       filter: filterQuery,
       sort: "-updated,-created",
@@ -212,26 +220,33 @@ export async function shareTripByEmail(tripId: string, email: string): Promise<{
   if (!cleanEmail) return { success: false, message: "Please enter a valid email address." };
 
   try {
-    const users = await pb.collection("users").getList(1, 1, {
-      filter: `email = "${cleanEmail}"`
-    });
+    let targetIdentifier = cleanEmail;
 
-    if (users.items.length === 0) {
-      return { success: false, message: `No user found registered with email "${cleanEmail}".` };
+    try {
+      const users = await pb.collection("users").getList(1, 1, {
+        filter: `email = "${cleanEmail}" || username = "${cleanEmail}"`,
+        requestKey: null,
+      });
+
+      if (users.items.length > 0 && users.items[0].id) {
+        targetIdentifier = users.items[0].id;
+      }
+    } catch (e) {
+      console.info("User query skipped/restricted by PocketBase rules, storing email directly:", cleanEmail);
     }
 
-    const targetUser = users.items[0];
-    const trip = await pb.collection("trips").getOne<TripRecord>(tripId);
+    const trip = await pb.collection("trips").getOne<TripRecord>(tripId, { requestKey: null });
     const currentShared = trip.shared || [];
-    if (currentShared.includes(targetUser.id)) {
-      return { success: true, message: `Trip is already shared with ${targetUser.email}.` };
+
+    if (currentShared.includes(targetIdentifier) || currentShared.includes(cleanEmail)) {
+      return { success: true, message: `Trip is already shared with ${cleanEmail}.` };
     }
 
-    const updatedShared = [...currentShared, targetUser.id];
-    await pb.collection("trips").update(tripId, { shared: updatedShared });
-    return { success: true, message: `Trip successfully shared with ${targetUser.name || targetUser.email}!` };
+    const updatedShared = [...currentShared, targetIdentifier];
+    await pb.collection("trips").update(tripId, { shared: updatedShared }, { requestKey: null });
+    return { success: true, message: `Trip successfully shared with ${cleanEmail}!` };
   } catch (err: any) {
     console.error("Error sharing trip:", err);
-    return { success: false, message: err.message || "Failed to share trip." };
+    return { success: false, message: err?.message || "Failed to share trip." };
   }
 }
