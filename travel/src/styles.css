@@ -1813,6 +1813,71 @@ del {
   margin-top: 0.5rem;
 }
 
+/* Fixed Screen Fit & Scrollable TipTap Content for Section Modal */
+#section-modal .modal-card {
+  height: 88vh;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#section-modal .modal-header {
+  flex-shrink: 0;
+}
+
+#section-modal .modal-form {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow: hidden;
+}
+
+#section-modal .form-group:not(.tiptap-form-group),
+#section-modal .form-row {
+  flex-shrink: 0;
+}
+
+#section-modal .tiptap-form-group {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#section-modal .tiptap-editor-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#section-modal .tiptap-toolbar {
+  flex-shrink: 0;
+}
+
+#section-modal .tiptap-editor-element {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+#section-modal .tiptap-editor-element .ProseMirror {
+  min-height: 100%;
+  outline: none;
+}
+
+#section-modal .modal-actions {
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
 .btn-secondary {
   padding: 0.65rem 1.25rem;
   background: rgba(255, 255, 255, 0.08);

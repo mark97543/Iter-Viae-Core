@@ -1,2 +1,0 @@
-- [x] need way to unshare trips
-- [x] Registered users should go to screen to wait for admin access
