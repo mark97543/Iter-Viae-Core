@@ -1,10 +1,9 @@
 import "./styles.css";
 import { Editor, Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
-import { Table } from "@tiptap/extension-table";
-import { TableRow } from "@tiptap/extension-table-row";
-import { TableHeader } from "@tiptap/extension-table-header";
-import { TableCell } from "@tiptap/extension-table-cell";
+import TextAlign from "@tiptap/extension-text-align";
+import Underline from "@tiptap/extension-underline";
+import Highlight from "@tiptap/extension-highlight";
 import { Trip, TripStatus, TripSection } from "./types/trip";
 import { router, RouteState } from "./router";
 import { fetchTripsFromPB, fetchTripBySlugFromPB, fetchTripByIdFromPB, saveTripToPB, POCKETBASE_URL, pb } from "./pocketbase";
@@ -491,15 +490,11 @@ function initTipTapEditor() {
     element: container,
     extensions: [
       StarterKit,
-      Table.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: "field-rosetta-table",
-        },
+      Underline,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
       }),
-      TableRow,
-      TableHeader,
-      TableCell,
       CalloutBox,
       FlashcardsGrid,
       FlashcardItem,
@@ -533,11 +528,29 @@ function initTipTapEditor() {
           case "italic":
             tiptapEditor.chain().focus().toggleItalic().run();
             break;
+          case "underline":
+            tiptapEditor.chain().focus().toggleUnderline().run();
+            break;
           case "strike":
             tiptapEditor.chain().focus().toggleStrike().run();
             break;
+          case "highlight":
+            tiptapEditor.chain().focus().toggleHighlight().run();
+            break;
           case "code":
             tiptapEditor.chain().focus().toggleCode().run();
+            break;
+          case "align-left":
+            tiptapEditor.chain().focus().setTextAlign("left").run();
+            break;
+          case "align-center":
+            tiptapEditor.chain().focus().setTextAlign("center").run();
+            break;
+          case "align-right":
+            tiptapEditor.chain().focus().setTextAlign("right").run();
+            break;
+          case "align-justify":
+            tiptapEditor.chain().focus().setTextAlign("justify").run();
             break;
           case "heading-1":
             tiptapEditor.chain().focus().toggleHeading({ level: 1 }).run();
@@ -560,8 +573,14 @@ function initTipTapEditor() {
           case "blockquote":
             tiptapEditor.chain().focus().toggleBlockquote().run();
             break;
+          case "code-block":
+            tiptapEditor.chain().focus().toggleCodeBlock().run();
+            break;
           case "hr":
             tiptapEditor.chain().focus().setHorizontalRule().run();
+            break;
+          case "clear-nodes":
+            tiptapEditor.chain().focus().clearNodes().unsetAllMarks().run();
             break;
           case "undo":
             tiptapEditor.chain().focus().undo().run();
@@ -576,27 +595,12 @@ function initTipTapEditor() {
               .insertContent('<div class="field-callout-box"><strong>📌 Note:</strong><br/>Enter note details...</div>')
               .run();
             break;
-          case "insert-table":
+          case "insert-html-table":
             tiptapEditor
               .chain()
               .focus()
-              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+              .insertContent('<table class="field-rosetta-table"><thead><tr><th>Item / Service</th><th>Details / Reference</th><th>Status / Notes</th></tr></thead><tbody><tr><td>Flight Operations</td><td>TG-910 BKK &rarr; LHR</td><td>Confirmed (Seat 12A)</td></tr><tr><td>Hotel Booking</td><td>Grand Palace Resort</td><td>Paid in Full</td></tr><tr><td>Emergency Contact</td><td>+66 2 123 4567</td><td>24/7 Support Desk</td></tr></tbody></table><p></p>')
               .run();
-            break;
-          case "add-column-after":
-            tiptapEditor.chain().focus().addColumnAfter().run();
-            break;
-          case "delete-column":
-            tiptapEditor.chain().focus().deleteColumn().run();
-            break;
-          case "add-row-after":
-            tiptapEditor.chain().focus().addRowAfter().run();
-            break;
-          case "delete-row":
-            tiptapEditor.chain().focus().deleteRow().run();
-            break;
-          case "delete-table":
-            tiptapEditor.chain().focus().deleteTable().run();
             break;
           case "insert-flashcards":
             tiptapEditor
@@ -620,8 +624,14 @@ function updateToolbarActiveStates() {
   const btnMap: Record<string, boolean> = {
     bold: tiptapEditor.isActive("bold"),
     italic: tiptapEditor.isActive("italic"),
+    underline: tiptapEditor.isActive("underline"),
     strike: tiptapEditor.isActive("strike"),
+    highlight: tiptapEditor.isActive("highlight"),
     code: tiptapEditor.isActive("code"),
+    "align-left": tiptapEditor.isActive({ textAlign: "left" }),
+    "align-center": tiptapEditor.isActive({ textAlign: "center" }),
+    "align-right": tiptapEditor.isActive({ textAlign: "right" }),
+    "align-justify": tiptapEditor.isActive({ textAlign: "justify" }),
     "heading-1": tiptapEditor.isActive("heading", { level: 1 }),
     "heading-2": tiptapEditor.isActive("heading", { level: 2 }),
     "heading-3": tiptapEditor.isActive("heading", { level: 3 }),
@@ -629,6 +639,7 @@ function updateToolbarActiveStates() {
     "bullet-list": tiptapEditor.isActive("bulletList"),
     "ordered-list": tiptapEditor.isActive("orderedList"),
     blockquote: tiptapEditor.isActive("blockquote"),
+    "code-block": tiptapEditor.isActive("codeBlock"),
   };
 
   toolbar.querySelectorAll(".tiptap-btn").forEach((btn) => {

@@ -157,32 +157,45 @@
             <div class="tiptap-editor-wrapper">
               <!-- TipTap Toolbar -->
               <div id="tiptap-toolbar" class="tiptap-toolbar">
-                <button type="button" class="tiptap-btn" data-action="bold" title="Bold"><b>B</b></button>
-                <button type="button" class="tiptap-btn" data-action="italic" title="Italic"><i>I</i></button>
+                <!-- Text Formatting -->
+                <button type="button" class="tiptap-btn" data-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+                <button type="button" class="tiptap-btn" data-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+                <button type="button" class="tiptap-btn" data-action="underline" title="Underline (Ctrl+U)"><u style="text-decoration: underline;">U</u></button>
                 <button type="button" class="tiptap-btn" data-action="strike" title="Strikethrough"><s>S</s></button>
-                <button type="button" class="tiptap-btn" data-action="code" title="Inline Code"><code>&lt;/&gt;</code></button>
+                <button type="button" class="tiptap-btn" data-action="highlight" title="Highlight Marker">🖍️ Marker</button>
+                <button type="button" class="tiptap-btn" data-action="code" title="Inline Code badge (e.g. `code`)"><code>&lt;/&gt;</code></button>
                 <span class="toolbar-separator"></span>
+
+                <!-- Text Alignment -->
+                <button type="button" class="tiptap-btn" data-action="align-left" title="Align Left">⬅️ Left</button>
+                <button type="button" class="tiptap-btn" data-action="align-center" title="Align Center">↔️ Center</button>
+                <button type="button" class="tiptap-btn" data-action="align-right" title="Align Right">➡️ Right</button>
+                <button type="button" class="tiptap-btn" data-action="align-justify" title="Justify Text">↔️ Justify</button>
+                <span class="toolbar-separator"></span>
+
+                <!-- Headings & Structure -->
                 <button type="button" class="tiptap-btn" data-action="heading-1" title="Heading 1">H1</button>
                 <button type="button" class="tiptap-btn" data-action="heading-2" title="Heading 2">H2</button>
                 <button type="button" class="tiptap-btn" data-action="heading-3" title="Heading 3">H3</button>
-                <button type="button" class="tiptap-btn" data-action="paragraph" title="Paragraph">P</button>
+                <button type="button" class="tiptap-btn" data-action="paragraph" title="Normal Paragraph">P</button>
                 <span class="toolbar-separator"></span>
+
+                <!-- Lists & Blocks -->
                 <button type="button" class="tiptap-btn" data-action="bullet-list" title="Bullet List">• List</button>
                 <button type="button" class="tiptap-btn" data-action="ordered-list" title="Numbered List">1. List</button>
                 <button type="button" class="tiptap-btn" data-action="blockquote" title="Quote Block">“” Quote</button>
-                <button type="button" class="tiptap-btn" data-action="hr" title="Horizontal Divider">― Line</button>
+                <button type="button" class="tiptap-btn" data-action="code-block" title="Code Block Container">💻 Code Block</button>
+                <button type="button" class="tiptap-btn" data-action="hr" title="Horizontal Divider Line">― Line</button>
                 <span class="toolbar-separator"></span>
-                <!-- Presets & Insertion Helpers -->
+
+                <!-- Presets & Components -->
                 <button type="button" class="tiptap-btn preset-btn" data-action="insert-callout" title="Insert Field Callout Box">📌 Callout</button>
-                <button type="button" class="tiptap-btn preset-btn" data-action="insert-table" title="Insert Rosetta Table">📊 Table</button>
-                <button type="button" class="tiptap-btn table-btn" data-action="add-column-after" title="Add Column to Right">➕ Col</button>
-                <button type="button" class="tiptap-btn table-btn" data-action="delete-column" title="Delete Current Column">➖ Col</button>
-                <button type="button" class="tiptap-btn table-btn" data-action="add-row-after" title="Add Row Below">➕ Row</button>
-                <button type="button" class="tiptap-btn table-btn" data-action="delete-row" title="Delete Current Row">➖ Row</button>
-                <button type="button" class="tiptap-btn table-btn" data-action="delete-table" title="Delete Entire Table">🗑️ Table</button>
-                <span class="toolbar-separator"></span>
+                <button type="button" class="tiptap-btn preset-btn" data-action="insert-html-table" title="Insert Clean Responsive HTML Data Table">📊 HTML Table</button>
                 <button type="button" class="tiptap-btn preset-btn" data-action="insert-flashcards" title="Insert Emergency Flashcards">🎴 Cards</button>
                 <span class="toolbar-separator"></span>
+
+                <!-- Formatting Clean & History -->
+                <button type="button" class="tiptap-btn" data-action="clear-nodes" title="Clear Formatting">🧹 Clear</button>
                 <button type="button" class="tiptap-btn" data-action="undo" title="Undo">↩️</button>
                 <button type="button" class="tiptap-btn" data-action="redo" title="Redo">↪️</button>
               </div>
