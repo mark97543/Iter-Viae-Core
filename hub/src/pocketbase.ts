@@ -95,26 +95,15 @@ export function logoutUser() {
 
 // User-Locked & Guest Trip Database API (Strictly PocketBase DB)
 export async function fetchUserTrips(statusFilter: "active" | "archived" = "active"): Promise<TripRecord[]> {
-  const user = getCurrentUser();
   const results: TripRecord[] = [];
 
   try {
-    let records: any[] = [];
-    if (user) {
-      const filterQuery = `(user = "${user.id}" || shared ~ "${user.id}" || user = "guest" || user = "") && status = "${statusFilter}"`;
-      records = await pb.collection("trips").getFullList<any>({
-        filter: filterQuery,
-        sort: "-updated,-created",
-        requestKey: null,
-      });
-    } else {
-      // Unauthenticated / Guest Mode: Fetch all active or archived trips
-      records = await pb.collection("trips").getFullList<any>({
-        filter: `status = "${statusFilter}"`,
-        sort: "-updated,-created",
-        requestKey: null,
-      });
-    }
+    const filterQuery = `status = "${statusFilter}"`;
+    const records = await pb.collection("trips").getFullList<any>({
+      filter: filterQuery,
+      sort: "-updated,-created",
+      requestKey: null,
+    });
 
     records.forEach((r) => {
       results.push({

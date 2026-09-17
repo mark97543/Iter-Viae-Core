@@ -1721,8 +1721,8 @@ del {
 }
 
 .modal-card {
-  width: 100%;
-  max-width: 640px;
+  width: 92vw;
+  max-width: 880px;
   background: var(--bg-card);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-xl);

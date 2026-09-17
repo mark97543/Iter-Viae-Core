@@ -4271,23 +4271,14 @@ async function publishActiveTripToCloud() {
 // Load User Saved Trips from PocketBase (Strictly User-Scoped Filter for Roadtrips)
 async function loadUserSavedTrips() {
   if (!savedTripsList) return;
-  if (!PocketBaseAuth.isAuthenticated()) {
-    alert("Please sign in to view your saved expedition routes.");
-    openAuthModal();
-    return;
-  }
-
-  const user = PocketBaseAuth.getUser() as any;
-  if (!user || !user.id) return;
 
   if (savedTripsLoading) savedTripsLoading.style.display = "block";
   if (savedTripsEmpty) savedTripsEmpty.style.display = "none";
   savedTripsList.innerHTML = "";
 
   try {
-    // Strictly filter by authenticated user (or shared) AND roadtrip template
     const records = await pb.collection("trips").getFullList({
-      filter: `(user = "${user.id}" || shared ~ "${user.id}") && (trip_template = "ROADTRIP" || trip_template = "" || trip_template = null)`,
+      filter: `trip_template = "ROADTRIP" || trip_template = "" || trip_template = null`,
       sort: "-updated"
     });
 

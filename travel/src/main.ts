@@ -411,7 +411,7 @@ function renderTripFieldManual(trip: Trip) {
         </div>
         ${activeSections.map((sec) => `
           <button class="toc-chip" data-target="section-${sec.slug}">
-            ${sec.icon ? `<span>${sec.icon}</span>` : ""}
+            ${sec.icon && sec.icon.trim() ? `<span>${sec.icon}</span>` : ""}
             <span>${sec.title}</span>
           </button>
         `).join("")}
@@ -452,7 +452,7 @@ function renderTripFieldManual(trip: Trip) {
         <div class="field-manual-section-card" id="section-${sec.slug}">
           <div class="section-card-header">
             <div class="section-card-title-group">
-              ${sec.icon ? `<span class="section-card-icon">${sec.icon}</span>` : ""}
+              ${sec.icon && sec.icon.trim() ? `<span class="section-card-icon">${sec.icon}</span>` : ""}
               <h2 class="section-card-title">${escapeHtml(sec.title)}</h2>
             </div>
             <div class="section-card-actions">
@@ -676,14 +676,14 @@ function openSectionModal(editIndex: number = -1) {
     const sec = activeSections[editIndex];
     if (sectionModalTitle) sectionModalTitle.textContent = "✏️ Edit Topic Section";
     if (sectionTitleInput) sectionTitleInput.value = sec.title;
-    if (sectionIconInput) sectionIconInput.value = sec.icon || "💡";
+    if (sectionIconInput) sectionIconInput.value = sec.icon || "";
     if (sectionSlugInput) sectionSlugInput.value = sec.slug;
     if (tiptapEditor) tiptapEditor.commands.setContent(sec.content || "<p></p>");
     if (btnDeleteSectionModal) btnDeleteSectionModal.style.display = "inline-flex";
   } else {
     if (sectionModalTitle) sectionModalTitle.textContent = "➕ Add New Topic Section";
     if (sectionTitleInput) sectionTitleInput.value = "";
-    if (sectionIconInput) sectionIconInput.value = "💡";
+    if (sectionIconInput) sectionIconInput.value = "";
     if (sectionSlugInput) sectionSlugInput.value = "";
     if (tiptapEditor) tiptapEditor.commands.setContent("<p></p>");
     if (btnDeleteSectionModal) btnDeleteSectionModal.style.display = "none";
@@ -751,7 +751,7 @@ if (sectionForm) {
 
     const editIndex = sectionEditIndexInput ? parseInt(sectionEditIndexInput.value, 10) : -1;
     const title = sectionTitleInput?.value.trim() || "Untitled Section";
-    const icon = sectionIconInput?.value.trim() || "💡";
+    const icon = sectionIconInput ? sectionIconInput.value.trim() : "";
     const rawSlug = sectionSlugInput?.value.trim();
     const slug = rawSlug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     const content = tiptapEditor ? tiptapEditor.getHTML() : (sectionContentInput?.value || "");

@@ -1,4 +1,3 @@
-[x] TODO: Need to add username in the signup and make sure its unique
-[x] TODO: Need to Get the Leave Trip Button to work 
-[x] TODO: When username unavailable should tell user its not unique username
-[x] TODO: Trip delete button and trip leave button instant visual feedback and reliable inline confirmation
+- [x] Travel: Make the editor modal a bit wider.
+- [x] Travel: Allow for no Emoji
+- [x] Non logged in users are not blocked, they can see all the trips 

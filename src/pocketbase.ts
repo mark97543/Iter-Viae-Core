@@ -171,19 +171,8 @@ export function logoutUser() {
 }
 
 export async function fetchUserTrips(): Promise<SavedTripRecord[]> {
-  if (!pb.authStore.isValid || !pb.authStore.model) return [];
-  const user = pb.authStore.model;
-  const userId = user.id;
-  const userEmail = (user.email || "").toLowerCase().trim();
-  const username = (user.username || "").toLowerCase().trim();
-
   try {
-    let filterStr = `user = "${userId}" || shared ~ "${userId}"`;
-    if (userEmail) filterStr += ` || shared ~ "${userEmail}"`;
-    if (username) filterStr += ` || shared ~ "${username}"`;
-
     const records = await pb.collection("trips").getFullList<SavedTripRecord>({
-      filter: filterStr,
       sort: "-updated",
       requestKey: null
     });
