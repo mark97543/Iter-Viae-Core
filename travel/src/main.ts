@@ -532,6 +532,22 @@ function initTipTapEditor() {
       FlashcardThai,
       FlashcardEnglish,
     ],
+    editorProps: {
+      handleKeyDown: (_view, event) => {
+        if (event.key === "Tab" && tiptapEditor) {
+          if (tiptapEditor.isActive("bulletList") || tiptapEditor.isActive("orderedList")) {
+            event.preventDefault();
+            if (event.shiftKey) {
+              tiptapEditor.chain().focus().liftListItem("listItem").run();
+            } else {
+              tiptapEditor.chain().focus().sinkListItem("listItem").run();
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+    },
     content: "<p></p>",
     onUpdate: () => {
       updateToolbarActiveStates();
