@@ -633,11 +633,11 @@ function initTipTapEditor() {
           case "redo":
             tiptapEditor.chain().focus().redo().run();
             break;
-          case "insert-custom-block":
+          case "insert-callout":
             tiptapEditor
               .chain()
               .focus()
-              .insertContent('<div style="background: rgba(139, 92, 246, 0.08); border: 1px dashed var(--primary-purple); border-radius: 12px; padding: 1.25rem; margin: 1rem 0;"><h4 style="margin: 0 0 0.5rem 0; color: #ffffff;">Custom Travel Block</h4><p style="margin: 0; color: var(--text-muted);">Write your custom travel itinerary notes or details here...</p></div><p></p>')
+              .insertContent('<div class="field-callout-box"><p>📌 <strong>Field Callout:</strong> Write important travel notes or alerts here...</p></div><p></p>')
               .run();
             break;
           case "insert-flashcards":

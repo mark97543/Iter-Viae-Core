@@ -1098,8 +1098,22 @@ del {
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md);
   margin: 1.25rem 0;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1.6;
+}
+
+.field-callout-box p {
+  margin: 0 0 0.5rem 0;
+  color: #fef08a;
+}
+
+.field-callout-box p:last-child {
+  margin-bottom: 0;
+}
+
+.field-callout-box strong {
+  color: #ffffff;
+  font-weight: 700;
 }
 
 /* RESPONSIVE TABLE WRAPPER & BASIC TABLE FORMATTING */
