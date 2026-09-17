@@ -2082,24 +2082,21 @@ blockquote,
   line-height: 1.6;
 }
 
-.tiptap-editor-element code {
-  font-family: var(--font-mono);
-  background: rgba(56, 189, 248, 0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
+.tiptap-editor-element code,
+.section-card-body code,
+.field-manual-section-card code {
+  font-family: var(--font-main);
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
   color: var(--accent-cyan);
   font-size: 0.88em;
-}
-
-.tiptap-editor-element pre {
-  background: rgba(11, 15, 25, 0.95);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: #e2e8f0;
-  font-family: var(--font-mono);
-  padding: 0.85rem 1.1rem;
-  margin: 0.8rem 0;
-  overflow-x: auto;
+  font-weight: 700;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0.15rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .tiptap-editor-element mark {

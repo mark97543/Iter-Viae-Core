@@ -454,7 +454,9 @@ function renderTripFieldManual(trip: Trip) {
               ${sec.icon && sec.icon.trim() ? `<span class="section-card-icon">${sec.icon}</span>` : ""}
               <h2 class="section-card-title">${escapeHtml(sec.title)}</h2>
             </div>
-            <div class="section-card-actions">
+            <div class="section-card-actions" style="display:flex; align-items:center; gap:6px;">
+              ${idx > 0 ? `<button class="btn-move-section-up btn-edit-section" data-index="${idx}" title="Move Section Up">⬆️</button>` : ""}
+              ${idx < activeSections.length - 1 ? `<button class="btn-move-section-down btn-edit-section" data-index="${idx}" title="Move Section Down">⬇️</button>` : ""}
               <button class="btn-edit-section" data-index="${idx}" title="Edit Topic Section">
                 ✏️ Edit
               </button>
@@ -466,7 +468,21 @@ function renderTripFieldManual(trip: Trip) {
         </div>
       `).join("");
 
-      fieldManualSectionsContainer.querySelectorAll(".btn-edit-section").forEach((btn) => {
+      fieldManualSectionsContainer.querySelectorAll(".btn-move-section-up").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const idx = parseInt((e.currentTarget as HTMLElement).getAttribute("data-index") || "-1", 10);
+          if (idx > 0) moveSection(idx, idx - 1);
+        });
+      });
+
+      fieldManualSectionsContainer.querySelectorAll(".btn-move-section-down").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const idx = parseInt((e.currentTarget as HTMLElement).getAttribute("data-index") || "-1", 10);
+          if (idx >= 0 && idx < activeSections.length - 1) moveSection(idx, idx + 1);
+        });
+      });
+
+      fieldManualSectionsContainer.querySelectorAll(".btn-edit-section:not(.btn-move-section-up):not(.btn-move-section-down)").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           const indexStr = (e.currentTarget as HTMLElement).getAttribute("data-index");
           if (indexStr !== null) {
@@ -477,6 +493,20 @@ function renderTripFieldManual(trip: Trip) {
       });
     }
   }
+}
+
+async function moveSection(fromIndex: number, toIndex: number) {
+  if (!currentTrip || !currentTrip.sections) return;
+  if (fromIndex < 0 || fromIndex >= currentTrip.sections.length) return;
+  if (toIndex < 0 || toIndex >= currentTrip.sections.length) return;
+
+  const item = currentTrip.sections.splice(fromIndex, 1)[0];
+  currentTrip.sections.splice(toIndex, 0, item);
+
+  saveTripsState();
+  renderTripFieldManual(currentTrip);
+  showToast(`💾 Moved topic "${item.title}"`);
+  await saveTripToPB(currentTrip);
 }
 
 // TipTap WYSIWYG Editor Instance & Controls
@@ -538,6 +568,7 @@ function initTipTapEditor() {
           case "highlight":
             tiptapEditor.chain().focus().toggleHighlight().run();
             break;
+          case "inline-tag":
           case "code":
             tiptapEditor.chain().focus().toggleCode().run();
             break;
@@ -574,9 +605,6 @@ function initTipTapEditor() {
           case "blockquote":
             tiptapEditor.chain().focus().toggleBlockquote().run();
             break;
-          case "code-block":
-            tiptapEditor.chain().focus().toggleCodeBlock().run();
-            break;
           case "hr":
             tiptapEditor.chain().focus().setHorizontalRule().run();
             break;
@@ -589,11 +617,11 @@ function initTipTapEditor() {
           case "redo":
             tiptapEditor.chain().focus().redo().run();
             break;
-          case "insert-callout":
+          case "insert-custom-block":
             tiptapEditor
               .chain()
               .focus()
-              .insertContent('<div class="field-callout-box"><strong>📌 Note:</strong><br/>Enter note details...</div>')
+              .insertContent('<div style="background: rgba(139, 92, 246, 0.08); border: 1px dashed var(--primary-purple); border-radius: 12px; padding: 1.25rem; margin: 1rem 0;"><h4 style="margin: 0 0 0.5rem 0; color: #ffffff;">Custom Travel Block</h4><p style="margin: 0; color: var(--text-muted);">Write your custom travel itinerary notes or details here...</p></div><p></p>')
               .run();
             break;
           case "insert-flashcards":
@@ -602,26 +630,6 @@ function initTipTapEditor() {
               .focus()
               .insertContent('<div class="flashcards-grid"><div class="flashcard-item"><div class="flashcard-th">ข้อความภาษาไทย</div><div class="flashcard-en">"English Translation"</div></div></div>')
               .run();
-            break;
-          case "toggle-html-source":
-            const editorEl = document.getElementById("tiptap-editor-element");
-            const htmlSourceEl = document.getElementById("tiptap-html-source") as HTMLTextAreaElement | null;
-            if (!editorEl || !htmlSourceEl) break;
-
-            isHtmlSourceMode = !isHtmlSourceMode;
-            if (isHtmlSourceMode) {
-              htmlSourceEl.value = tiptapEditor.getHTML();
-              editorEl.style.display = "none";
-              htmlSourceEl.style.display = "block";
-              target.classList.add("is-active");
-              target.innerText = "👁️ WYSIWYG Mode";
-            } else {
-              tiptapEditor.commands.setContent(htmlSourceEl.value || "<p></p>");
-              htmlSourceEl.style.display = "none";
-              editorEl.style.display = "block";
-              target.classList.remove("is-active");
-              target.innerText = "</> HTML Source Mode";
-            }
             break;
         }
         updateToolbarActiveStates();
@@ -641,7 +649,7 @@ function updateToolbarActiveStates() {
     underline: tiptapEditor.isActive("underline"),
     strike: tiptapEditor.isActive("strike"),
     highlight: tiptapEditor.isActive("highlight"),
-    code: tiptapEditor.isActive("code"),
+    "inline-tag": tiptapEditor.isActive("code"),
     "align-left": tiptapEditor.isActive({ textAlign: "left" }),
     "align-center": tiptapEditor.isActive({ textAlign: "center" }),
     "align-right": tiptapEditor.isActive({ textAlign: "right" }),
@@ -653,7 +661,6 @@ function updateToolbarActiveStates() {
     "bullet-list": tiptapEditor.isActive("bulletList"),
     "ordered-list": tiptapEditor.isActive("orderedList"),
     blockquote: tiptapEditor.isActive("blockquote"),
-    "code-block": tiptapEditor.isActive("codeBlock"),
   };
 
   toolbar.querySelectorAll(".tiptap-btn").forEach((btn) => {

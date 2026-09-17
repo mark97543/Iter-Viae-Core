@@ -163,7 +163,7 @@
                 <button type="button" class="tiptap-btn" data-action="underline" title="Underline (Ctrl+U)"><u style="text-decoration: underline;">U</u></button>
                 <button type="button" class="tiptap-btn" data-action="strike" title="Strikethrough"><s>S</s></button>
                 <button type="button" class="tiptap-btn" data-action="highlight" title="Highlight Marker">🖍️ Marker</button>
-                <button type="button" class="tiptap-btn" data-action="code" title="Inline Code badge (e.g. `code`)"><code>&lt;/&gt;</code></button>
+                <button type="button" class="tiptap-btn" data-action="inline-tag" title="Inline Travel Badge / Tag">🏷️ Tag</button>
                 <span class="toolbar-separator"></span>
 
                 <!-- Text Alignment -->
@@ -184,25 +184,22 @@
                 <button type="button" class="tiptap-btn" data-action="bullet-list" title="Bullet List">• List</button>
                 <button type="button" class="tiptap-btn" data-action="ordered-list" title="Numbered List">1. List</button>
                 <button type="button" class="tiptap-btn" data-action="blockquote" title="Quote Block">“” Quote</button>
-                <button type="button" class="tiptap-btn" data-action="code-block" title="Code Block Container">💻 Code Block</button>
                 <button type="button" class="tiptap-btn" data-action="hr" title="Horizontal Divider Line">― Line</button>
                 <span class="toolbar-separator"></span>
 
                 <!-- Presets & Components -->
                 <button type="button" class="tiptap-btn preset-btn" data-action="insert-callout" title="Insert Field Callout Box">📌 Callout</button>
+                <button type="button" class="tiptap-btn preset-btn" data-action="insert-custom-block" title="Insert Custom Content Block">🧩 Custom Block</button>
                 <button type="button" class="tiptap-btn preset-btn" data-action="insert-flashcards" title="Insert Emergency Flashcards">🎴 Cards</button>
                 <span class="toolbar-separator"></span>
 
                 <!-- Formatting Clean & History -->
-                <button type="button" class="tiptap-btn preset-btn" data-action="toggle-html-source" title="Toggle Raw HTML Source Mode">&lt;/&gt; HTML Source Mode</button>
                 <button type="button" class="tiptap-btn" data-action="clear-nodes" title="Clear Formatting">🧹 Clear</button>
                 <button type="button" class="tiptap-btn" data-action="undo" title="Undo">↩️</button>
                 <button type="button" class="tiptap-btn" data-action="redo" title="Redo">↪️</button>
               </div>
               <!-- TipTap Editor Content editable Surface -->
               <div id="tiptap-editor-element" class="tiptap-editor-element"></div>
-              <!-- TipTap Raw HTML Source Area -->
-              <textarea id="tiptap-html-source" class="tiptap-html-source" style="display: none; width: 100%; height: 100%; min-height: 220px; background: rgba(11, 15, 25, 0.95); color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.88rem; padding: 1rem; border: none; outline: none; resize: none;" placeholder="<p>Paste or write raw HTML code here...</p>"></textarea>
             </div>
           </div>
           <div class="modal-actions">
