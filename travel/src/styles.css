@@ -956,47 +956,65 @@ body.travel-app-body {
   font-weight: 700;
 }
 
-.section-card-body ul {
+.section-card-body ul,
+.tiptap-editor-element ul {
   padding-left: 1.35rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 0.75rem;
   color: #cbd5e1;
   font-size: 1rem;
-  line-height: 1.7;
+  line-height: 1.45;
 }
 
-.section-card-body ol {
+.section-card-body ol,
+.tiptap-editor-element ol {
   padding-left: 1.6rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 0.75rem;
   color: #cbd5e1;
   font-size: 1rem;
-  line-height: 1.7;
+  line-height: 1.45;
 }
 
 .section-card-body ul ul,
 .section-card-body ol ul,
 .section-card-body ul ol,
-.section-card-body ol ol {
-  padding-left: 1.5rem;
-  margin-top: 0.35rem;
-  margin-bottom: 0.5rem;
+.section-card-body ol ol,
+.tiptap-editor-element ul ul,
+.tiptap-editor-element ol ul,
+.tiptap-editor-element ul ol,
+.tiptap-editor-element ol ol {
+  padding-left: 1.35rem;
+  margin-top: 0.15rem;
+  margin-bottom: 0.25rem;
 }
 
-.section-card-body ul li {
+.section-card-body ul li,
+.tiptap-editor-element ul li {
   list-style-type: disc;
 }
 
-.section-card-body ul ul li {
+.section-card-body ul ul li,
+.tiptap-editor-element ul ul li {
   list-style-type: circle;
 }
 
 .section-card-body ol li::marker,
-.section-card-body ul li::marker {
+.section-card-body ul li::marker,
+.tiptap-editor-element ol li::marker,
+.tiptap-editor-element ul li::marker {
   color: var(--accent-cyan);
   font-weight: 700;
 }
 
-.section-card-body li {
-  margin-bottom: 0.45rem;
+.section-card-body li,
+.tiptap-editor-element li {
+  margin-bottom: 0.2rem;
+  line-height: 1.45;
+}
+
+.section-card-body li p,
+.tiptap-editor-element li p {
+  margin: 0.1rem 0;
+  line-height: 1.45;
 }
 
 .section-card-body ul > li:has(.task-checkbox) {
@@ -1116,163 +1134,7 @@ del {
   font-weight: 700;
 }
 
-/* DIGITAL BOARDING PASS FLIGHT CARD */
-.flight-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
-  margin: 1.5rem 0;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-  position: relative;
-  overflow: hidden;
-}
 
-.flight-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--primary-purple), var(--accent-amber));
-}
-
-.flight-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.85rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
-}
-
-.flight-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-.flight-conf-pill {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  background: rgba(6, 182, 212, 0.12);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  padding: 0.25rem 0.65rem;
-  border-radius: 20px;
-}
-
-.flight-leg {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-md);
-  padding: 1rem 1.15rem;
-  margin-bottom: 0.75rem;
-}
-
-.flight-route-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-.flight-airport {
-  display: flex;
-  flex-direction: column;
-}
-
-.flight-airport.origin { text-align: left; }
-.flight-airport.destination { text-align: right; }
-
-.airport-code {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: 0.05em;
-  line-height: 1;
-}
-
-.airport-name {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin: 0.2rem 0;
-}
-
-.flight-time {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--accent-cyan);
-}
-
-.flight-path-graphic {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 0.5rem;
-}
-
-.airline-name {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #cbd5e1;
-  margin-bottom: 0.25rem;
-}
-
-.flight-line {
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(56, 189, 248, 0.2), var(--accent-cyan), rgba(56, 189, 248, 0.2));
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0.3rem 0;
-}
-
-.flight-plane-icon {
-  font-size: 0.9rem;
-  background: var(--bg-card);
-  padding: 0 0.3rem;
-}
-
-.flight-duration {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.flight-meta-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.flight-pill {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.flight-layover-bar {
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px dashed rgba(245, 158, 11, 0.35);
-  color: var(--accent-amber);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-md);
-  margin: 0.75rem 0;
-  font-size: 0.84rem;
-  text-align: center;
-}
 
 /* RESPONSIVE TABLE WRAPPER & BASIC TABLE FORMATTING */
 .table-responsive-wrapper {

@@ -25,21 +25,6 @@ const CalloutBox = Node.create({
   },
 });
 
-const FlightCard = Node.create({
-  name: "flightCard",
-  group: "block",
-  content: "block+",
-  defining: true,
-
-  parseHTML() {
-    return [{ tag: "div.flight-card" }];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ["div", mergeAttributes(HTMLAttributes, { class: "flight-card" }), 0];
-  },
-});
-
 const FlashcardsGrid = Node.create({
   name: "flashcardsGrid",
   group: "block",
@@ -542,7 +527,6 @@ function initTipTapEditor() {
         types: ["heading", "paragraph"],
       }),
       CalloutBox,
-      FlightCard,
       FlashcardsGrid,
       FlashcardItem,
       FlashcardThai,
@@ -648,69 +632,6 @@ function initTipTapEditor() {
             break;
           case "redo":
             tiptapEditor.chain().focus().redo().run();
-            break;
-          case "insert-flight-card":
-            tiptapEditor
-              .chain()
-              .focus()
-              .insertContent(`
-                <div class="flight-card">
-                  <div class="flight-card-header">
-                    <span class="flight-title">✈️ Flight Itinerary</span>
-                    <span class="flight-conf-pill">🔖 CONFIRM: <code>NGPLJZ</code></span>
-                  </div>
-                  <div class="flight-leg">
-                    <div class="flight-route-row">
-                      <div class="flight-airport origin">
-                        <span class="airport-code">IDA</span>
-                        <span class="airport-name">Idaho Falls</span>
-                        <span class="flight-time">06:15 AM</span>
-                      </div>
-                      <div class="flight-path-graphic">
-                        <span class="airline-name">Alaska AS211</span>
-                        <div class="flight-line"><span class="flight-plane-icon">✈️</span></div>
-                        <span class="flight-duration">56m</span>
-                      </div>
-                      <div class="flight-airport destination">
-                        <span class="airport-code">SEA</span>
-                        <span class="airport-name">Seattle (SEA)</span>
-                        <span class="flight-time">07:11 AM</span>
-                      </div>
-                    </div>
-                    <div class="flight-meta-pills">
-                      <span class="flight-pill">💺 Seat 13B</span>
-                      <span class="flight-pill">🧳 Checked Bag $45 / $55</span>
-                    </div>
-                  </div>
-                  <div class="flight-layover-bar">
-                    <span>⏳ <strong>Layover in SEA:</strong> 2h 39min</span>
-                  </div>
-                  <div class="flight-leg">
-                    <div class="flight-route-row">
-                      <div class="flight-airport origin">
-                        <span class="airport-code">SEA</span>
-                        <span class="airport-name">Seattle (SEA)</span>
-                        <span class="flight-time">09:50 AM</span>
-                      </div>
-                      <div class="flight-path-graphic">
-                        <span class="airline-name">Alaska AS1621</span>
-                        <div class="flight-line"><span class="flight-plane-icon">✈️</span></div>
-                        <span class="flight-duration">2h 52m</span>
-                      </div>
-                      <div class="flight-airport destination">
-                        <span class="airport-code">LAX</span>
-                        <span class="airport-name">Los Angeles (LAX)</span>
-                        <span class="flight-time">12:42 PM</span>
-                      </div>
-                    </div>
-                    <div class="flight-meta-pills">
-                      <span class="flight-pill">💺 Seat 20C</span>
-                    </div>
-                  </div>
-                </div>
-                <p></p>
-              `)
-              .run();
             break;
           case "insert-callout":
             tiptapEditor
