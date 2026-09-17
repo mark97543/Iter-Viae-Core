@@ -82,7 +82,27 @@ const shareFeedbackMsg = document.getElementById("share-feedback-msg") as HTMLEl
 async function init() {
   setupEventListeners();
   renderAuthStatus();
-  await loadAndRenderTrips();
+  await checkAuthAndLoad();
+}
+
+async function checkAuthAndLoad() {
+  if (!isUserAuthenticated()) {
+    openAuthModal(false);
+    if (authCloseBtn) authCloseBtn.style.display = "none";
+    if (tripsGridContainer) {
+      tripsGridContainer.innerHTML = `
+        <div class="empty-state" style="padding: 4rem 1.5rem; text-align: center;">
+          <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+          <h3 style="font-size: 1.4rem; font-weight: 800; color: #ffffff; margin-bottom: 0.5rem;">Authentication Required</h3>
+          <p style="color: var(--text-muted); max-width: 420px; margin: 0 auto;">Please log in or register an account to access expedition trips on wade-usa.com.</p>
+        </div>
+      `;
+    }
+  } else {
+    if (authCloseBtn) authCloseBtn.style.display = "block";
+    authModal.classList.add("hidden");
+    await loadAndRenderTrips();
+  }
 }
 
 function renderAuthStatus() {
@@ -99,7 +119,7 @@ function renderAuthStatus() {
     document.getElementById("btn-logout")?.addEventListener("click", () => {
       logoutUser();
       renderAuthStatus();
-      loadAndRenderTrips();
+      checkAuthAndLoad();
     });
   } else {
     authStatusContainer.innerHTML = `
@@ -405,9 +425,8 @@ function setupEventListeners() {
           await loginUser(email, pass);
         }
 
-        closeAuthModal();
         renderAuthStatus();
-        await loadAndRenderTrips();
+        await checkAuthAndLoad();
       } catch (err: any) {
         if (authErrorMsg) authErrorMsg.innerText = err.message || "Authentication failed.";
       } finally {
@@ -477,6 +496,9 @@ function openAuthModal(register: boolean) {
 }
 
 function closeAuthModal() {
+  if (!isUserAuthenticated()) {
+    return;
+  }
   authModal.classList.add("hidden");
 }
 

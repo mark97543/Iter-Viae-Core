@@ -95,10 +95,14 @@ export function logoutUser() {
 
 // User-Locked & Guest Trip Database API (Strictly PocketBase DB)
 export async function fetchUserTrips(statusFilter: "active" | "archived" = "active"): Promise<TripRecord[]> {
+  const user = getCurrentUser();
+  if (!user || !pb.authStore.isValid) {
+    return [];
+  }
   const results: TripRecord[] = [];
 
   try {
-    const filterQuery = `status = "${statusFilter}"`;
+    const filterQuery = `(user = "${user.id}" || shared ~ "${user.id}" || user = "guest" || user = "") && status = "${statusFilter}"`;
     const records = await pb.collection("trips").getFullList<any>({
       filter: filterQuery,
       sort: "-updated,-created",
