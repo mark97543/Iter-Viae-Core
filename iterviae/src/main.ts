@@ -342,22 +342,23 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       { id: "osm-street-layer", type: "raster" as const, source: "osm-street", minzoom: 0, maxzoom: 19 }
     ]
   },
-  dark: {
+  voyager: {
     version: 8 as const,
     sources: {
-      "osm-dark": {
+      "carto-voyager": {
         type: "raster" as const,
         tiles: [
-          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+          "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
         ],
         tileSize: 256,
         maxzoom: 19,
-        attribution: "© OpenStreetMap contributors"
+        attribution: "© CARTO, © OpenStreetMap contributors"
       }
     },
     layers: [
-      { id: "osm-dark-layer", type: "raster" as const, source: "osm-dark", minzoom: 0, maxzoom: 19 }
+      { id: "carto-voyager-layer", type: "raster" as const, source: "carto-voyager", minzoom: 0, maxzoom: 19 }
     ]
   },
   topo: {
