@@ -1509,12 +1509,12 @@ function getVehicleMaxRange(): number {
   return effectiveTank * vehicleProfile.mpg;
 }
 
-// Live calculation of fuel consumption, estimated cost, and max range
+// Live calculation of fuel consumption and max range in miles
 function updateFuelCalculations() {
   const mpg = parseFloat(fuelMpgInput?.value || "18") || 18;
   const tank = parseFloat(tankCapacityInput?.value || "20") || 20;
-  const price = parseFloat(fuelPriceInput?.value || "3.65") || 3.65;
   const reserve = parseFloat(reserveGalInput?.value || "2") || 2;
+  const price = fuelPriceInput ? (parseFloat(fuelPriceInput.value) || 0) : (vehicleProfile.fuelPricePerGal || 0);
   const enabled = fuelTrackingToggle ? fuelTrackingToggle.checked : true;
 
   vehicleProfile = { mpg, tankCapacityGal: tank, fuelPricePerGal: price, reserveGal: reserve, enabled };
@@ -1528,11 +1528,10 @@ function updateFuelCalculations() {
   });
 
   const totalFuelGal = mpg > 0 ? totalDistMi / mpg : 0;
-  const totalFuelCost = totalFuelGal * price;
 
   if (fuelReqGal) fuelReqGal.textContent = enabled ? `${totalFuelGal.toFixed(1)} GAL` : "OFF";
-  if (fuelEstCost) fuelEstCost.textContent = enabled ? `$${totalFuelCost.toFixed(2)}` : "OFF";
-  if (itinSumFuel) itinSumFuel.textContent = enabled ? `${totalFuelGal.toFixed(1)} GAL ($${totalFuelCost.toFixed(2)})` : "OFF";
+  if (fuelEstCost) fuelEstCost.textContent = enabled ? `${totalFuelGal.toFixed(1)} GAL` : "OFF";
+  if (itinSumFuel) itinSumFuel.textContent = enabled ? `${totalFuelGal.toFixed(1)} GAL (${totalDistMi.toFixed(1)} MI)` : "OFF";
 
   updateLegBadgesUI();
   if (lastRouteCoordinates.length > 0) {
@@ -1545,7 +1544,7 @@ export function syncVehicleProfileToUI(profile: Partial<VehicleProfile>) {
   if (!profile) return;
   const mpg = profile.mpg || 18;
   const tank = profile.tankCapacityGal || 20;
-  const price = profile.fuelPricePerGal || 3.65;
+  const price = profile.fuelPricePerGal || 0;
   const reserve = profile.reserveGal || 2;
   const enabled = profile.enabled !== false;
 
@@ -4166,6 +4165,8 @@ async function publishActiveTripToCloud() {
   try {
     showToast("Saving route to cloud... 💾");
 
+    updateFuelCalculations(); // Ensure vehicleProfile matches current DOM inputs
+
     const encodedPolyline = encodePolyline6(lastRouteCoordinates);
     const compactLegs = currentRouteLegs.map((leg) => ({
       startLat: Number(leg.startLat.toFixed(5)),
@@ -4462,13 +4463,14 @@ async function loadTripIntoWorkspace(tripId: string) {
       expeditionStartTime = record.itinerary.startTime;
     }
 
-    if (record.metrics?.vehicleProfile) {
-      vehicleProfile = record.metrics.vehicleProfile;
-      if (fuelMpgInput) fuelMpgInput.value = (vehicleProfile.mpg || 18).toString();
-      if (tankCapacityInput) tankCapacityInput.value = (vehicleProfile.tankCapacityGal || 20).toString();
-      if (fuelPriceInput) fuelPriceInput.value = (vehicleProfile.fuelPricePerGal || 3.65).toString();
-      if (reserveGalInput) reserveGalInput.value = (vehicleProfile.reserveGal || 2).toString();
-      if (fuelTrackingToggle) fuelTrackingToggle.checked = vehicleProfile.enabled !== false;
+    let rawMetrics: any = record.metrics;
+    if (typeof rawMetrics === "string") {
+      try { rawMetrics = JSON.parse(rawMetrics); } catch (_) {}
+    }
+    const loadedVehicle = rawMetrics?.vehicleProfile || rawMetrics?.vehicle_profile || record.vehicleProfile || record.vehicle_profile;
+    if (loadedVehicle) {
+      syncVehicleProfileToUI(loadedVehicle);
+    } else {
       updateFuelCalculations();
     }
 
