@@ -44,11 +44,8 @@ async function handleSSOTokenAndRefresh(): Promise<string | null> {
 handleSSOTokenAndRefresh().then(async (targetTripId) => {
   updateAuthStateUI();
   if (targetTripId && PocketBaseAuth.isAuthenticated()) {
-    const user = PocketBaseAuth.getUser() as any;
-    if (user?.verified) {
-      console.log(`Hub Launch: Auto-loading target trip ID "${targetTripId}" into workspace...`);
-      await loadTripIntoWorkspace(targetTripId);
-    }
+    console.log(`Hub Launch: Auto-loading target trip ID "${targetTripId}" into workspace...`);
+    await loadTripIntoWorkspace(targetTripId);
   }
 });
 
@@ -4455,8 +4452,10 @@ async function loadTripIntoWorkspace(tripId: string) {
       modalTripSummary.value = currentTripSummary;
     }
 
-    if (Array.isArray(record.waypoints) && record.waypoints.length >= 2) {
+    if (Array.isArray(record.waypoints)) {
       waypoints = record.waypoints;
+    } else {
+      waypoints = [];
     }
 
     if (record.itinerary?.startTime) {
@@ -4863,6 +4862,16 @@ function initializeMapSurface() {
 
   map.on("load", () => {
     map?.resize();
+
+    if (currentTripId || (waypoints && waypoints.length >= 1)) {
+      console.log(`Map loaded: rendering active workspace trip "${currentTripTitle}" (${waypoints.length} waypoints)...`);
+      renderWaypointsUI();
+      renderWaypointMapMarkers();
+      redrawRouteLine();
+      updateLegBadgesUI();
+      fitMapToAllWaypoints();
+      return;
+    }
 
     const restored = restoreActiveDraftFromLocalStorage();
     if (restored) {
