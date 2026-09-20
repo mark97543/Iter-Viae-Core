@@ -323,7 +323,7 @@ let waypoints: Waypoint[] = [
 
 const DEFAULT_CENTER: [number, number] = [-104.9903, 39.7392]; // Fallback map center
 
-// 3 High-Performance API-Key-Free Map Surface Styles (Vector/Street, Dark OLED, Topo)
+// High-Performance API-Key-Free Map Surface Styles (11 Free Open Source / Public Basemaps)
 const MAP_SURFACE_STYLES: Record<string, any> = {
   vector: {
     version: 8 as const,
@@ -342,23 +342,55 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       { id: "osm-street-layer", type: "raster" as const, source: "osm-street", minzoom: 0, maxzoom: 19 }
     ]
   },
-  voyager: {
+  esri_dark: {
     version: 8 as const,
     sources: {
-      "carto-voyager": {
+      "esri-dark": {
         type: "raster" as const,
         tiles: [
-          "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-          "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
-        maxzoom: 19,
-        attribution: "© CARTO, © OpenStreetMap contributors"
+        maxzoom: 16,
+        attribution: "© Esri, HERE, Garmin, © OpenStreetMap contributors"
       }
     },
     layers: [
-      { id: "carto-voyager-layer", type: "raster" as const, source: "carto-voyager", minzoom: 0, maxzoom: 19 }
+      { id: "esri-dark-layer", type: "raster" as const, source: "esri-dark", minzoom: 0, maxzoom: 16 }
+    ]
+  },
+  esri_light: {
+    version: 8 as const,
+    sources: {
+      "esri-light": {
+        type: "raster" as const,
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 16,
+        attribution: "© Esri, HERE, Garmin, © OpenStreetMap contributors"
+      }
+    },
+    layers: [
+      { id: "esri-light-layer", type: "raster" as const, source: "esri-light", minzoom: 0, maxzoom: 16 }
+    ]
+  },
+  satellite: {
+    version: 8 as const,
+    sources: {
+      "esri-satellite": {
+        type: "raster" as const,
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© Esri, Maxar, Earthstar Geographics"
+      }
+    },
+    layers: [
+      { id: "esri-satellite-layer", type: "raster" as const, source: "esri-satellite", minzoom: 0, maxzoom: 19 }
     ]
   },
   topo: {
@@ -367,7 +399,9 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       "opentopo": {
         type: "raster" as const,
         tiles: [
-          "https://tile.opentopomap.org/{z}/{x}/{y}.png"
+          "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+          "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
+          "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"
         ],
         tileSize: 256,
         maxzoom: 17,
@@ -378,13 +412,100 @@ const MAP_SURFACE_STYLES: Record<string, any> = {
       { id: "opentopo-layer", type: "raster" as const, source: "opentopo", minzoom: 0, maxzoom: 17 }
     ]
   },
+  cyclosm: {
+    version: 8 as const,
+    sources: {
+      "cyclosm": {
+        type: "raster" as const,
+        tiles: [
+          "https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+          "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
+        ],
+        tileSize: 256,
+        maxzoom: 18,
+        attribution: "© CyclOSM, © OpenStreetMap contributors"
+      }
+    },
+    layers: [
+      { id: "cyclosm-layer", type: "raster" as const, source: "cyclosm", minzoom: 0, maxzoom: 18 }
+    ]
+  },
+  osm_hot: {
+    version: 8 as const,
+    sources: {
+      "osm-hot": {
+        type: "raster" as const,
+        tiles: [
+          "https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+          "https://b.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© OpenStreetMap contributors, HOT"
+      }
+    },
+    layers: [
+      { id: "osm-hot-layer", type: "raster" as const, source: "osm-hot", minzoom: 0, maxzoom: 19 }
+    ]
+  },
+  esri_street: {
+    version: 8 as const,
+    sources: {
+      "esri-street": {
+        type: "raster" as const,
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 18,
+        attribution: "© Esri, HERE, Garmin, USGS, NGA"
+      }
+    },
+    layers: [
+      { id: "esri-street-layer", type: "raster" as const, source: "esri-street", minzoom: 0, maxzoom: 18 }
+    ]
+  },
+  natgeo: {
+    version: 8 as const,
+    sources: {
+      "natgeo": {
+        type: "raster" as const,
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 16,
+        attribution: "© Esri, National Geographic, DeLorme, NAVTEQ"
+      }
+    },
+    layers: [
+      { id: "natgeo-layer", type: "raster" as const, source: "natgeo", minzoom: 0, maxzoom: 16 }
+    ]
+  },
+  usgs_topo: {
+    version: 8 as const,
+    sources: {
+      "usgs-topo": {
+        type: "raster" as const,
+        tiles: [
+          "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 16,
+        attribution: "© USGS - The National Map"
+      }
+    },
+    layers: [
+      { id: "usgs-topo-layer", type: "raster" as const, source: "usgs-topo", minzoom: 0, maxzoom: 16 }
+    ]
+  },
   terrain3d: {
     version: 8 as const,
     sources: {
       "esri-satellite": {
         type: "raster" as const,
         tiles: [
-          "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         ],
         tileSize: 256,
         maxzoom: 17,
