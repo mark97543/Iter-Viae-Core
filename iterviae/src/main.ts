@@ -4,19 +4,30 @@ import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchIncrementalExpeditionRoute, haversineDistance, encodePolyline6, decodePolyline6, LegMetric, RouteLeg } from "./valhalla";
 
 // Cross-subdomain SSO Token Handler from Hub (wade-usa.com) & Auto Refresh
-async function handleSSOTokenAndRefresh() {
+async function handleSSOTokenAndRefresh(): Promise<string | null> {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
+  let targetTripId = urlParams.get("tripId") || urlParams.get("trip");
+
+  if (!targetTripId && window.location.hash.includes("/trips/")) {
+    targetTripId = window.location.hash.split("/trips/")[1]?.trim() || null;
+  }
+
   if (token) {
     try {
       pb.authStore.save(token, null);
-      urlParams.delete("token");
-      const newQuery = urlParams.toString();
-      const newUrl = window.location.pathname + (newQuery ? "?" + newQuery : "") + window.location.hash;
-      window.history.replaceState(null, "", newUrl);
     } catch (e) {
       console.warn("Failed to process SSO token from Hub:", e);
     }
+  }
+
+  if (token || urlParams.has("tripId") || urlParams.has("trip")) {
+    urlParams.delete("token");
+    urlParams.delete("tripId");
+    urlParams.delete("trip");
+    const newQuery = urlParams.toString();
+    const newUrl = window.location.pathname + (newQuery ? "?" + newQuery : "") + window.location.hash;
+    window.history.replaceState(null, "", newUrl);
   }
 
   if (PocketBaseAuth.isAuthenticated()) {
@@ -26,9 +37,19 @@ async function handleSSOTokenAndRefresh() {
       console.warn("Notice refreshing user auth model:", e);
     }
   }
+
+  return targetTripId;
 }
-handleSSOTokenAndRefresh().then(() => {
+
+handleSSOTokenAndRefresh().then(async (targetTripId) => {
   updateAuthStateUI();
+  if (targetTripId && PocketBaseAuth.isAuthenticated()) {
+    const user = PocketBaseAuth.getUser() as any;
+    if (user?.verified) {
+      console.log(`Hub Launch: Auto-loading target trip ID "${targetTripId}" into workspace...`);
+      await loadTripIntoWorkspace(targetTripId);
+    }
+  }
 });
 
 console.log("Iter Viae Tactical Surface initialized - Click-to-Focus Waypoint Engine.");
@@ -4091,6 +4112,10 @@ function saveActiveDraftToLocalStorage() {
  * Restores active workspace draft instantly (< 10 ms) on app launch
  */
 function restoreActiveDraftFromLocalStorage(): boolean {
+  if (currentTripId) {
+    console.log(`Notice: Active trip ${currentTripId} already loaded in workspace; skipping local draft restore.`);
+    return false;
+  }
   try {
     const raw = localStorage.getItem("iterviae_v2_active_draft");
     if (!raw) return false;
@@ -4451,6 +4476,7 @@ async function loadTripIntoWorkspace(tripId: string) {
     if (tripTitleText) tripTitleText.textContent = currentTripTitle;
 
     renderWaypointsUI();
+    renderWaypointMapMarkers();
 
     // Check for pre-computed geometry in Cloud DB or LocalStorage cache for instant (0ms) load
     const storedPolyline = record.metrics?.encodedPolyline;

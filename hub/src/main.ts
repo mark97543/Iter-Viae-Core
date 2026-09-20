@@ -196,7 +196,9 @@ function renderTripsGrid() {
   const filtered = loadedTrips.filter((t) => {
     const matchesSearch =
       !query ||
-      t.title.toLowerCase().includes(query) ||
+      (t.title && t.title.toLowerCase().includes(query)) ||
+      (t.summary && t.summary.toLowerCase().includes(query)) ||
+      (t.subtitle && t.subtitle.toLowerCase().includes(query)) ||
       (t.destination && t.destination.toLowerCase().includes(query)) ||
       (t.dates && t.dates.toLowerCase().includes(query));
 

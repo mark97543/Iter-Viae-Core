@@ -1,4 +1,10 @@
-- [x] There is a issue when going to the iterviad road trip planner for mthe page. it says ueser is unverified (FIXED: Auto-refresh user record and verification status upon SSO token handover & startup)
+- [x] In the search in the hub should also search the summary. 
+- [x] When you go fro mthe HUb to iterviae is does not got to the selected or created trip. 
+
+
+
+
+
 
 DO NOT ADD ITEMS BELOW THIS LINE
 
