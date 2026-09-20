@@ -178,14 +178,9 @@ const openVehicleBtn = document.getElementById("open-vehicle-btn");
 const vehicleModal = document.getElementById("vehicle-modal");
 const vehicleModalClose = document.getElementById("vehicle-modal-close");
 
-const fuelMpgInput = document.getElementById("fuel-mpg-input") as HTMLInputElement;
-const tankCapacityInput = document.getElementById("tank-capacity-input") as HTMLInputElement;
-const fuelPriceInput = document.getElementById("fuel-price-input") as HTMLInputElement;
-const reserveGalInput = document.getElementById("reserve-gal-input") as HTMLInputElement;
+const fuelRangeInput = document.getElementById("fuel-range-input") as HTMLInputElement;
 const fuelTrackingToggle = document.getElementById("fuel-tracking-toggle") as HTMLInputElement;
 const fuelMaxRange = document.getElementById("fuel-max-range");
-const fuelReqGal = document.getElementById("fuel-req-gal");
-const fuelEstCost = document.getElementById("fuel-est-cost");
 
 // DOM Saved Trips Logbook Modal References
 const navSavedTripsBtn = document.getElementById("nav-saved-trips-btn");
@@ -257,10 +252,11 @@ const contextAddStopBtn = document.getElementById("context-add-stop-btn");
 const toastFeedback = document.getElementById("toast-feedback");
 
 export interface VehicleProfile {
-  mpg: number;
-  tankCapacityGal: number;
-  fuelPricePerGal: number;
-  reserveGal: number;
+  maxRangeMi?: number;
+  mpg?: number;
+  tankCapacityGal?: number;
+  fuelPricePerGal?: number;
+  reserveGal?: number;
   enabled?: boolean;
 }
 
@@ -312,10 +308,7 @@ export function getDayColor(dayNumber: number): string {
 }
 
 let vehicleProfile: VehicleProfile = {
-  mpg: 18.0,
-  tankCapacityGal: 20.0,
-  fuelPricePerGal: 3.65,
-  reserveGal: 2.0,
+  maxRangeMi: 250,
   enabled: true
 };
 
@@ -1503,35 +1496,28 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
   }
 }
 
-// Calculate Effective Max Cruising Range (Miles)
+// Calculate Max Cruising Range (Miles)
 function getVehicleMaxRange(): number {
-  const effectiveTank = Math.max(0, vehicleProfile.tankCapacityGal - vehicleProfile.reserveGal);
-  return effectiveTank * vehicleProfile.mpg;
+  if (vehicleProfile.maxRangeMi && vehicleProfile.maxRangeMi > 0) {
+    return vehicleProfile.maxRangeMi;
+  }
+  const mpg = vehicleProfile.mpg || 18;
+  const tank = vehicleProfile.tankCapacityGal || 20;
+  const reserve = vehicleProfile.reserveGal || 2;
+  const effectiveTank = Math.max(0, tank - reserve);
+  return effectiveTank > 0 && mpg > 0 ? effectiveTank * mpg : 250;
 }
 
-// Live calculation of fuel consumption and max range in miles
+// Live calculation of fuel max range distance in miles
 function updateFuelCalculations() {
-  const mpg = parseFloat(fuelMpgInput?.value || "18") || 18;
-  const tank = parseFloat(tankCapacityInput?.value || "20") || 20;
-  const reserve = parseFloat(reserveGalInput?.value || "2") || 2;
-  const price = fuelPriceInput ? (parseFloat(fuelPriceInput.value) || 0) : (vehicleProfile.fuelPricePerGal || 0);
+  const range = parseFloat(fuelRangeInput?.value || "250") || 250;
   const enabled = fuelTrackingToggle ? fuelTrackingToggle.checked : true;
 
-  vehicleProfile = { mpg, tankCapacityGal: tank, fuelPricePerGal: price, reserveGal: reserve, enabled };
+  vehicleProfile = { ...vehicleProfile, maxRangeMi: range, enabled };
 
   const maxRange = getVehicleMaxRange();
-  if (fuelMaxRange) fuelMaxRange.textContent = enabled ? `${maxRange.toFixed(1)} MI` : "OFF";
-
-  let totalDistMi = 0;
-  currentLegMetrics.forEach((leg) => {
-    totalDistMi += leg.distanceMi;
-  });
-
-  const totalFuelGal = mpg > 0 ? totalDistMi / mpg : 0;
-
-  if (fuelReqGal) fuelReqGal.textContent = enabled ? `${totalFuelGal.toFixed(1)} GAL` : "OFF";
-  if (fuelEstCost) fuelEstCost.textContent = enabled ? `${totalFuelGal.toFixed(1)} GAL` : "OFF";
-  if (itinSumFuel) itinSumFuel.textContent = enabled ? `${totalFuelGal.toFixed(1)} GAL (${totalDistMi.toFixed(1)} MI)` : "OFF";
+  if (fuelMaxRange) fuelMaxRange.textContent = enabled ? `${maxRange.toFixed(0)} MI` : "OFF";
+  if (itinSumFuel) itinSumFuel.textContent = enabled ? `${maxRange.toFixed(0)} MI` : "OFF";
 
   updateLegBadgesUI();
   if (lastRouteCoordinates.length > 0) {
@@ -1542,18 +1528,16 @@ function updateFuelCalculations() {
 // Synchronize vehicleProfile object to UI DOM inputs and update calculations
 export function syncVehicleProfileToUI(profile: Partial<VehicleProfile>) {
   if (!profile) return;
-  const mpg = profile.mpg || 18;
-  const tank = profile.tankCapacityGal || 20;
-  const price = profile.fuelPricePerGal || 0;
-  const reserve = profile.reserveGal || 2;
+  let range = profile.maxRangeMi || 0;
+  if (!range && profile.mpg && profile.tankCapacityGal) {
+    range = Math.max(0, profile.tankCapacityGal - (profile.reserveGal || 2)) * profile.mpg;
+  }
+  if (!range) range = 250;
   const enabled = profile.enabled !== false;
 
-  vehicleProfile = { mpg, tankCapacityGal: tank, fuelPricePerGal: price, reserveGal: reserve, enabled };
+  vehicleProfile = { ...profile, maxRangeMi: range, enabled };
 
-  if (fuelMpgInput) fuelMpgInput.value = mpg.toString();
-  if (tankCapacityInput) tankCapacityInput.value = tank.toString();
-  if (fuelPriceInput) fuelPriceInput.value = price.toString();
-  if (reserveGalInput) reserveGalInput.value = reserve.toString();
+  if (fuelRangeInput) fuelRangeInput.value = range.toString();
   if (fuelTrackingToggle) fuelTrackingToggle.checked = enabled;
 
   updateFuelCalculations();
@@ -2507,10 +2491,7 @@ if (navVehicleBtn) navVehicleBtn.addEventListener("click", openVehicleModal);
 if (openVehicleBtn) openVehicleBtn.addEventListener("click", openVehicleModal);
 if (vehicleModalClose) vehicleModalClose.addEventListener("click", closeVehicleModal);
 
-if (fuelMpgInput) fuelMpgInput.addEventListener("input", updateFuelCalculations);
-if (tankCapacityInput) tankCapacityInput.addEventListener("input", updateFuelCalculations);
-if (fuelPriceInput) fuelPriceInput.addEventListener("input", updateFuelCalculations);
-if (reserveGalInput) reserveGalInput.addEventListener("input", updateFuelCalculations);
+if (fuelRangeInput) fuelRangeInput.addEventListener("input", updateFuelCalculations);
 if (fuelTrackingToggle) fuelTrackingToggle.addEventListener("change", updateFuelCalculations);
 
 // Itinerary Modal Controls
@@ -2838,11 +2819,13 @@ function renderPrintManifest() {
 
   const maxRange = getVehicleMaxRange();
   const enabled = vehicleProfile.enabled !== false;
-  const totalFuelGal = vehicleProfile.mpg > 0 ? totalDistMi / vehicleProfile.mpg : 0;
-  const totalFuelCost = totalFuelGal * vehicleProfile.fuelPricePerGal;
+  const mpgVal = vehicleProfile.mpg || 18;
+  const priceVal = vehicleProfile.fuelPricePerGal || 0;
+  const totalFuelGal = mpgVal > 0 ? totalDistMi / mpgVal : 0;
+  const totalFuelCost = totalFuelGal * priceVal;
 
-  const fuelMpgStr = enabled ? `${vehicleProfile.mpg.toFixed(1)} MPG` : "OFF";
-  const fuelRangeStr = enabled ? `${maxRange.toFixed(1)} MI` : "OFF";
+  const fuelMpgStr = enabled ? `${maxRange.toFixed(0)} MI RANGE` : "OFF";
+  const fuelRangeStr = enabled ? `${maxRange.toFixed(0)} MI` : "OFF";
   const fuelReqStr = enabled ? `${totalFuelGal.toFixed(1)} GAL` : "OFF";
   const fuelCostStr = enabled ? `$${totalFuelCost.toFixed(2)}` : "OFF";
 
@@ -4525,10 +4508,8 @@ async function loadTripIntoWorkspace(tripId: string) {
 }
 
 // Vehicle Profile Input Event Listeners
-if (fuelMpgInput) fuelMpgInput.addEventListener("input", updateFuelCalculations);
-if (tankCapacityInput) tankCapacityInput.addEventListener("input", updateFuelCalculations);
-if (fuelPriceInput) fuelPriceInput.addEventListener("input", updateFuelCalculations);
-if (reserveGalInput) reserveGalInput.addEventListener("input", updateFuelCalculations);
+if (fuelRangeInput) fuelRangeInput.addEventListener("input", updateFuelCalculations);
+if (fuelTrackingToggle) fuelTrackingToggle.addEventListener("change", updateFuelCalculations);
 
 // Delete Specific Saved Trip
 async function deleteTripFromCloud(tripId: string, btnElement?: HTMLElement) {

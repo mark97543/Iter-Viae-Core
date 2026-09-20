@@ -1,6 +1,4 @@
-- [x] In the search in the hub should also search the summary. 
-- [x] When you go fro mthe HUb to iterviae is does not got to the selected or created trip. 
-- [x] Iter VIa the route calculater does not save the vehical fuel economy to the trip save or its does not load it. Also we should simpliufy it to just miles (we will have the gas cost in the itinary portion.
+- [x] The vehical fuel miles should only be a distance not calculate 
 
 
 
