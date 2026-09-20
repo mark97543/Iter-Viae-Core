@@ -94,6 +94,11 @@ const FlashcardEnglish = Node.create({
   if (token) {
     try {
       pb.authStore.save(token, null);
+      if (pb.authStore.isValid) {
+        pb.collection("users").authRefresh().then(authData => {
+          pb.authStore.save(authData.token, authData.record);
+        }).catch(e => console.warn("Notice refreshing travel auth record:", e));
+      }
     } catch (e) {
       console.warn("Failed to process SSO token from Hub:", e);
     }

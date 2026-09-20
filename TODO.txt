@@ -1,5 +1,4 @@
-
+- [x] There is a issue when going to the iterviad road trip planner for mthe page. it says ueser is unverified (FIXED: Auto-refresh user record and verification status upon SSO token handover & startup)
 
 DO NOT ADD ITEMS BELOW THIS LINE
 
--Need to make trip items reordable

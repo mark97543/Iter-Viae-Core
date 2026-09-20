@@ -3,8 +3,8 @@ import * as maplibregl from "maplibre-gl";
 import { pb, PocketBaseAuth } from "./pocketbase";
 import { fetchIncrementalExpeditionRoute, haversineDistance, encodePolyline6, decodePolyline6, LegMetric, RouteLeg } from "./valhalla";
 
-// Cross-subdomain SSO Token Handler from Hub (wade-usa.com)
-(function handleSSOToken() {
+// Cross-subdomain SSO Token Handler from Hub (wade-usa.com) & Auto Refresh
+async function handleSSOTokenAndRefresh() {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
   if (token) {
@@ -18,7 +18,18 @@ import { fetchIncrementalExpeditionRoute, haversineDistance, encodePolyline6, de
       console.warn("Failed to process SSO token from Hub:", e);
     }
   }
-})();
+
+  if (PocketBaseAuth.isAuthenticated()) {
+    try {
+      await PocketBaseAuth.refreshAuth();
+    } catch (e) {
+      console.warn("Notice refreshing user auth model:", e);
+    }
+  }
+}
+handleSSOTokenAndRefresh().then(() => {
+  updateAuthStateUI();
+});
 
 console.log("Iter Viae Tactical Surface initialized - Click-to-Focus Waypoint Engine.");
 
@@ -88,6 +99,7 @@ const authErrorBanner = document.getElementById("auth-error-banner");
 
 const unverifiedUserEmail = document.getElementById("unverified-user-email");
 const unverifiedLogoutBtn = document.getElementById("unverified-logout-btn");
+const unverifiedRefreshBtn = document.getElementById("unverified-refresh-btn");
 
 const coordSearchForm = document.getElementById("coord-search-form") as HTMLFormElement;
 const coordSearchInput = document.getElementById("coord-search-input") as HTMLInputElement;
@@ -5204,6 +5216,14 @@ if (menuLogoutBtn) {
   });
 }
 if (unverifiedLogoutBtn) unverifiedLogoutBtn.addEventListener("click", performLogout);
+if (unverifiedRefreshBtn) {
+  unverifiedRefreshBtn.addEventListener("click", async () => {
+    unverifiedRefreshBtn.textContent = "Checking...";
+    await PocketBaseAuth.refreshAuth();
+    updateAuthStateUI();
+    unverifiedRefreshBtn.textContent = "🔄 Refresh Access Status";
+  });
+}
 
 // Initial UI & View Setup
 updateAuthStateUI();

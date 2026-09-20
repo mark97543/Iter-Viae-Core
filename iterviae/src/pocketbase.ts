@@ -32,4 +32,17 @@ export class PocketBaseAuth {
   static logout() {
     pb.authStore.clear();
   }
+
+  static async refreshAuth(): Promise<boolean> {
+    if (!pb.authStore.isValid || !pb.authStore.token) return false;
+    try {
+      const authData = await pb.collection("users").authRefresh();
+      pb.authStore.save(authData.token, authData.record);
+      return Boolean(authData.record?.verified);
+    } catch (e) {
+      console.warn("Failed to refresh PocketBase auth status:", e);
+      return Boolean(pb.authStore.model?.verified);
+    }
+  }
 }
+
