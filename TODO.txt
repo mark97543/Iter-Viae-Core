@@ -1,7 +1,5 @@
-- [x] The vehical fuel miles should only be a distance not calculate 
-
-
-
+[x] In the itinerary spreadsheet remove the estimated fuel cost label (reads max fuel range in miles now)
+[x] When a new map is started make blank points and zoom map to user's location
+[x] Roadtrip app a complete trip dump (all trips go to one csv file)
 
 DO NOT ADD ITEMS BELOW THIS LINE
-

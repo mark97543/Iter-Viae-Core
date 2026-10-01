@@ -190,6 +190,7 @@ const savedTripsModalClose = document.getElementById("saved-trips-modal-close");
 const savedTripsLoading = document.getElementById("saved-trips-loading");
 const savedTripsEmpty = document.getElementById("saved-trips-empty");
 const savedTripsList = document.getElementById("saved-trips-list");
+const exportAllTripsCsvBtn = document.getElementById("export-all-trips-csv-btn");
 
 // DOM Header Navigation Dropdown References
 const navExpeditionMenu = document.getElementById("nav-expedition-menu");
@@ -206,6 +207,7 @@ const importIterviaeInput = document.getElementById("import-iterviae-input") as 
 const menuRecalculateBtn = document.getElementById("menu-recalculate-btn");
 const menuExportGpxBtn = document.getElementById("menu-export-gpx-btn");
 const menuImportGpxBtn = document.getElementById("menu-import-gpx-btn");
+const menuExportAllCsvBtn = document.getElementById("menu-export-all-csv-btn");
 const menuVehicleBtn = document.getElementById("menu-vehicle-btn");
 const menuOpenAuthBtn = document.getElementById("menu-open-auth-btn");
 const menuUserInfo = document.getElementById("menu-user-info");
@@ -1282,7 +1284,166 @@ function exportItineraryCSV() {
   link.setAttribute("download", filename);
   document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
   showToast(`Exported multi-day itinerary to ${filename}`);
+}
+
+// Export Complete Multi-Trip CSV Dump (All Cloud & Local Trips)
+export async function exportAllTripsToCSV() {
+  try {
+    showToast("Preparing complete multi-trip CSV dump... 📊");
+    
+    let tripRecords: any[] = [];
+
+    if (PocketBaseAuth.isAuthenticated()) {
+      try {
+        const cloudRecords = await pb.collection("trips").getFullList({
+          filter: `trip_template = "ROADTRIP" || trip_template = "" || trip_template = null`,
+          sort: "-updated"
+        });
+        tripRecords = cloudRecords;
+      } catch (err) {
+        console.warn("Could not fetch cloud trips for CSV dump, attempting local cache fallback:", err);
+      }
+    }
+
+    // Also scan localStorage for any cached routes if list is empty or for local offline backup
+    if (tripRecords.length === 0) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("iterviae_route_cache_")) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key) || "{}");
+            if (data && data.title) {
+              tripRecords.push(data);
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Always include current active working trip if not already in records
+    if (waypoints.length > 0 && waypoints.some((w) => w.lat !== null || w.lon !== null)) {
+      const activeTripInRecords = currentTripId && tripRecords.some((r) => r.id === currentTripId);
+      if (!activeTripInRecords) {
+        tripRecords.unshift({
+          id: currentTripId || "active_working_draft",
+          title: currentTripTitle || "Active Working Draft",
+          summary: currentTripSummary || "",
+          status: "PLANNED",
+          metrics: { distance: metricDistance?.textContent || "0.0 MI", duration: metricDuration?.textContent || "0H 0M" },
+          waypoints: waypoints,
+          updated: new Date().toISOString()
+        });
+      }
+    }
+
+    if (tripRecords.length === 0) {
+      alert("No trips found to export. Create or save a trip first!");
+      return;
+    }
+
+    const headers = [
+      "Trip ID",
+      "Trip Title",
+      "Trip Status",
+      "Trip Distance",
+      "Trip Duration",
+      "Last Updated",
+      "Waypoint Sequence",
+      "Waypoint Type",
+      "Waypoint Title",
+      "Latitude",
+      "Longitude",
+      "Is Overnight",
+      "Is Fuel Stop",
+      "Break Duration (Min)",
+      "Budget ($)",
+      "Notes"
+    ];
+
+    const csvRows: string[][] = [headers];
+
+    tripRecords.forEach((trip) => {
+      const tripId = trip.id || "N/A";
+      const tripTitle = `"${(trip.title || "Untitled Trip").replace(/"/g, '""')}"`;
+      const tripStatus = trip.status || "PLANNED";
+      const tripDist = trip.metrics?.distance || "0.0 MI";
+      const tripDur = trip.metrics?.duration || "0H 0M";
+      const tripUpdated = trip.updated ? new Date(trip.updated).toLocaleString() : "N/A";
+
+      const tripWaypoints: Waypoint[] = Array.isArray(trip.waypoints) ? trip.waypoints : [];
+
+      if (tripWaypoints.length === 0) {
+        csvRows.push([
+          tripId,
+          tripTitle,
+          tripStatus,
+          tripDist,
+          tripDur,
+          tripUpdated,
+          "0",
+          "N/A",
+          '"No waypoints"',
+          "",
+          "",
+          "FALSE",
+          "FALSE",
+          "0",
+          "0.00",
+          '""'
+        ]);
+      } else {
+        tripWaypoints.forEach((wp, idx) => {
+          const wpTitle = `"${(wp.title || (wp.type === "origin" ? "Origin" : wp.type === "destination" ? "Destination" : `Stop #${idx + 1}`)).replace(/"/g, '""')}"`;
+          const latStr = wp.lat !== null && wp.lat !== undefined ? Number(wp.lat).toFixed(6) : "";
+          const lonStr = wp.lon !== null && wp.lon !== undefined ? Number(wp.lon).toFixed(6) : "";
+          const isOvernightStr = Boolean(wp.isOvernight) ? "TRUE" : "FALSE";
+          const isFuelStopStr = Boolean(wp.isFuelStop) ? "TRUE" : "FALSE";
+          const breakMinStr = (wp.breakMin !== undefined ? wp.breakMin : (wp.type === "origin" || wp.type === "destination" ? 0 : 15)).toString();
+          const budgetStr = (wp.budget || 0).toFixed(2);
+          const notesStr = `"${(wp.notes || "").replace(/"/g, '""')}"`;
+
+          csvRows.push([
+            tripId,
+            tripTitle,
+            tripStatus,
+            tripDist,
+            tripDur,
+            tripUpdated,
+            (idx + 1).toString(),
+            (wp.type || "WAYPOINT").toUpperCase(),
+            wpTitle,
+            latStr,
+            lonStr,
+            isOvernightStr,
+            isFuelStopStr,
+            breakMinStr,
+            budgetStr,
+            notesStr
+          ]);
+        });
+      }
+    });
+
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const filename = `all_roadtrips_dump_${dateStamp}.csv`;
+
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Exported ${tripRecords.length} Trip(s) to ${filename} 📊`);
+  } catch (err: any) {
+    console.error("Multi-trip CSV dump error:", err);
+    alert("Failed to export all trips to CSV: " + (err.message || "Unknown error"));
+  }
 }
 
 // Center and zoom map to a specific waypoint
@@ -3659,6 +3820,28 @@ function resetTripToNewWorkspace() {
   if (metricDuration) metricDuration.textContent = "0H 0M";
 
   updateFuelCalculations();
+
+  // Trigger Browser Geolocation to center map to user position on new map start
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+        console.log(`New Map Geolocation centered map at: ${userLat}, ${userLon}`);
+        map?.flyTo({
+          center: [userLon, userLat],
+          zoom: 13,
+          speed: 1.5,
+          essential: true
+        });
+      },
+      (error) => {
+        console.warn("Geolocation positioning error on new map start:", error.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
   showToast("New expedition workspace initialized ➕");
 }
 
@@ -3667,6 +3850,16 @@ if (menuNewTripBtn) {
   menuNewTripBtn.addEventListener("click", () => {
     if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
     resetTripToNewWorkspace();
+  });
+}
+
+if (exportAllTripsCsvBtn) {
+  exportAllTripsCsvBtn.addEventListener("click", exportAllTripsToCSV);
+}
+if (menuExportAllCsvBtn) {
+  menuExportAllCsvBtn.addEventListener("click", () => {
+    if (navMenuDropdownCard) navMenuDropdownCard.style.display = "none";
+    exportAllTripsToCSV();
   });
 }
 

@@ -90,6 +90,10 @@
                 <span class="dropdown-icon">📤</span>
                 <span>Import GPX / KML</span>
               </button>
+              <button id="menu-export-all-csv-btn" class="dropdown-menu-item" title="Export Complete Multi-Trip CSV Dump (All Trips)">
+                <span class="dropdown-icon">📊</span>
+                <span>Dump All Trips to CSV</span>
+              </button>
               <button id="menu-vehicle-btn" class="dropdown-menu-item">
                 <span class="dropdown-icon">⛽</span>
                 <span>Vehicle & Fuel Specs</span>
@@ -449,8 +453,8 @@
             <span id="itin-sum-dist" class="summary-val">0.0 MI</span>
           </div>
           <div class="summary-metric highlight-fuel">
-            <span class="summary-label">EST. FUEL COST</span>
-            <span id="itin-sum-fuel" class="summary-val">0.0 GAL ($0.00)</span>
+            <span class="summary-label">MAX FUEL RANGE</span>
+            <span id="itin-sum-fuel" class="summary-val">250 MI</span>
           </div>
           <div class="summary-metric highlight-budget">
             <span class="summary-label">TOTAL BUDGET</span>
@@ -469,6 +473,9 @@
           <div class="pill-badge badge-primary">POCKETBASE CLOUD LOGBOOK</div>
           <h2 class="modal-title">My Expedition Routes</h2>
           <p class="modal-subtitle">Load or manage your private cloud-synced trips</p>
+          <button id="export-all-trips-csv-btn" class="btn btn-emerald btn-sm" style="margin-top: 0.75rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            📊 Export All Trips CSV (Complete Trip Dump)
+          </button>
         </div>
 
         <div id="saved-trips-loading" class="saved-trips-state" style="display: none;">
