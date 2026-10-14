@@ -18,6 +18,9 @@ import {
   getSpokeAppUrl,
   TripRecord,
   TripTemplate,
+  getTripDistanceMiles,
+  getTripBudget,
+  getTripDays,
 } from "./pocketbase";
 
 console.log("Wade USA Hub & Spoke Portal (wade-usa.com) Initialized.");
@@ -28,6 +31,8 @@ let currentFilter: "all" | "roadtrip" | "travel" | "shared" = "all";
 let searchQuery: string = "";
 let loadedTrips: TripRecord[] = [];
 let activeShareTripId: string | null = null;
+let maxDistanceFilter: number | null = null;
+let sliderMaxLimit = 3000;
 
 // DOM Elements
 const tabActiveTrips = document.getElementById("tab-active-trips") as HTMLButtonElement;
@@ -41,6 +46,13 @@ const authStatusContainer = document.getElementById("auth-status-container") as 
 const searchInput = document.getElementById("trip-search-input") as HTMLInputElement;
 const filterPills = document.querySelectorAll(".filter-pill");
 const tripsGridContainer = document.getElementById("trips-grid-container") as HTMLElement;
+
+// Mileage Filter Slider Elements
+const roadtripMileageFilter = document.getElementById("roadtrip-mileage-filter") as HTMLElement | null;
+const mileageSlider = document.getElementById("mileage-slider") as HTMLInputElement | null;
+const mileageSliderValue = document.getElementById("mileage-slider-value") as HTMLElement | null;
+const mileageBoundMax = document.getElementById("mileage-bound-max") as HTMLElement | null;
+const mileageResetBtn = document.getElementById("mileage-reset-btn") as HTMLButtonElement | null;
 
 // Auth Modal Elements
 const authModal = document.getElementById("auth-modal") as HTMLElement;
@@ -66,6 +78,7 @@ const newTripTitle = document.getElementById("new-trip-title") as HTMLInputEleme
 const newTripStart = document.getElementById("new-trip-start") as HTMLInputElement;
 const newTripEnd = document.getElementById("new-trip-end") as HTMLInputElement;
 const newTripDestination = document.getElementById("new-trip-destination") as HTMLInputElement;
+const newTripBudget = document.getElementById("new-trip-budget") as HTMLInputElement | null;
 const newTripSummary = document.getElementById("new-trip-summary") as HTMLTextAreaElement;
 const createTripError = document.getElementById("create-trip-error") as HTMLElement;
 const createTripSubmitBtn = document.getElementById("create-trip-submit-btn") as HTMLButtonElement;
@@ -175,6 +188,9 @@ async function loadAndRenderTrips() {
     if (archiveCountBadge) archiveCountBadge.innerText = String(archivedTrips.length);
 
     loadedTrips = currentTab === "active" ? activeTrips : archivedTrips;
+    if (currentFilter === "roadtrip") {
+      updateMileageSliderBounds();
+    }
     renderTripsGrid();
   } catch (err) {
     if (tripsGridContainer) {
@@ -186,6 +202,31 @@ async function loadAndRenderTrips() {
         </div>
       `;
     }
+  }
+}
+
+function updateMileageSliderBounds() {
+  if (!roadtripMileageFilter || !mileageSlider || !mileageBoundMax || !mileageSliderValue) return;
+
+  const roadTrips = loadedTrips.filter((t) => t.trip_template === "ROADTRIP");
+  let maxDistance = 0;
+  roadTrips.forEach((t) => {
+    const d = getTripDistanceMiles(t);
+    if (d > maxDistance) maxDistance = d;
+  });
+
+  // Calculate rounded ceiling: minimum 500, or rounded up to next 100
+  sliderMaxLimit = Math.max(500, Math.ceil(Math.max(maxDistance, 500) / 100) * 100);
+  mileageSlider.max = String(sliderMaxLimit);
+  mileageBoundMax.textContent = `${sliderMaxLimit.toLocaleString()} mi`;
+
+  if (maxDistanceFilter === null || maxDistanceFilter >= sliderMaxLimit) {
+    mileageSlider.value = String(sliderMaxLimit);
+    maxDistanceFilter = null;
+    mileageSliderValue.textContent = `All Miles (up to ${sliderMaxLimit.toLocaleString()} mi)`;
+  } else {
+    mileageSlider.value = String(maxDistanceFilter);
+    mileageSliderValue.textContent = `≤ ${Math.round(maxDistanceFilter).toLocaleString()} mi`;
   }
 }
 
@@ -203,7 +244,13 @@ function renderTripsGrid() {
       (t.dates && t.dates.toLowerCase().includes(query));
 
     if (!matchesSearch) return false;
-    if (currentFilter === "roadtrip") return t.trip_template === "ROADTRIP";
+    if (currentFilter === "roadtrip") {
+      if (t.trip_template !== "ROADTRIP") return false;
+      if (maxDistanceFilter !== null) {
+        const dist = getTripDistanceMiles(t);
+        if (dist > maxDistanceFilter) return false;
+      }
+    }
     if (currentFilter === "travel") return t.trip_template === "TRAVEL";
     if (currentFilter === "shared") {
       const sharedArr = t.shared || [];
@@ -237,22 +284,38 @@ function renderTripsGrid() {
     const domainLabel = isRoadTrip ? "road.wade-usa.com" : "travel.wade-usa.com";
     const coverGradient = trip.coverGradient || (isRoadTrip ? "linear-gradient(135deg, #0ea5e9, #3b82f6)" : "linear-gradient(135deg, #06b6d4, #8b5cf6)");
 
+    const distanceMiles = getTripDistanceMiles(trip);
+    const tripDays = getTripDays(trip);
+    const tripBudget = getTripBudget(trip);
+
+    const formattedDistance = distanceMiles > 0
+      ? `${distanceMiles.toLocaleString(undefined, { maximumFractionDigits: 1 })} mi`
+      : "0 mi";
+    const formattedDays = `${tripDays} ${tripDays === 1 ? "day" : "days"}`;
+    const formattedBudget = tripBudget > 0 ? `$${tripBudget.toLocaleString()}` : "$0";
+
     const card = document.createElement("div");
     card.className = "trip-card";
 
     card.innerHTML = `
       <div class="trip-card-header" style="background: ${coverGradient};">
-        <span class="trip-template-tag">${isRoadTrip ? "🚗 Road Trip" : "✈️ Travel Plan"}</span>
         <div class="trip-emoji-badge">${trip.coverEmoji || (isRoadTrip ? "🚗" : "✈️")}</div>
+        <span class="trip-template-tag">${isRoadTrip ? "🚗 Road Trip" : "✈️ Travel Plan"}</span>
       </div>
 
       <div class="trip-card-body">
-        <h3 class="trip-title">${escapeHtml(trip.title)}</h3>
+        <h3 class="trip-title" title="${escapeHtml(trip.title)}">${escapeHtml(trip.title)}</h3>
+        
+        <div class="trip-stats-bar">
+          ${isRoadTrip ? `<span class="stat-pill stat-distance" title="Total Road Trip Distance">🚗 ${formattedDistance}</span>` : ""}
+          <span class="stat-pill stat-days" title="Duration">📅 ${formattedDays}</span>
+          <span class="stat-pill stat-budget" title="Estimated Budget">💵 ${formattedBudget}</span>
+        </div>
+
         <div class="trip-meta">
           <div class="meta-item">📍 <span>${escapeHtml(trip.destination || "Destination TBD")}</span></div>
           <div class="meta-item">📅 <span>${escapeHtml(trip.dates || "Dates TBD")}</span></div>
-          <div class="meta-item">🌐 <span style="font-family: var(--font-mono); color: var(--primary); font-size:0.8rem;">${domainLabel}</span></div>
-          ${trip.user && trip.user !== "guest" && user && trip.user !== user.id ? `<div class="meta-item" style="color:var(--accent); font-weight:600;">👥 Shared with you</div>` : ""}
+          ${trip.user && trip.user !== "guest" && user && trip.user !== user.id ? `<div class="meta-item" style="color:var(--accent); font-weight:600;">👥 <span>Shared with you</span></div>` : ""}
         </div>
         <p class="trip-summary">${escapeHtml(trip.summary || "No summary provided.")}</p>
       </div>
@@ -362,9 +425,41 @@ function setupEventListeners() {
       filterPills.forEach((p) => p.classList.remove("active"));
       pill.classList.add("active");
       currentFilter = (pill as HTMLElement).dataset.filter as any;
+
+      if (currentFilter === "roadtrip") {
+        if (roadtripMileageFilter) roadtripMileageFilter.classList.remove("hidden");
+        updateMileageSliderBounds();
+      } else {
+        if (roadtripMileageFilter) roadtripMileageFilter.classList.add("hidden");
+        maxDistanceFilter = null;
+      }
+
       renderTripsGrid();
     });
   });
+
+  if (mileageSlider) {
+    mileageSlider.addEventListener("input", () => {
+      const val = parseFloat(mileageSlider.value);
+      if (val >= sliderMaxLimit) {
+        maxDistanceFilter = null;
+        if (mileageSliderValue) mileageSliderValue.textContent = `All Miles (up to ${sliderMaxLimit.toLocaleString()} mi)`;
+      } else {
+        maxDistanceFilter = val;
+        if (mileageSliderValue) mileageSliderValue.textContent = `≤ ${Math.round(val).toLocaleString()} mi`;
+      }
+      renderTripsGrid();
+    });
+  }
+
+  if (mileageResetBtn) {
+    mileageResetBtn.addEventListener("click", () => {
+      maxDistanceFilter = null;
+      if (mileageSlider) mileageSlider.value = String(sliderMaxLimit);
+      if (mileageSliderValue) mileageSliderValue.textContent = `All Miles (up to ${sliderMaxLimit.toLocaleString()} mi)`;
+      renderTripsGrid();
+    });
+  }
 
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
@@ -410,6 +505,8 @@ function setupEventListeners() {
     const templateRadio = createTripForm.querySelector('input[name="trip_template"]:checked') as HTMLInputElement;
     const template: TripTemplate = (templateRadio?.value as TripTemplate) || "ROADTRIP";
 
+    const budgetVal = newTripBudget ? parseFloat(newTripBudget.value) : 0;
+
     createTripSubmitBtn.disabled = true;
     createTripSubmitBtn.innerText = "Creating & Launching...";
 
@@ -420,6 +517,7 @@ function setupEventListeners() {
         startDate: newTripStart.value,
         endDate: newTripEnd.value,
         destination: newTripDestination.value.trim(),
+        budget: !isNaN(budgetVal) && budgetVal > 0 ? budgetVal : 0,
         summary: newTripSummary.value.trim(),
       });
 

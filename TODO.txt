@@ -1,3 +1,4 @@
+[x] 1. HUB Page we should limit the size of the card for the trips. The height is making them a little hard to see. (Completed)
+[x] 2. HUB Page Card Should Have distance in miles for road trips in the Card and all cards should have budget, number of days (Completed)
+[x] 3. Hub Page when you select only roadtrips there should be a slider for the miles of trips as filter so you could filter by number of miles trip is. (Completed)
 
-
-DO NOT ADD ITEMS BELOW THIS LINE

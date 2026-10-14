@@ -1648,6 +1648,140 @@ function calculateFuelExhaustionVisuals(
   return { exhaustionPoint, emptyLineCoords };
 }
 
+let gasStationMarkersList: any[] = [];
+
+function clearGasStationMarkers() {
+  gasStationMarkersList.forEach((m) => {
+    try { m.remove(); } catch (e) {}
+  });
+  gasStationMarkersList = [];
+}
+
+async function searchGasStationsNearPoint(lat: number, lon: number) {
+  if (!map) return;
+  showToast("Scanning for nearby gas stations... ⛽");
+  clearGasStationMarkers();
+
+  try {
+    const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json][timeout:10];(node["amenity"="fuel"](around:25000,${lat},${lon});way["amenity"="fuel"](around:25000,${lat},${lon}););out center 15;`;
+    let stations: { lat: number; lon: number; name: string; brand?: string }[] = [];
+
+    try {
+      const resp = await fetch(overpassUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.elements && data.elements.length > 0) {
+          stations = data.elements.map((el: any) => ({
+            lat: el.lat || el.center?.lat,
+            lon: el.lon || el.center?.lon,
+            name: el.tags?.name || el.tags?.brand || "Gas Station / Refuel Point",
+            brand: el.tags?.brand || el.tags?.operator || ""
+          })).filter((s: any) => s.lat && s.lon);
+        }
+      }
+    } catch (e) {
+      console.warn("Overpass API query failed, trying Nominatim fallback:", e);
+    }
+
+    if (stations.length === 0) {
+      const nomUrl = `https://nominatim.openstreetmap.org/search?q=gas+station&format=json&limit=10&lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}`;
+      const resp = await fetch(nomUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        stations = data.map((item: any) => ({
+          lat: parseFloat(item.lat),
+          lon: parseFloat(item.lon),
+          name: item.display_name.split(",")[0] || "Gas Station",
+          brand: ""
+        }));
+      }
+    }
+
+    if (stations.length === 0) {
+      showToast("No gas stations found near location. Try zooming map.");
+      return;
+    }
+
+    const MarkerConstructor = getMapLibreClass("Marker");
+    const PopupConstructor = getMapLibreClass("Popup");
+    const LngLatBoundsConstructor = getMapLibreClass("LngLatBounds");
+    const bounds = new LngLatBoundsConstructor();
+    bounds.extend([lon, lat]);
+
+    stations.forEach((st) => {
+      const el = document.createElement("div");
+      el.className = "gas-station-poi-marker";
+      el.innerHTML = "⛽";
+      el.title = st.brand ? `${st.name} (${st.brand})` : st.name;
+      el.style.cssText = `
+        font-size: 1.5rem;
+        cursor: pointer;
+        filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.7));
+        transition: transform 0.2s ease;
+      `;
+      el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.3)"; });
+      el.addEventListener("mouseleave", () => { el.style.transform = "scale(1.0)"; });
+
+      const safeName = (st.name || "Gas Station").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const popupHtml = `
+        <div style="font-family:var(--font-mono); font-size:0.8rem; font-weight:800; color:#10b981; padding: 2px 0;">
+          ⛽ ${st.name}
+        </div>
+        ${st.brand ? `<div style="font-family:var(--font-mono); font-size:0.7rem; color:#94a3b8;">Brand: ${st.brand}</div>` : ""}
+        <div style="font-family:var(--font-mono); font-size:0.7rem; color:#cbd5e1; margin-top:2px;">
+          Coordinates: ${st.lat.toFixed(4)}, ${st.lon.toFixed(4)}
+        </div>
+        <button onclick="window.addRefuelWp(${st.lat}, ${st.lon}, '${safeName}')" class="btn btn-emerald btn-sm" style="margin-top: 8px; width: 100%; font-size: 0.72rem;">
+          ➕ Add Refuel Stop to Route
+        </button>
+      `;
+
+      const popup = new PopupConstructor({ offset: 12 }).setHTML(popupHtml);
+      const marker = new MarkerConstructor({ element: el })
+        .setLngLat([st.lon, st.lat])
+        .setPopup(popup)
+        .addTo(map!);
+
+      bounds.extend([st.lon, st.lat]);
+      gasStationMarkersList.push(marker);
+    });
+
+    map.fitBounds(bounds, { padding: 80, maxZoom: 14 });
+    showToast(`Found ${stations.length} gas station(s) near fuel point! ⛽`);
+
+  } catch (err: any) {
+    console.error("Gas station POI search error:", err);
+    showToast("Error searching for gas stations.");
+  }
+}
+
+function addRefuelWaypointToRoute(lat: number, lon: number, title: string) {
+  const newWp: Waypoint = {
+    id: "wp-" + Date.now(),
+    title: title.startsWith("⛽") ? title : `⛽ ${title}`,
+    lat,
+    lon,
+    type: "stop",
+    isFuelStop: true,
+    breakMin: 15
+  };
+
+  if (waypoints.length >= 2) {
+    waypoints.splice(waypoints.length - 1, 0, newWp);
+  } else {
+    waypoints.push(newWp);
+  }
+
+  clearGasStationMarkers();
+  renderWaypointsUI();
+  renderWaypointMapMarkers();
+  updateExpeditionRoute(true);
+  showToast(`Added ${newWp.title} as refuel stop! ⛽`);
+}
+
+(window as any).triggerGasStationSearch = searchGasStationsNearPoint;
+(window as any).addRefuelWp = addRefuelWaypointToRoute;
+
 let fuelExhaustionMarkerInstance: maplibregl.Marker | null = null;
 
 function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
@@ -1671,6 +1805,9 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
   const { exhaustionPoint, emptyLineCoords } = calculateFuelExhaustionVisuals(coordinates, waypoints, maxRange);
 
   if (exhaustionPoint) {
+    const exLat = exhaustionPoint[1];
+    const exLon = exhaustionPoint[0];
+
     if (!fuelExhaustionMarkerInstance) {
       const el = document.createElement("div");
       el.className = "fuel-exhaustion-marker";
@@ -1686,14 +1823,17 @@ function updateFuelExhaustionMapOverlay(coordinates: [number, number][]) {
           0 Gallons Remaining on Tank<br/>
           Refuel required before this location!
         </div>
+        <button onclick="window.triggerGasStationSearch(${exLat}, ${exLon})" class="btn btn-emerald btn-sm" style="margin-top: 8px; width: 100%; font-size: 0.72rem;">
+          ⛽ Find Gas Stations Near Here
+        </button>
       `);
 
       fuelExhaustionMarkerInstance = new MarkerConstructor({ element: el })
-        .setLngLat([exhaustionPoint[0], exhaustionPoint[1]])
+        .setLngLat([exLon, exLat])
         .setPopup(popup)
         .addTo(map);
     } else {
-      fuelExhaustionMarkerInstance.setLngLat([exhaustionPoint[0], exhaustionPoint[1]]);
+      fuelExhaustionMarkerInstance.setLngLat([exLon, exLat]);
     }
   } else {
     if (fuelExhaustionMarkerInstance) {
@@ -1927,7 +2067,11 @@ function updateLegBadgesUI() {
 
       if (isEnabled && accumulatedTankDistance > maxRange) {
         badgeEl.className = "leg-badge leg-range-warning";
-        badgeEl.textContent = `⚠️ RANGE WARNING: ${accumulatedTankDistance.toFixed(1)} MI ON TANK > ${maxRange.toFixed(1)} MI MAX RANGE`;
+        const hasCoords = wp.lat !== null && wp.lon !== null;
+        badgeEl.innerHTML = `
+          <span>⚠️ RANGE WARNING: ${accumulatedTankDistance.toFixed(1)} MI ON TANK > ${maxRange.toFixed(1)} MI MAX</span>
+          ${hasCoords ? `<button onclick="window.triggerGasStationSearch(${wp.lat}, ${wp.lon})" style="margin-left:8px; background:#10b981; color:#ffffff; border:none; padding:3px 8px; border-radius:4px; font-size:0.68rem; font-weight:800; cursor:pointer;">⛽ Find Gas</button>` : ""}
+        `;
       } else {
         badgeEl.className = "leg-badge";
         badgeEl.textContent = `↓ ${legMetric.distanceMi.toFixed(1)} MI • ${formatDuration(legMetric.durationSec)}`;

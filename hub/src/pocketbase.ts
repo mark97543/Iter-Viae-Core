@@ -19,17 +19,26 @@ export interface TripRecord {
   startDate?: string;
   endDate?: string;
   dates?: string;
+  budget?: number;
+  days?: number;
+  distance?: number | string;
+  distanceMi?: number;
+  metrics?: any;
+  stats?: any;
   trip_template: TripTemplate;
   waypoints?: any[];
   bookings?: any[];
   sections?: any[];
   packingList?: any[];
+  schedule?: any[];
   dayNotes?: Record<string, string>;
   coverEmoji?: string;
   coverGradient?: string;
   created?: string;
   updated?: string;
+  [key: string]: any;
 }
+
 
 // Single Sign-On (SSO) URL generator
 export function getSpokeAppUrl(app: "road" | "travel", tripId?: string, slug?: string): string {
@@ -137,7 +146,9 @@ export async function fetchUserTrips(statusFilter: "active" | "archived" = "acti
     });
 
     records.forEach((r) => {
+      const isRoad = r.trip_template === "ROADTRIP" || Boolean(r.waypoints && r.waypoints.length > 0);
       results.push({
+        ...r,
         id: r.id,
         user: r.user || "guest",
         shared: r.shared || [],
@@ -149,13 +160,17 @@ export async function fetchUserTrips(statusFilter: "active" | "archived" = "acti
         destination: r.destination || "",
         startDate: r.startDate || "",
         endDate: r.endDate || "",
-        dates: r.dates || r.startDate || "",
-        trip_template: r.trip_template || (r.waypoints ? "ROADTRIP" : "TRAVEL"),
-        waypoints: r.waypoints || [],
-        bookings: r.bookings || r.reservations || [],
-        sections: r.sections || [],
-        coverEmoji: r.coverEmoji || (r.trip_template === "TRAVEL" ? "✈️" : "🚗"),
-        coverGradient: r.coverGradient || "linear-gradient(135deg, #0ea5e9, #3b82f6)",
+        dates: r.dates || (r.startDate && r.endDate ? `${r.startDate} - ${r.endDate}` : r.startDate || ""),
+        budget: typeof r.budget === "number" ? r.budget : (r.stats?.budget || r.metrics?.budget || 0),
+        stats: typeof r.stats === "object" && r.stats !== null ? r.stats : {},
+        metrics: typeof r.metrics === "object" && r.metrics !== null ? r.metrics : {},
+        schedule: Array.isArray(r.schedule) ? r.schedule : [],
+        trip_template: (r.trip_template || (isRoad ? "ROADTRIP" : "TRAVEL")) as TripTemplate,
+        waypoints: Array.isArray(r.waypoints) ? r.waypoints : [],
+        bookings: Array.isArray(r.bookings) ? r.bookings : (Array.isArray(r.reservations) ? r.reservations : []),
+        sections: Array.isArray(r.sections) ? r.sections : [],
+        coverEmoji: r.coverEmoji || (isRoad ? "🚗" : "✈️"),
+        coverGradient: r.coverGradient || (isRoad ? "linear-gradient(135deg, #0ea5e9, #3b82f6)" : "linear-gradient(135deg, #06b6d4, #8b5cf6)"),
         created: r.created,
         updated: r.updated,
       });
@@ -174,10 +189,22 @@ export async function createTripRecord(data: {
   destination?: string;
   startDate?: string;
   endDate?: string;
+  budget?: number;
   summary?: string;
 }): Promise<TripRecord> {
   const user = getCurrentUser();
   const generatedSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `trip-${Date.now()}`;
+
+  let calculatedDays = 1;
+  if (data.startDate && data.endDate) {
+    const d1 = new Date(data.startDate);
+    const d2 = new Date(data.endDate);
+    if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+      calculatedDays = Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    }
+  }
+
+  const budgetNum = typeof data.budget === "number" && !isNaN(data.budget) ? Math.max(0, data.budget) : 0;
 
   const payload: any = {
     title: data.title.trim(),
@@ -186,6 +213,11 @@ export async function createTripRecord(data: {
     startDate: data.startDate || "",
     endDate: data.endDate || "",
     dates: data.startDate && data.endDate ? `${data.startDate} - ${data.endDate}` : data.startDate || "TBD",
+    budget: budgetNum,
+    stats: {
+      days: calculatedDays,
+      budget: budgetNum
+    },
     summary: data.summary || "",
     status: "active",
     trip_template: data.trip_template,
@@ -207,6 +239,165 @@ export async function createTripRecord(data: {
   const record = await pb.collection("trips").create(payload);
   return { ...payload, id: record.id, slug: record.slug || generatedSlug };
 }
+
+/**
+ * Calculate Haversine distance in miles between two coordinates
+ */
+export function haversineDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3958.8; // Earth radius in miles
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Get total distance in miles for a trip (primarily Road Trips)
+ */
+export function getTripDistanceMiles(trip: TripRecord): number {
+  if (trip.trip_template !== "ROADTRIP") return 0;
+
+  // Direct distance fields
+  if (typeof trip.distanceMi === "number" && !isNaN(trip.distanceMi) && trip.distanceMi > 0) {
+    return trip.distanceMi;
+  }
+  if (typeof trip.distance === "number" && !isNaN(trip.distance) && trip.distance > 0) {
+    return trip.distance;
+  }
+  if (typeof trip.distance === "string") {
+    const parsed = parseFloat(trip.distance.replace(/,/g, ""));
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+
+  // From metrics object
+  if (trip.metrics) {
+    if (typeof trip.metrics.distanceMi === "number" && trip.metrics.distanceMi > 0) {
+      return trip.metrics.distanceMi;
+    }
+    if (typeof trip.metrics.totalDistance === "number" && trip.metrics.totalDistance > 0) {
+      return trip.metrics.totalDistance;
+    }
+    if (typeof trip.metrics.distance === "number" && trip.metrics.distance > 0) {
+      return trip.metrics.distance;
+    }
+    if (typeof trip.metrics.distance === "string") {
+      const parsed = parseFloat(trip.metrics.distance.replace(/,/g, ""));
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    if (Array.isArray(trip.metrics.legMetrics) && trip.metrics.legMetrics.length > 0) {
+      const sum = trip.metrics.legMetrics.reduce((acc: number, leg: any) => acc + (Number(leg?.distanceMi) || 0), 0);
+      if (sum > 0) return sum;
+    }
+    if (Array.isArray(trip.metrics.routeLegs) && trip.metrics.routeLegs.length > 0) {
+      const sum = trip.metrics.routeLegs.reduce((acc: number, leg: any) => acc + (Number(leg?.distanceMi) || 0), 0);
+      if (sum > 0) return sum;
+    }
+  }
+
+  // Fallback: Haversine distance from waypoints
+  if (Array.isArray(trip.waypoints) && trip.waypoints.length >= 2) {
+    const validWps = trip.waypoints.filter(
+      (wp) => wp && typeof wp.lat === "number" && typeof wp.lon === "number" && !isNaN(wp.lat) && !isNaN(wp.lon)
+    );
+    if (validWps.length >= 2) {
+      let straightDist = 0;
+      for (let i = 0; i < validWps.length - 1; i++) {
+        straightDist += haversineDistanceMiles(validWps[i].lat, validWps[i].lon, validWps[i + 1].lat, validWps[i + 1].lon);
+      }
+      // Typical overland road multiplier ~1.2x straight line
+      return Math.round(straightDist * 1.2 * 10) / 10;
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * Get total budget for a trip
+ */
+export function getTripBudget(trip: TripRecord): number {
+  if (trip.budget !== undefined && trip.budget !== null && !isNaN(Number(trip.budget))) {
+    const b = Number(trip.budget);
+    if (b > 0) return b;
+  }
+  if (trip.stats && trip.stats.budget !== undefined && !isNaN(Number(trip.stats.budget))) {
+    const b = Number(trip.stats.budget);
+    if (b > 0) return b;
+  }
+  if (trip.metrics && trip.metrics.budget !== undefined && !isNaN(Number(trip.metrics.budget))) {
+    const b = Number(trip.metrics.budget);
+    if (b > 0) return b;
+  }
+
+  // Sum from waypoints if available
+  if (Array.isArray(trip.waypoints) && trip.waypoints.length > 0) {
+    const sum = trip.waypoints.reduce((acc: number, wp: any) => acc + (Number(wp?.budget) || 0), 0);
+    if (sum > 0) return sum;
+  }
+
+  // Sum from reservations / bookings if available
+  if (Array.isArray(trip.bookings) && trip.bookings.length > 0) {
+    const sum = trip.bookings.reduce((acc: number, b: any) => acc + (parseFloat(String(b?.cost || b?.price || 0).replace(/[^0-9.]/g, "")) || 0), 0);
+    if (sum > 0) return sum;
+  }
+
+  return 0;
+}
+
+/**
+ * Get number of days for a trip
+ */
+export function getTripDays(trip: TripRecord): number {
+  // Explicit days field
+  if (trip.days && typeof trip.days === "number" && trip.days > 0) {
+    return trip.days;
+  }
+  if (trip.stats?.days && typeof trip.stats.days === "number" && trip.stats.days > 0) {
+    return trip.stats.days;
+  }
+
+  // From startDate and endDate
+  if (trip.startDate && trip.endDate) {
+    const s = new Date(trip.startDate);
+    const e = new Date(trip.endDate);
+    if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+      const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (diff > 0) return diff;
+    }
+  }
+
+  // From dates string if formatted "YYYY-MM-DD - YYYY-MM-DD"
+  if (trip.dates && trip.dates.includes("-") && trip.dates.includes(" ")) {
+    const parts = trip.dates.split(" - ");
+    if (parts.length === 2) {
+      const s = new Date(parts[0].trim());
+      const e = new Date(parts[1].trim());
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+        const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        if (diff > 0) return diff;
+      }
+    }
+  }
+
+  // From travel plan schedule
+  if (Array.isArray(trip.schedule) && trip.schedule.length > 0) {
+    return trip.schedule.length;
+  }
+
+  // From road trip waypoints overnight count
+  if (Array.isArray(trip.waypoints) && trip.waypoints.length > 0) {
+    const overnights = trip.waypoints.filter((w: any) => Boolean(w?.isOvernight)).length;
+    if (overnights > 0) return overnights + 1;
+  }
+
+  return 1;
+}
+
 
 export async function archiveTripRecord(tripId: string): Promise<any> {
   return await pb.collection("trips").update(tripId, { status: "archived" });
