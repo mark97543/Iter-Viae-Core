@@ -68,6 +68,15 @@ export interface TripSection {
   order?: number;
 }
 
+export interface TripTodo {
+  id: string;
+  text: string;
+  completed: boolean;
+  category?: 'documents' | 'packing' | 'prep' | 'general' | string;
+  dueDate?: string;
+  priority?: 'high' | 'normal' | 'low';
+}
+
 export interface Trip {
   id?: string;
   slug: string;
@@ -88,6 +97,7 @@ export interface Trip {
     totalCost?: number;
   };
   bookings: TripBookings;
+  todos: TripTodo[];
   notes: string; // Rich text / HTML content
   sections?: TripSection[];
   reservations?: any[];

@@ -1,5 +1,5 @@
 import PocketBase from "pocketbase";
-import { Trip, TripBookings, FlightBooking, HotelBooking, RentalCarBooking, ActivityBooking } from "./types/trip";
+import { Trip, TripBookings, FlightBooking, HotelBooking, RentalCarBooking, ActivityBooking, TripTodo } from "./types/trip";
 
 export const POCKETBASE_URL = "https://api.wade-usa.com";
 export const pb = new PocketBase(POCKETBASE_URL);
@@ -89,6 +89,22 @@ export function mapPBRecordToTrip(record: any): Trip {
     });
   }
 
+  // Extract Todos
+  let todos: TripTodo[] = [];
+  const rawTodos = parseJsonSafely(record.todos);
+  if (Array.isArray(rawTodos)) {
+    todos = rawTodos.map((t: any, idx: number) => ({
+      id: t.id || `todo-${Date.now()}-${idx}`,
+      text: t.text || t.title || "Task",
+      completed: Boolean(t.completed || t.done),
+      category: t.category || "general",
+      dueDate: t.dueDate || "",
+      priority: t.priority || "normal"
+    }));
+  } else if (rawTodos && typeof rawTodos === "object" && Array.isArray((rawTodos as any).items)) {
+    todos = (rawTodos as any).items;
+  }
+
   // Extract Notes (HTML string)
   let notesHtml = "";
   const rawNotes = parseJsonSafely(record.notes);
@@ -102,15 +118,54 @@ export function mapPBRecordToTrip(record: any): Trip {
     notesHtml = record.notes;
   }
 
-  // If notes is empty, check if legacy sections exist to migrate content
+  // If notes or todos are empty, check if legacy sections exist to migrate content
   const rawSections = parseJsonSafely(record.sections) || [];
-  if (!notesHtml && Array.isArray(rawSections) && rawSections.length > 0) {
-    notesHtml = rawSections
-      .map(
-        (sec: any) =>
-          `<h3>${sec.icon ? `${sec.icon} ` : ""}${sec.title || "Topic"}</h3>${sec.content || ""}`
-      )
-      .join("<hr/>");
+  if (Array.isArray(rawSections) && rawSections.length > 0) {
+    if (!notesHtml) {
+      notesHtml = rawSections
+        .filter((sec: any) => !sec.slug?.toLowerCase().includes("todo") && !sec.title?.toLowerCase().includes("todo"))
+        .map(
+          (sec: any) =>
+            `<h3>${sec.icon ? `${sec.icon} ` : ""}${sec.title || "Topic"}</h3>${sec.content || ""}`
+        )
+        .join("<hr/>");
+    }
+
+    // Auto-migrate legacy TODO section into interactive checklist if todos is empty
+    if (todos.length === 0) {
+      const todoSec = rawSections.find((s: any) =>
+        (s.slug && s.slug.toLowerCase().includes("todo")) ||
+        (s.title && s.title.toLowerCase().includes("todo"))
+      );
+      if (todoSec && todoSec.content) {
+        const regex = /<li[^>]*>(.*?)<\/li>/gis;
+        let match;
+        let idx = 0;
+        while ((match = regex.exec(todoSec.content)) !== null) {
+          const rawItem = match[1];
+          const cleanText = rawItem.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          const isDone = rawItem.includes("<s>") || rawItem.includes("<del>") || rawItem.includes("strike");
+          if (cleanText) {
+            let cat = "general";
+            const lower = cleanText.toLowerCase();
+            if (lower.includes("passport") || lower.includes("card") || lower.includes("entry") || lower.includes("ticket") || lower.includes("account")) {
+              cat = "documents";
+            } else if (lower.includes("coffee") || lower.includes("wine") || lower.includes("candy") || lower.includes("gift") || lower.includes("plate") || lower.includes("bag")) {
+              cat = "packing";
+            } else if (lower.includes("hotel") || lower.includes("flight") || lower.includes("airline") || lower.includes("meal") || lower.includes("church")) {
+              cat = "prep";
+            }
+            todos.push({
+              id: `legacy-todo-${idx++}`,
+              text: cleanText,
+              completed: isDone,
+              category: cat,
+              priority: "normal"
+            });
+          }
+        }
+      }
+    }
   }
 
   const stats = parseJsonSafely(record.stats) || {};
@@ -141,6 +196,7 @@ export function mapPBRecordToTrip(record: any): Trip {
       totalCost
     },
     bookings,
+    todos,
     notes: notesHtml,
     sections: rawSections
   };
@@ -176,6 +232,7 @@ export function mapTripToPBRecord(trip: Trip): any {
       totalCost: totalBookingsCost
     },
     bookings: trip.bookings || { flights: [], hotels: [], rentalCars: [], activities: [] },
+    todos: trip.todos || [],
     notes: { content: trip.notes || "" }, // PocketBase JSON format
     sections: trip.sections || []
   };

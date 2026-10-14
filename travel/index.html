@@ -87,10 +87,11 @@
           <a href="#section-hotels" class="category-nav-link">🏨 Hotels <span class="nav-count" id="count-hotels">0</span></a>
           <a href="#section-cars" class="category-nav-link">🚗 Rental Cars <span class="nav-count" id="count-cars">0</span></a>
           <a href="#section-activities" class="category-nav-link">🎟️ Activities <span class="nav-count" id="count-activities">0</span></a>
+          <a href="#section-todos" class="category-nav-link">✅ Checklist <span class="nav-count" id="count-todos">0</span></a>
           <a href="#section-notes" class="category-nav-link">📝 Field Notes</a>
         </nav>
 
-        <!-- Main Content Area: 4 Bookings Sections + 1 Rich Text Notes Section -->
+        <!-- Main Content Area: 4 Bookings Sections + 1 Checklist Section + 1 Rich Text Notes Section -->
         <div class="travel-dossier-container">
           
           <!-- 1. FLIGHTS SECTION -->
@@ -161,7 +162,65 @@
             <div id="activities-list-container" class="bookings-grid"></div>
           </section>
 
-          <!-- 5. RICH TEXT FIELD NOTES SECTION -->
+          <!-- 5. CHECKLIST & READINESS SECTION -->
+          <section id="section-todos" class="booking-category-section todos-category-section">
+            <div class="category-section-header">
+              <div class="category-title-group">
+                <span class="category-icon">✅</span>
+                <div>
+                  <h2 class="category-title">Trip Checklist & Readiness</h2>
+                  <span class="category-subtitle">Action items, entry forms, passport checks & packing to-dos</span>
+                </div>
+              </div>
+              <div class="todo-header-progress">
+                <div class="todo-progress-info">
+                  <span id="todo-progress-text" class="todo-progress-text">0 / 0 completed</span>
+                  <span id="todo-progress-percent" class="todo-progress-percent">0%</span>
+                </div>
+                <div class="todo-progress-bar-bg">
+                  <div id="todo-progress-bar-fill" class="todo-progress-bar-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter tabs & Quick Add Box -->
+            <div class="todo-controls-bar">
+              <div class="todo-filter-pills" id="todo-filter-pills">
+                <button type="button" class="todo-filter-pill active" data-filter="all">All</button>
+                <button type="button" class="todo-filter-pill" data-filter="documents">🛂 Documents</button>
+                <button type="button" class="todo-filter-pill" data-filter="prep">⚡ Prep & Bookings</button>
+                <button type="button" class="todo-filter-pill" data-filter="packing">🧳 Packing</button>
+                <button type="button" class="todo-filter-pill" data-filter="general">📋 General</button>
+              </div>
+
+              <!-- Quick Add Task Form -->
+              <form id="form-quick-add-todo" class="todo-quick-add-form">
+                <input 
+                  type="text" 
+                  id="input-quick-todo-text" 
+                  class="todo-quick-input" 
+                  placeholder="Add a new trip task or reminder (press Enter)..." 
+                  required
+                />
+                <select id="select-quick-todo-category" class="todo-quick-select">
+                  <option value="documents">🛂 Documents</option>
+                  <option value="prep">⚡ Prep</option>
+                  <option value="packing">🧳 Packing</option>
+                  <option value="general" selected>📋 General</option>
+                </select>
+                <button type="submit" class="btn-primary todo-quick-btn">
+                  ➕ Add Task
+                </button>
+              </form>
+            </div>
+
+            <!-- List of Todos -->
+            <div id="todos-list-container" class="todos-list-container">
+              <!-- Rendered dynamically -->
+            </div>
+          </section>
+
+          <!-- 6. RICH TEXT FIELD NOTES SECTION -->
           <section id="section-notes" class="booking-category-section notes-category-section">
             <div class="category-section-header">
               <div class="category-title-group">

@@ -9,7 +9,8 @@ import {
   FlightBooking,
   HotelBooking,
   RentalCarBooking,
-  ActivityBooking
+  ActivityBooking,
+  TripTodo
 } from "./types/trip";
 import { router, RouteState } from "./router";
 import {
@@ -261,6 +262,7 @@ function renderTripDossier(trip: Trip) {
   renderHotelsSection(trip);
   renderRentalCarsSection(trip);
   renderActivitiesSection(trip);
+  renderTodosSection(trip);
   renderNotesSection(trip);
 }
 
@@ -300,11 +302,17 @@ function updateCategoryNavCounts(trip: Trip) {
   const hotelsCount = document.getElementById("count-hotels");
   const carsCount = document.getElementById("count-cars");
   const activitiesCount = document.getElementById("count-activities");
+  const todosCount = document.getElementById("count-todos");
 
   if (flightsCount) flightsCount.textContent = String((trip.bookings?.flights || []).length);
   if (hotelsCount) hotelsCount.textContent = String((trip.bookings?.hotels || []).length);
   if (carsCount) carsCount.textContent = String((trip.bookings?.rentalCars || []).length);
   if (activitiesCount) activitiesCount.textContent = String((trip.bookings?.activities || []).length);
+  if (todosCount) {
+    const total = (trip.todos || []).length;
+    const done = (trip.todos || []).filter((t) => t.completed).length;
+    todosCount.textContent = total > 0 ? `${done}/${total}` : "0";
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -640,7 +648,147 @@ function renderActivitiesSection(trip: Trip) {
 }
 
 // -----------------------------------------------------------------------------
-// CATEGORY 5: RICH TEXT FIELD NOTES (TipTap WYSIWYG)
+// CATEGORY 5: TRIP CHECKLIST & READINESS
+// -----------------------------------------------------------------------------
+let currentTodoFilter: string = "all";
+
+function getCategoryBadgeLabel(cat?: string): string {
+  switch (cat) {
+    case "documents":
+      return "🛂 Documents";
+    case "prep":
+      return "⚡ Prep";
+    case "packing":
+      return "🧳 Packing";
+    default:
+      return "📋 General";
+  }
+}
+
+function renderTodosSection(trip: Trip) {
+  const container = document.getElementById("todos-list-container");
+  const progressText = document.getElementById("todo-progress-text");
+  const progressPercent = document.getElementById("todo-progress-percent");
+  const progressFill = document.getElementById("todo-progress-bar-fill");
+  if (!container) return;
+
+  const todos = trip.todos || [];
+  const total = todos.length;
+  const completed = todos.filter((t) => t.completed).length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  if (progressText) progressText.textContent = `${completed} / ${total} completed`;
+  if (progressPercent) progressPercent.textContent = `${pct}%`;
+  if (progressFill) progressFill.style.width = `${pct}%`;
+
+  // Filter items
+  const filtered = currentTodoFilter === "all"
+    ? todos
+    : todos.filter((t) => (t.category || "general") === currentTodoFilter);
+
+  if (filtered.length === 0) {
+    if (total === 0) {
+      container.innerHTML = `
+        <div class="empty-booking-card" style="padding: 2rem 1rem;">
+          <div class="empty-booking-icon">✅</div>
+          <h3>Checklist is Empty</h3>
+          <p>Stay on track with travel requirements, passport checks, packing, and arrival declarations.</p>
+          <div class="todo-starter-templates">
+            <button class="btn-starter-todo" data-text="Check / Renew Passports (6+ mo validity)" data-cat="documents">🛂 Check Passports</button>
+            <button class="btn-starter-todo" data-text="Submit Digital Arrival / Entry Cards" data-cat="documents">📑 Submit Arrival Cards</button>
+            <button class="btn-starter-todo" data-text="Link Frequent Flyer Numbers & Select Seats" data-cat="prep">✈️ Seat & Airline Profile</button>
+            <button class="btn-starter-todo" data-text="Pack International Power Adapters" data-cat="packing">🔌 Power Adapters</button>
+            <button class="btn-starter-todo" data-text="Download Offline Maps & Translation" data-cat="prep">🗺️ Offline Maps & Apps</button>
+          </div>
+        </div>
+      `;
+
+      container.querySelectorAll(".btn-starter-todo").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const text = btn.getAttribute("data-text") || "";
+          const cat = btn.getAttribute("data-cat") || "general";
+          if (text) {
+            await addTodoItem(text, cat);
+          }
+        });
+      });
+    } else {
+      container.innerHTML = `
+        <div class="empty-booking-card" style="padding: 1.5rem 1rem;">
+          <p>No checklist items under "${getCategoryBadgeLabel(currentTodoFilter)}".</p>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  container.innerHTML = "";
+  filtered.forEach((todo) => {
+    const itemEl = document.createElement("div");
+    itemEl.className = `todo-item ${todo.completed ? "completed" : ""}`;
+    itemEl.setAttribute("data-id", todo.id);
+
+    const catBadge = todo.category || "general";
+
+    itemEl.innerHTML = `
+      <div class="todo-item-left">
+        <div class="todo-custom-checkbox">
+          <span class="check-icon">✓</span>
+        </div>
+        <div class="todo-text-group">
+          <span class="todo-text">${escapeHtml(todo.text)}</span>
+        </div>
+      </div>
+      <div class="todo-item-right">
+        <span class="todo-badge todo-badge-${catBadge}">${getCategoryBadgeLabel(catBadge)}</span>
+        <button class="btn-delete-todo" title="Delete Task" aria-label="Delete">✕</button>
+      </div>
+    `;
+
+    // Toggle completion on clicking left area or checkbox
+    itemEl.querySelector(".todo-item-left")?.addEventListener("click", async () => {
+      todo.completed = !todo.completed;
+      updateCategoryNavCounts(trip);
+      renderTodosSection(trip);
+      await saveTripToPB(trip);
+    });
+
+    // Delete task
+    itemEl.querySelector(".btn-delete-todo")?.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      trip.todos = (trip.todos || []).filter((t) => t.id !== todo.id);
+      updateCategoryNavCounts(trip);
+      renderTodosSection(trip);
+      showToast("🗑️ Task removed");
+      await saveTripToPB(trip);
+    });
+
+    container.appendChild(itemEl);
+  });
+}
+
+async function addTodoItem(text: string, category: string = "general") {
+  if (!currentTrip || !text.trim()) return;
+
+  if (!currentTrip.todos) currentTrip.todos = [];
+
+  const newTodo: TripTodo = {
+    id: `todo-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    text: text.trim(),
+    completed: false,
+    category: category || "general",
+    priority: "normal"
+  };
+
+  currentTrip.todos.unshift(newTodo);
+  updateCategoryNavCounts(currentTrip);
+  renderTodosSection(currentTrip);
+  showToast(`✅ Added "${newTodo.text}"`);
+  await saveTripToPB(currentTrip);
+}
+
+// -----------------------------------------------------------------------------
+// CATEGORY 6: RICH TEXT FIELD NOTES (TipTap WYSIWYG)
 // -----------------------------------------------------------------------------
 let tiptapEditor: Editor | null = null;
 let saveNotesDebounceTimer: any = null;
@@ -1269,6 +1417,39 @@ function setupEventListeners() {
     renderTripDossier(currentTrip);
     showToast(`💾 Saved trip header "${currentTrip.title}"`);
     await saveTripToPB(currentTrip);
+  });
+
+  // Checklist Filter Pills
+  const filterPillsContainer = document.getElementById("todo-filter-pills");
+  filterPillsContainer?.querySelectorAll(".todo-filter-pill").forEach((pill) => {
+    pill.addEventListener("click", (e) => {
+      const target = e.currentTarget as HTMLElement;
+      const filter = target.getAttribute("data-filter") || "all";
+      currentTodoFilter = filter;
+
+      filterPillsContainer.querySelectorAll(".todo-filter-pill").forEach((p) => p.classList.remove("active"));
+      target.classList.add("active");
+
+      if (currentTrip) {
+        renderTodosSection(currentTrip);
+      }
+    });
+  });
+
+  // Quick Add Todo Form
+  const quickAddTodoForm = document.getElementById("form-quick-add-todo") as HTMLFormElement | null;
+  const quickAddTodoInput = document.getElementById("input-quick-todo-text") as HTMLInputElement | null;
+  const quickAddTodoSelect = document.getElementById("select-quick-todo-category") as HTMLSelectElement | null;
+
+  quickAddTodoForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!quickAddTodoInput) return;
+    const text = quickAddTodoInput.value.trim();
+    const cat = quickAddTodoSelect?.value || "general";
+    if (text) {
+      await addTodoItem(text, cat);
+      quickAddTodoInput.value = "";
+    }
   });
 }
 
