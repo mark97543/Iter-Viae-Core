@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Multi-Trip Engine — Direct Trip Routing & Field Manuals</title>
+    <title>Wade USA — Travel Book & Trip Dossier (travel.wade-usa.com)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
         <span class="dash-app-logo">✈️</span>
         <div class="dash-app-titles">
           <h1 class="dash-app-name">FAMILY TRAVEL BOOK</h1>
-          <span class="dash-app-sub">travel.wade-usa.com</span>
+          <span class="dash-app-sub">travel.wade-usa.com • Master Trip Dossier</span>
         </div>
       </div>
       <a href="#" id="btn-back-to-hub-header" class="btn-hub-portal-link" title="Return to Wade USA Master Hub Portal">
@@ -54,54 +54,176 @@
       </section>
 
       <!-- ==================================================================== -->
-      <!-- VIEW 2: DIRECT TRIP PAGE FIELD MANUAL VIEW (#/trips/:slug)           -->
+      <!-- VIEW 2: TRAVEL MASTER DOSSIER (Bookings + Notes)                     -->
       <!-- ==================================================================== -->
       <section id="trip-detail-view" class="view-section" style="display: none;">
-        <!-- Navigation Back & Quick Direct Link Bar -->
+        <!-- Top Nav Bar -->
         <div class="detail-nav-bar">
-          <a id="btn-back-to-hub-detail" class="btn-back btn-hub-back" href="#" title="Return to Wade USA Master Hub Portal">
-            <span>🏠</span>
-            <span>Hub Portal</span>
-          </a>
+          <div style="display: flex; gap: 0.6rem; align-items: center;">
+            <a id="btn-back-to-hub-detail" class="btn-back btn-hub-back" href="#" title="Return to Wade USA Master Hub Portal">
+              <span>🏠</span>
+              <span>Hub Portal</span>
+            </a>
+            <button id="btn-back-to-dashboard" class="btn-back">
+              <span>←</span>
+              <span>All Travel Plans</span>
+            </button>
+          </div>
           <div style="display: flex; gap: 0.6rem; align-items: center;">
             <button id="btn-open-edit-header-modal" class="btn-back" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">
-              ✏️ Edit Trip Title & Header
-            </button>
-            <button id="btn-open-add-section-modal" class="btn-add-section">
-              ➕ Add Topic Section
+              ✏️ Edit Trip Header
             </button>
           </div>
         </div>
 
-        <!-- Dynamic Slug Header Container -->
+        <!-- Dynamic Trip Header Container -->
         <div id="trip-header-container">
           <!-- Populated by main.ts -->
         </div>
 
-        <!-- 2-Column Field Book Layout (Left Sidebar TOC + Main Content Column) -->
-        <div class="field-book-layout">
-          <!-- Left Sidebar Table of Contents -->
-          <aside id="sticky-toc-bar" class="sticky-toc-sidebar">
-            <!-- Populated dynamically by main.ts -->
-          </aside>
+        <!-- Sticky Quick-Jump Navigation Tabs -->
+        <nav class="travel-category-nav" id="travel-category-nav">
+          <a href="#section-flights" class="category-nav-link active">✈️ Flights <span class="nav-count" id="count-flights">0</span></a>
+          <a href="#section-hotels" class="category-nav-link">🏨 Hotels <span class="nav-count" id="count-hotels">0</span></a>
+          <a href="#section-cars" class="category-nav-link">🚗 Rental Cars <span class="nav-count" id="count-cars">0</span></a>
+          <a href="#section-activities" class="category-nav-link">🎟️ Activities <span class="nav-count" id="count-activities">0</span></a>
+          <a href="#section-notes" class="category-nav-link">📝 Field Notes</a>
+        </nav>
 
-          <!-- Main Content Column -->
-          <div class="field-book-main-col">
-            <!-- Field Manual Continuous Book Sections -->
-            <div id="field-manual-sections-container" class="field-manual-sections-container">
-              <!-- Populated dynamically by main.ts -->
+        <!-- Main Content Area: 4 Bookings Sections + 1 Rich Text Notes Section -->
+        <div class="travel-dossier-container">
+          
+          <!-- 1. FLIGHTS SECTION -->
+          <section id="section-flights" class="booking-category-section">
+            <div class="category-section-header">
+              <div class="category-title-group">
+                <span class="category-icon">✈️</span>
+                <div>
+                  <h2 class="category-title">Flights</h2>
+                  <span class="category-subtitle">Air transit, routing, flight numbers & boarding confirmation</span>
+                </div>
+              </div>
+              <button id="btn-add-flight" class="btn-add-booking btn-primary">
+                ➕ Add Flight
+              </button>
             </div>
-          </div>
+            <div id="flights-list-container" class="bookings-grid"></div>
+          </section>
+
+          <!-- 2. HOTELS SECTION -->
+          <section id="section-hotels" class="booking-category-section">
+            <div class="category-section-header">
+              <div class="category-title-group">
+                <span class="category-icon">🏨</span>
+                <div>
+                  <h2 class="category-title">Hotels & Lodging</h2>
+                  <span class="category-subtitle">Accommodations, check-in dates, addresses & reservation codes</span>
+                </div>
+              </div>
+              <button id="btn-add-hotel" class="btn-add-booking btn-primary">
+                ➕ Add Hotel
+              </button>
+            </div>
+            <div id="hotels-list-container" class="bookings-grid"></div>
+          </section>
+
+          <!-- 3. RENTAL CARS SECTION -->
+          <section id="section-cars" class="booking-category-section">
+            <div class="category-section-header">
+              <div class="category-title-group">
+                <span class="category-icon">🚗</span>
+                <div>
+                  <h2 class="category-title">Rental Cars & Transit</h2>
+                  <span class="category-subtitle">Vehicle rentals, pick-up/drop-off logistics & confirmation codes</span>
+                </div>
+              </div>
+              <button id="btn-add-car" class="btn-add-booking btn-primary">
+                ➕ Add Rental Car
+              </button>
+            </div>
+            <div id="cars-list-container" class="bookings-grid"></div>
+          </section>
+
+          <!-- 4. ACTIVITIES SECTION -->
+          <section id="section-activities" class="booking-category-section">
+            <div class="category-section-header">
+              <div class="category-title-group">
+                <span class="category-icon">🎟️</span>
+                <div>
+                  <h2 class="category-title">Activities & Passes</h2>
+                  <span class="category-subtitle">Tours, museum tickets, excursions & booked passes</span>
+                </div>
+              </div>
+              <button id="btn-add-activity" class="btn-add-booking btn-primary">
+                ➕ Add Activity
+              </button>
+            </div>
+            <div id="activities-list-container" class="bookings-grid"></div>
+          </section>
+
+          <!-- 5. RICH TEXT FIELD NOTES SECTION -->
+          <section id="section-notes" class="booking-category-section notes-category-section">
+            <div class="category-section-header">
+              <div class="category-title-group">
+                <span class="category-icon">📝</span>
+                <div>
+                  <h2 class="category-title">Trip Field Notes & Details</h2>
+                  <span class="category-subtitle">Freeform rich text for packing checklists, restaurant recommendations, local tips & daily plans</span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span id="notes-save-status" class="notes-status-text"></span>
+                <button id="btn-save-notes" class="btn-primary" style="padding: 6px 14px; font-size: 0.82rem;">
+                  💾 Save Notes
+                </button>
+              </div>
+            </div>
+
+            <!-- TipTap WYSIWYG Editor Surface -->
+            <div class="tiptap-editor-wrapper">
+              <div id="tiptap-toolbar" class="tiptap-toolbar">
+                <button type="button" class="tiptap-btn" data-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+                <button type="button" class="tiptap-btn" data-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+                <button type="button" class="tiptap-btn" data-action="underline" title="Underline (Ctrl+U)"><u style="text-decoration: underline;">U</u></button>
+                <button type="button" class="tiptap-btn" data-action="strike" title="Strikethrough"><s>S</s></button>
+                <button type="button" class="tiptap-btn" data-action="highlight" title="Highlight Marker">🖍️ Marker</button>
+                <span class="toolbar-separator"></span>
+
+                <button type="button" class="tiptap-btn" data-action="heading-1" title="Heading 1">H1</button>
+                <button type="button" class="tiptap-btn" data-action="heading-2" title="Heading 2">H2</button>
+                <button type="button" class="tiptap-btn" data-action="heading-3" title="Heading 3">H3</button>
+                <button type="button" class="tiptap-btn" data-action="paragraph" title="Paragraph">P</button>
+                <span class="toolbar-separator"></span>
+
+                <button type="button" class="tiptap-btn" data-action="bullet-list" title="Bullet List">• List</button>
+                <button type="button" class="tiptap-btn" data-action="ordered-list" title="Numbered List">1. List</button>
+                <button type="button" class="tiptap-btn" data-action="blockquote" title="Quote Block">“” Quote</button>
+                <button type="button" class="tiptap-btn" data-action="hr" title="Horizontal Divider Line">― Line</button>
+                <button type="button" class="tiptap-btn preset-btn" data-action="insert-callout" title="Insert Callout Box">📌 Callout</button>
+                <span class="toolbar-separator"></span>
+
+                <button type="button" class="tiptap-btn" data-action="clear-nodes" title="Clear Formatting">🧹 Clear</button>
+                <button type="button" class="tiptap-btn" data-action="undo" title="Undo">↩️</button>
+                <button type="button" class="tiptap-btn" data-action="redo" title="Redo">↪️</button>
+              </div>
+              <div id="tiptap-editor-element" class="tiptap-editor-element"></div>
+            </div>
+          </section>
+
         </div>
       </section>
 
     </main>
 
-    <!-- Edit Trip Title & Header Modal -->
+    <!-- ==================================================================== -->
+    <!-- MODALS                                                               -->
+    <!-- ==================================================================== -->
+
+    <!-- Edit Trip Header Modal -->
     <div id="trip-header-modal" class="modal-backdrop" style="display: none;">
       <div class="modal-card">
         <div class="modal-header">
-          <h2 class="modal-title">✏️ Edit Trip Title & Header</h2>
+          <h2 class="modal-title">✏️ Edit Trip Header</h2>
           <button id="trip-header-modal-close" class="modal-close-btn">&times;</button>
         </div>
         <form id="trip-header-form" class="modal-form">
@@ -123,88 +245,262 @@
           </div>
           <div class="modal-actions">
             <button type="button" id="trip-header-modal-cancel" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary">💾 Save Title & Header</button>
+            <button type="submit" class="btn-primary">💾 Save Trip Header</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Add / Edit Topic Section Modal -->
-    <div id="section-modal" class="modal-backdrop" style="display: none;">
+    <!-- Flight Modal (Add / Edit) -->
+    <div id="flight-modal" class="modal-backdrop" style="display: none;">
       <div class="modal-card">
         <div class="modal-header">
-          <h2 class="modal-title" id="section-modal-title">➕ Add New Topic Section</h2>
-          <button id="section-modal-close" class="modal-close-btn">&times;</button>
+          <h2 class="modal-title" id="flight-modal-title">✈️ Add Flight</h2>
+          <button id="flight-modal-close" class="modal-close-btn">&times;</button>
         </div>
-        <form id="section-form" class="modal-form">
-          <input type="hidden" id="section-edit-index" value="-1" />
-          <div class="form-group">
-            <label for="section-title-input">Topic Section Title</label>
-            <input type="text" id="section-title-input" required placeholder="e.g., Flight Operations, Emergency Contacts, Food Guide..." />
-          </div>
+        <form id="flight-form" class="modal-form">
+          <input type="hidden" id="flight-edit-id" value="" />
           <div class="form-row">
             <div class="form-group">
-              <label for="section-icon-input">Icon / Emoji (Optional)</label>
-              <input type="text" id="section-icon-input" placeholder="e.g., ✈️, 🏨, 🍜 (Optional)" value="" />
+              <label for="flight-airline-input">Airline</label>
+              <input type="text" id="flight-airline-input" required placeholder="e.g. Delta, United, ANA" />
             </div>
             <div class="form-group">
-              <label for="section-slug-input">Topic Slug (Optional)</label>
-              <input type="text" id="section-slug-input" placeholder="auto-generated-slug" />
+              <label for="flight-number-input">Flight Number</label>
+              <input type="text" id="flight-number-input" required placeholder="e.g. DL 124, UA 875" />
             </div>
           </div>
-          <div class="form-group tiptap-form-group">
-            <label>Topic Writeup & Rich Content (TipTap WYSIWYG Editor)</label>
-            <div class="tiptap-editor-wrapper">
-              <!-- TipTap Toolbar -->
-              <div id="tiptap-toolbar" class="tiptap-toolbar">
-                <!-- Text Formatting -->
-                <button type="button" class="tiptap-btn" data-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-                <button type="button" class="tiptap-btn" data-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-                <button type="button" class="tiptap-btn" data-action="underline" title="Underline (Ctrl+U)"><u style="text-decoration: underline;">U</u></button>
-                <button type="button" class="tiptap-btn" data-action="strike" title="Strikethrough"><s>S</s></button>
-                <button type="button" class="tiptap-btn" data-action="highlight" title="Highlight Marker">🖍️ Marker</button>
-                <button type="button" class="tiptap-btn" data-action="inline-tag" title="Inline Travel Badge / Tag">🏷️ Tag</button>
-                <span class="toolbar-separator"></span>
 
-                <!-- Text Alignment -->
-                <button type="button" class="tiptap-btn" data-action="align-left" title="Align Left">⬅️ Left</button>
-                <button type="button" class="tiptap-btn" data-action="align-center" title="Align Center">↔️ Center</button>
-                <button type="button" class="tiptap-btn" data-action="align-right" title="Align Right">➡️ Right</button>
-                <button type="button" class="tiptap-btn" data-action="align-justify" title="Justify Text">↔️ Justify</button>
-                <span class="toolbar-separator"></span>
-
-                <!-- Headings & Structure -->
-                <button type="button" class="tiptap-btn" data-action="heading-1" title="Heading 1">H1</button>
-                <button type="button" class="tiptap-btn" data-action="heading-2" title="Heading 2">H2</button>
-                <button type="button" class="tiptap-btn" data-action="heading-3" title="Heading 3">H3</button>
-                <button type="button" class="tiptap-btn" data-action="paragraph" title="Normal Paragraph">P</button>
-                <span class="toolbar-separator"></span>
-
-                <!-- Lists & Blocks -->
-                <button type="button" class="tiptap-btn" data-action="bullet-list" title="Bullet List">• List</button>
-                <button type="button" class="tiptap-btn" data-action="ordered-list" title="Numbered List">1. List</button>
-                <button type="button" class="tiptap-btn" data-action="blockquote" title="Quote Block">“” Quote</button>
-                <button type="button" class="tiptap-btn" data-action="hr" title="Horizontal Divider Line">― Line</button>
-                <span class="toolbar-separator"></span>
-
-                <!-- Presets & Components -->
-                <button type="button" class="tiptap-btn preset-btn" data-action="insert-callout" title="Insert Field Callout Box">📌 Callout</button>
-                <button type="button" class="tiptap-btn preset-btn" data-action="insert-flashcards" title="Insert Emergency Flashcards">🎴 Cards</button>
-                <span class="toolbar-separator"></span>
-
-                <!-- Formatting Clean & History -->
-                <button type="button" class="tiptap-btn" data-action="clear-nodes" title="Clear Formatting">🧹 Clear</button>
-                <button type="button" class="tiptap-btn" data-action="undo" title="Undo">↩️</button>
-                <button type="button" class="tiptap-btn" data-action="redo" title="Redo">↪️</button>
-              </div>
-              <!-- TipTap Editor Content editable Surface -->
-              <div id="tiptap-editor-element" class="tiptap-editor-element"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="flight-departure-airport-input">Departure Airport / City</label>
+              <input type="text" id="flight-departure-airport-input" required placeholder="e.g. SLC or Salt Lake City" />
+            </div>
+            <div class="form-group">
+              <label for="flight-arrival-airport-input">Arrival Airport / City</label>
+              <input type="text" id="flight-arrival-airport-input" required placeholder="e.g. HND or Tokyo Haneda" />
             </div>
           </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="flight-departure-time-input">Departure Date & Time</label>
+              <input type="text" id="flight-departure-time-input" placeholder="e.g. Oct 15, 2026 - 08:30 AM" />
+            </div>
+            <div class="form-group">
+              <label for="flight-arrival-time-input">Arrival Date & Time</label>
+              <input type="text" id="flight-arrival-time-input" placeholder="e.g. Oct 16, 2026 - 02:15 PM (+1)" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="flight-confirmation-input">Confirmation Code</label>
+              <input type="text" id="flight-confirmation-input" placeholder="e.g. H7KZ9Q" class="font-mono" />
+            </div>
+            <div class="form-group">
+              <label for="flight-cost-input">Cost ($ USD)</label>
+              <input type="number" id="flight-cost-input" min="0" step="1" placeholder="e.g. 1150" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="flight-seats-input">Seats</label>
+              <input type="text" id="flight-seats-input" placeholder="e.g. 14A, 14B" />
+            </div>
+            <div class="form-group">
+              <label for="flight-terminal-input">Terminal & Gate</label>
+              <input type="text" id="flight-terminal-input" placeholder="e.g. Terminal 2, Gate B18" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="flight-notes-input">Notes & Baggage Policy</label>
+            <textarea id="flight-notes-input" rows="2" placeholder="e.g. 2 checked bags included, carry-on under seat..."></textarea>
+          </div>
+
           <div class="modal-actions">
-            <button type="button" id="btn-delete-section-modal" class="btn-danger-modal" style="margin-right: auto; display: none;">🗑️ Delete Section</button>
-            <button type="button" id="section-modal-cancel" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary">💾 Save Topic Section</button>
+            <button type="button" id="btn-delete-flight-modal" class="btn-danger-modal" style="margin-right: auto; display: none;">🗑️ Delete Flight</button>
+            <button type="button" id="flight-modal-cancel" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">💾 Save Flight</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Hotel Modal (Add / Edit) -->
+    <div id="hotel-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title" id="hotel-modal-title">🏨 Add Hotel & Lodging</h2>
+          <button id="hotel-modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <form id="hotel-form" class="modal-form">
+          <input type="hidden" id="hotel-edit-id" value="" />
+          <div class="form-group">
+            <label for="hotel-name-input">Hotel or Property Name</label>
+            <input type="text" id="hotel-name-input" required placeholder="e.g. Grand Hyatt Tokyo, Airbnb Shinjuku" />
+          </div>
+
+          <div class="form-group">
+            <label for="hotel-address-input">Address & Area</label>
+            <input type="text" id="hotel-address-input" placeholder="e.g. 6-10-3 Roppongi, Minato City, Tokyo" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="hotel-checkin-date-input">Check-in Date & Time</label>
+              <input type="text" id="hotel-checkin-date-input" placeholder="e.g. Oct 16, 2026 (3:00 PM)" />
+            </div>
+            <div class="form-group">
+              <label for="hotel-checkout-date-input">Check-out Date & Time</label>
+              <input type="text" id="hotel-checkout-date-input" placeholder="e.g. Oct 22, 2026 (11:00 AM)" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="hotel-confirmation-input">Confirmation Code</label>
+              <input type="text" id="hotel-confirmation-input" placeholder="e.g. 84729103" class="font-mono" />
+            </div>
+            <div class="form-group">
+              <label for="hotel-cost-input">Total Cost ($ USD)</label>
+              <input type="number" id="hotel-cost-input" min="0" step="1" placeholder="e.g. 1400" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="hotel-room-type-input">Room Type & Inclusions</label>
+            <input type="text" id="hotel-room-type-input" placeholder="e.g. King Bed Deluxe, Breakfast Included" />
+          </div>
+
+          <div class="form-group">
+            <label for="hotel-notes-input">Notes & Access Code</label>
+            <textarea id="hotel-notes-input" rows="2" placeholder="e.g. Keypad code #4829, luggage storage on check-out day..."></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="btn-delete-hotel-modal" class="btn-danger-modal" style="margin-right: auto; display: none;">🗑️ Delete Hotel</button>
+            <button type="button" id="hotel-modal-cancel" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">💾 Save Hotel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Rental Car Modal (Add / Edit) -->
+    <div id="car-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title" id="car-modal-title">🚗 Add Rental Car</h2>
+          <button id="car-modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <form id="car-form" class="modal-form">
+          <input type="hidden" id="car-edit-id" value="" />
+          <div class="form-row">
+            <div class="form-group">
+              <label for="car-provider-input">Rental Company / Provider</label>
+              <input type="text" id="car-provider-input" required placeholder="e.g. Enterprise, Hertz, Toyota Rent-a-Car" />
+            </div>
+            <div class="form-group">
+              <label for="car-vehicle-type-input">Vehicle Class / Model</label>
+              <input type="text" id="car-vehicle-type-input" placeholder="e.g. Standard SUV, Toyota RAV4" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="car-pickup-location-input">Pick-up Location</label>
+              <input type="text" id="car-pickup-location-input" placeholder="e.g. Seattle Airport (SEA) Terminal" />
+            </div>
+            <div class="form-group">
+              <label for="car-pickup-time-input">Pick-up Date & Time</label>
+              <input type="text" id="car-pickup-time-input" placeholder="e.g. Oct 16, 2026 - 10:00 AM" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="car-dropoff-location-input">Drop-off Location</label>
+              <input type="text" id="car-dropoff-location-input" placeholder="e.g. Seattle Downtown Counter" />
+            </div>
+            <div class="form-group">
+              <label for="car-dropoff-time-input">Drop-off Date & Time</label>
+              <input type="text" id="car-dropoff-time-input" placeholder="e.g. Oct 20, 2026 - 05:00 PM" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="car-confirmation-input">Confirmation Code</label>
+              <input type="text" id="car-confirmation-input" placeholder="e.g. E492810" class="font-mono" />
+            </div>
+            <div class="form-group">
+              <label for="car-cost-input">Estimated Cost ($ USD)</label>
+              <input type="number" id="car-cost-input" min="0" step="1" placeholder="e.g. 380" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="car-notes-input">Notes, Toll Pass & Fuel Policy</label>
+            <textarea id="car-notes-input" rows="2" placeholder="e.g. Return with full tank, electronic toll pass included..."></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="btn-delete-car-modal" class="btn-danger-modal" style="margin-right: auto; display: none;">🗑️ Delete Rental Car</button>
+            <button type="button" id="car-modal-cancel" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">💾 Save Rental Car</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Activity Modal (Add / Edit) -->
+    <div id="activity-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title" id="activity-modal-title">🎟️ Add Activity or Pass</h2>
+          <button id="activity-modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <form id="activity-form" class="modal-form">
+          <input type="hidden" id="activity-edit-id" value="" />
+          <div class="form-group">
+            <label for="activity-title-input">Activity / Tour / Ticket Name</label>
+            <input type="text" id="activity-title-input" required placeholder="e.g. Tokyo TeamLab Planets, Whale Watching Tour" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="activity-location-input">Location / Address</label>
+              <input type="text" id="activity-location-input" placeholder="e.g. Toyosu 6-1-16, Koto City" />
+            </div>
+            <div class="form-group">
+              <label for="activity-time-input">Date & Time / Schedule</label>
+              <input type="text" id="activity-time-input" placeholder="e.g. Oct 18, 2026 - 11:30 AM" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="activity-confirmation-input">Ticket / Confirmation Code</label>
+              <input type="text" id="activity-confirmation-input" placeholder="e.g. TL-940281" class="font-mono" />
+            </div>
+            <div class="form-group">
+              <label for="activity-cost-input">Cost ($ USD)</label>
+              <input type="number" id="activity-cost-input" min="0" step="1" placeholder="e.g. 85" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="activity-notes-input">Notes, Entry Instructions & QR Code info</label>
+            <textarea id="activity-notes-input" rows="2" placeholder="e.g. Arrive 15 mins prior, mobile barcode on phone, water shoes recommended..."></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="btn-delete-activity-modal" class="btn-danger-modal" style="margin-right: auto; display: none;">🗑️ Delete Activity</button>
+            <button type="button" id="activity-modal-cancel" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">💾 Save Activity</button>
           </div>
         </form>
       </div>

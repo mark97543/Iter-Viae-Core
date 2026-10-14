@@ -59,7 +59,7 @@ class Router {
     window.location.hash = `#/trips/${slug}`;
   }
 
-  private handleHashChange() {
+  public handleHashChange() {
     const state = this.getCurrentRoute();
     this.callbacks.forEach(cb => cb(state));
   }
