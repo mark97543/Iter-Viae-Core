@@ -299,8 +299,8 @@ function renderTripsGrid() {
 
     card.innerHTML = `
       <div class="trip-card-header" style="background: ${coverGradient};">
-        <div class="trip-emoji-badge">${trip.coverEmoji || (isRoadTrip ? "🚗" : "✈️")}</div>
         <span class="trip-template-tag">${isRoadTrip ? "🚗 Road Trip" : "✈️ Travel Plan"}</span>
+        <div class="trip-emoji-badge">${trip.coverEmoji || (isRoadTrip ? "🚗" : "✈️")}</div>
       </div>
 
       <div class="trip-card-body">
@@ -315,6 +315,7 @@ function renderTripsGrid() {
         <div class="trip-meta">
           <div class="meta-item">📍 <span>${escapeHtml(trip.destination || "Destination TBD")}</span></div>
           <div class="meta-item">📅 <span>${escapeHtml(trip.dates || "Dates TBD")}</span></div>
+          <div class="meta-item">🌐 <span style="font-family: var(--font-mono); color: var(--primary); font-size:0.82rem;">${domainLabel}</span></div>
           ${trip.user && trip.user !== "guest" && user && trip.user !== user.id ? `<div class="meta-item" style="color:var(--accent); font-weight:600;">👥 <span>Shared with you</span></div>` : ""}
         </div>
         <p class="trip-summary">${escapeHtml(trip.summary || "No summary provided.")}</p>
